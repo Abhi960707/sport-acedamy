@@ -1,0 +1,66 @@
+.gameadd-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #283e51, #485563);
+  font-family: "Poppins", sans-serif;
+}
+
+.gameadd-form {
+  background: #fff;
+  padding: 30px 25px;
+  border-radius: 12px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.2);
+  width: 400px;
+}
+
+.gameadd-form h2 {
+  text-align: center;
+  margin-bottom: 20px;
+  font-size: 22px;
+  color: #333;
+  font-weight: 600;
+}
+
+.gameadd-form label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 14px;
+  color: #333;
+}
+
+.gameadd-form input,
+.gameadd-form select {
+  width: 100%;
+  padding: 10px;
+  margin-bottom: 18px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 14px;
+  outline: none;
+  transition: all 0.3s ease;
+}
+
+.gameadd-form input:focus,
+.gameadd-form select:focus {
+  border-color: #007bff;
+  box-shadow: 0 0 5px rgba(0, 123, 255, 0.4);
+}
+
+.gameadd-form button {
+  width: 100%;
+  padding: 12px;
+  background: #28a745;
+  border: none;
+  border-radius: 6px;
+  font-size: 15px;
+  color: #fff;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.gameadd-form button:hover {
+  background: #218838;
+}
