@@ -1,5 +1,5 @@
 const express  = require('express')
-const port = "https://sport-acedamy-backend.onrender.com"
+const port = "/"
 const server = express()
 const cors = require('cors')
 
