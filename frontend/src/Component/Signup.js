@@ -26,7 +26,7 @@ function Signup() {
       alert('name, email and password are required')
     }
     try{
-      const url = "http://localhost:4005/login/signup"
+      const url = "https://sport-acedamy-backend.onrender.com/login/signup"
       const response = await fetch(url,{
       method:"post",
       headers :{
