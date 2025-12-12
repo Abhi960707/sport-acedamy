@@ -23,7 +23,12 @@ server.use(players)
 
 require('./Database/db')
 
-
+server.get('/',(req,res)=>{
+    res.send({
+        activeStatus:true,
+        error:false,
+    })
+})
 
 
 server.listen(port,(error)=>{
