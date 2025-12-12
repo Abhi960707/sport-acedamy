@@ -23,7 +23,7 @@ server.use(players)
 
 require('./Database/db')
 
-app.get('/',(req,res)=>{
+server.get('/',(req,res)=>{
     res.send({
         activeStatus:true,
         error:false,
