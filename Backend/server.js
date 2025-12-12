@@ -16,6 +16,13 @@ const players = require('./Router/reportplayers')
 
 server.use(cors())
 server.use(express.json())
+
+//MongoDB Connection 
+mongoose.connect(process.env.MONGO_URI)
+  .then(() => console.log("MongoDB Connected"))
+  .catch(err => console.log("DB Error:", err));
+
+  //Routes
 server.use(addgame)
 server.use(loginRouter)
 server.use(addcoach)
@@ -33,7 +40,7 @@ server.get('/',(req,res)=>{
     })
 })
 
-
+//Start server yethun hote
 server.listen(port,(error)=>{
     if(error){
         console.log(error)
@@ -45,6 +52,3 @@ server.listen(port,(error)=>{
 
 
 
-mongoose.connect(process.env.MONGO_URI)
-  .then(() => console.log("MongoDB Connected"))
-  .catch(err => console.log(err));
