@@ -26,7 +26,7 @@ router.post('/login/signup', async(req,res)=>{
 })
 
 router.post('/login/login',async(req,res)=>{
-    const {email, password}=req.body
+    const {email, password}=req.body|| {};
     console.log(req.body)
     try{
         const userlogin = await Login.loginCheck(email,password)
@@ -62,4 +62,4 @@ router.post('/login/logout',auth, async(req,res)=>{
     }
 })
 
-module.exports = router
+module.exports = router

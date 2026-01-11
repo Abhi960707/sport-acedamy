@@ -40,7 +40,7 @@
 
 
 import { Link } from "react-router-dom";
-import "../Style/Home.css";   // CSS file import कर
+import "../Style/Home.css";  
 
 export default function Home() {
   return (

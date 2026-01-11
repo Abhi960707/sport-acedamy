@@ -17,21 +17,24 @@ const players = require('./Router/reportplayers')
 server.use(cors())
 server.use(express.json())
 
-//MongoDB Connection 
-mongoose.connect(process.env.MONGO_URI)
-  .then(() => console.log("MongoDB Connected"))
-  .catch(err => console.log("DB Error:", err));
-
   //Routes
 server.use(addgame)
-server.use(loginRouter)
+server.use(loginRouter) //change 
+// server.use('/login',loginRouter)
 server.use(addcoach)
 server.use(addplayers)
 server.use(rdd)
 server.use(coach)
 server.use(players)
 
+//this is used mongoose connection 
 require('./Database/db')
+// like he hi normally ase aste MongoDB Connection
+
+// mongoose.connect(process.env.MONGO_URI)
+//   .then(() => console.log("MongoDB Connected"))
+//   .catch(err => console.log("DB Error:", err));
+
 
 server.get('/',(req,res)=>{
     res.send({
