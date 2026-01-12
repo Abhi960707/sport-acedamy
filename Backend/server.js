@@ -1,8 +1,9 @@
 require('dotenv').config();
 const mongoose = require('mongoose');
 
-const express  = require('express')
-const port = 4005
+const express = require('express')
+// const port = 4005
+const port = process.env.PORT || 4005;
 const server = express()
 const cors = require('cors')
 
@@ -17,7 +18,7 @@ const players = require('./Router/reportplayers')
 server.use(cors())
 server.use(express.json())
 
-  //Routes
+//Routes
 server.use(addgame)
 server.use(loginRouter) //change 
 // server.use('/login',loginRouter)
@@ -36,16 +37,16 @@ require('./Database/db')
 //   .catch(err => console.log("DB Error:", err));
 
 
-server.get('/',(req,res)=>{
+server.get('/', (req, res) => {
     res.send({
-        activeStatus:true,
-        error:false,
-    })
+        activeStatus: true,
+        error: false,
+    })
 })
 
 //Start server yethun hote
-server.listen(port,(error)=>{
-    if(error){
+server.listen(port, (error) => {
+    if (error) {
         console.log(error)
     }
     console.log(`server is running on ${port}`)
