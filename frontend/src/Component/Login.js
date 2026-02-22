@@ -19,41 +19,49 @@ function Login() {
         copyLogin[name] = value
         setLogin(copyLogin)
     }
+
     const handleLogin = async (e) => {
-        e.preventDefault()
-        const {email, password} = login
-        if(!email){
-           alert('Email is wrong')
-        }
-        if(!password){
-            alert('password is required...')
-        }
-        try{
-              const url = "http://localhost:4005/login/login"
-              const response = await fetch(url,{
-              method:"post",
-              headers :{
-                'Content-Type':'application/json'
-              },
-              body:JSON.stringify(login)
-            })
-        
-            const result = await response.json()
-            const { success, token } = result
-            if(success){
-              localStorage.setItem('token', token)
-           alert('login successfull')
-              navigate('/Home')
-            }
-            else{
-              alert("You are entered wrong deatils !!!")
-            }
-        
-          }
-            catch(e){
-              console.log("error",e)
-            }
+  e.preventDefault();
+
+  const { email, password } = login;
+
+  if (!email) {
+    alert("Email is required");
+    return;
+  }
+
+  if (!password) {
+    alert("Password is required");
+    return;
+  }
+
+  try {
+    const url = "http://localhost:4005/login/login";
+
+    const response = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(login),
+    });
+
+    const result = await response.json();
+    const { success, token, message } = result;
+
+    if (success) {
+      localStorage.setItem("token", token);
+      alert("Login successful");
+      navigate("/Home");
+    } else {
+      alert(message || "Wrong email or password");
     }
+  } catch (error) {
+    console.log("Login error:", error);
+    alert("Server not responding");
+  }
+};
+
     
     
   return (
