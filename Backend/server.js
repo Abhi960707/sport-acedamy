@@ -34,12 +34,11 @@ require('./Database/db')
 //   .then(() => console.log("MongoDB Connected"))
 //   .catch(err => console.log("DB Error:", err));
 
-
 server.get('/',(req,res)=>{
     res.send({
         activeStatus:true,
         error:false,
-    })
+    })
 })
 
 //Start server yethun hote
