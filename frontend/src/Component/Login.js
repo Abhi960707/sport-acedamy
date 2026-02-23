@@ -1,10 +1,8 @@
 import React, { useState } from 'react'
-
+import "../Style/Login.css"
 import { Link } from 'react-router-dom'
 
 import { useNavigate } from 'react-router-dom'
-
-import '../Style/Login.css';
 
 function Login() {
   const navigate = useNavigate()
@@ -36,7 +34,7 @@ function Login() {
   }
 
   try {
-    const url = "http://localhost:4005/login/login";
+    const url = "https://sport-acedamy-1.onrender.com/login/login";
 
     const response = await fetch(url, {
       method: "POST",
@@ -66,32 +64,31 @@ function Login() {
     
   return (
     <div className='container'>
-      
+
       <form onSubmit={handleLogin}>
         <div>
-          <label htmlFor="email">Email</label>
+          <label htmlFor="email">Email *</label>
           <input type="email"
                     onChange={handleChange}
                     name='email'
-                    placeholder='enter your email...'
+                    placeholder='Enter your email...'
                     value={login.email}
           />
         </div>
         <div>
-          <label htmlFor="password">Password</label>
+          <label htmlFor="password">Password *</label>
           <input type="password"
                     onChange={handleChange}
                     name='password'
-                    placeholder='enter your password...'
+                    placeholder='Enter your password...'
                     value={login.password}
           />
         </div>
         <button type='submit'>Login</button>
         <span>
-              don't have an account ?<Link to='/Signup'>Signup</Link>
+              Don't have an account ? <Link to='/Signup'>Signup</Link>
         </span>
       </form>
-    
       
     </div>     
   )

@@ -95,7 +95,7 @@ function GameAdd() {
     const token = localStorage.getItem("token");
     console.log(token);
     try {
-      const res = await fetch("http://localhost:4005/games/add", {
+      const res = await fetch("https://sport-acedamy-1.onrender.com/games/add", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

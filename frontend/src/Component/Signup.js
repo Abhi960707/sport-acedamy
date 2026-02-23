@@ -26,7 +26,7 @@ function Signup() {
       alert('name, email and password are required')
     }
     try{
-      const url = "http://localhost:4005/login/signup"
+      const url = "https://sport-acedamy-1.onrender.com/login/signup"
       const response = await fetch(url,{
       method:"post",
       headers :{
@@ -62,35 +62,35 @@ function Signup() {
       
       <form onSubmit={handleSignup}>
         <div>
-          <label htmlFor="name">Name</label>
+          <label htmlFor="name">Name *</label>
           <input type="text"
                   onChange={handleChange}
                   name='name'
                   autoFocus
-                  placeholder='enter your name...'
+                  placeholder='Enter your name...'
                   value={signupInfo.name}
           />
         </div>
         <div>
-          <label htmlFor="email">Email</label>
+          <label htmlFor="email">Email *</label>
           <input type="email"
                   onChange={handleChange}
                   name='email'
-                  placeholder='enter your email...'
+                  placeholder='Enter your email...'
                   value={signupInfo.email}
           />
         </div>
         <div>
-          <label htmlFor="password">Password</label>
+          <label htmlFor="password">Password *</label>
           <input type="password"
                   onChange={handleChange}
                   name='password'
-                  placeholder='enter your password...'
+                  placeholder='Enter your password...'
                   value={signupInfo.password}
           />
         </div>
         <button type='submit'>Signup</button>
-        <span>already have an account ?
+        <span>Already have an account ?
           <Link to='/login'>Login</Link>
         </span>
       </form>

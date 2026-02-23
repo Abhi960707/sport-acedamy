@@ -26,7 +26,7 @@ function PlayerAdd() {
     s.preventDefault();
     const token = localStorage.getItem("token");
     try {
-      const res = await fetch("http://localhost:4005/players/add", {
+      const res = await fetch("https://sport-acedamy-1.onrender.com/players/add", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

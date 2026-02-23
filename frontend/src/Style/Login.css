@@ -5,7 +5,10 @@
   min-height: 100vh;
   background: #f4f4f4;
   font-family: Arial, sans-serif;
+  background: url("../assets/Home.jpg") no-repeat center center/cover;
 }
+
+
 
 form {
   background: #fff;
@@ -13,6 +16,7 @@ form {
   border-radius: 10px;
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
   width: 320px;
+  /* height: 250px; */
 }
 
 h1 {
@@ -46,7 +50,7 @@ input:focus {
 button {
   width: 100%;
   padding: 10px;
-  background: #007bff;
+  background:  #df9438;
   color: #fff;
   border: none;
   border-radius: 6px;
@@ -55,7 +59,7 @@ button {
 }
 
 button:hover {
-  background: #0056b3;
+  background:#0f766e;
 }
 
 span {

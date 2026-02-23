@@ -88,7 +88,7 @@ function CoachReport() {
   useEffect(() => {
     const fetchtasks = async () => {
       try {
-        const res = await axios.get("http://localhost:4005/coach/report", {
+        const res = await axios.get("https://sport-acedamy-1.onrender.com/coach/report", {
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -104,7 +104,7 @@ function CoachReport() {
   }, [token]);
 
   const Coachdelete = async (id) => {
-    const rem = await fetch(`http://localhost:4005/coach/delete/${id}`, {
+    const rem = await fetch(`https://sport-acedamy-1.onrender.com/coach/delete/${id}`, {
       method: "DELETE",
     });
     const emp = await rem.json();

@@ -89,7 +89,7 @@ function GameReport() {
   useEffect(() => {
     const fetchtasks = async () => {
       try {
-        const res = await axios.get("http://localhost:4005/games/report", {
+        const res = await axios.get("https://sport-acedamy-1.onrender.com/games/report", {
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -105,7 +105,7 @@ function GameReport() {
   }, [token]);
 
   const Gamedelete = async (id) => {
-    const rem = await fetch(`http://localhost:4005/games/delete/${id}`, {
+    const rem = await fetch(`https://sport-acedamy-1.onrender.com/games/delete/${id}`, {
       method: "DELETE",
     });
     const emp = await rem.json();

@@ -60,4 +60,19 @@ router.delete('/players/delete/:id',async(req,res)=>{
      }
 })
 
+router.get('/players', async (req, res) => {
+    try {
+        const allPlayers = await players.find()
+        res.status(200).json({
+            success: true,
+            data: allPlayers
+        })
+    } catch (e) {
+        res.status(400).json({
+            success: false,
+            message: "Players not found"
+        })
+    }
+})
+
 module.exports = router;
