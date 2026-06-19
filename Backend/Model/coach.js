@@ -12,6 +12,10 @@ const coachSchema = mongoose.Schema({
         required:true
 
     },
+    middlename:{
+        type:String,
+        required:true
+    },
     sportSpecialization:{
         type:String,
         required:true

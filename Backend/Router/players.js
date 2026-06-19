@@ -35,7 +35,7 @@ router.post('/players/add',auth,async(req, res)=>{
         res.status(400).json({
             success:false,
             message:"player not add",
-            error:e.error
+            error:e.message
             
         })
     }

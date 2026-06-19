@@ -11,6 +11,7 @@ router.post('/coach/add',auth,async(req, res)=>{
         const coachAdd = new coach({
         coachId: req.body.coachId,
         name: req.body.name,
+        middlename: req.body.middlename,
         sportSpecialization: req.body.sportSpecialization,
         contact: req.body.contact,
         experience: req.body.experience,
@@ -31,7 +32,7 @@ router.post('/coach/add',auth,async(req, res)=>{
         res.status(400).json({
             success:false,
             message:"coach not add",
-            error:e.error
+            error:e.message
             
         })
     }

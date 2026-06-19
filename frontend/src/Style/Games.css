@@ -1,66 +1,198 @@
-.gameadd-container {
+/* =============================================
+   SHARED FORM PAGE STYLES
+   (Games, Coach, Player)
+   ============================================= */
+
+.form-page {
+  flex: 1;
   display: flex;
+  align-items: flex-start;
   justify-content: center;
+  padding: 40px 24px 60px;
+  background: var(--clr-bg);
+  min-height: calc(100vh - 64px);
+}
+
+.form-card {
+  width: 100%;
+  max-width: 720px;
+  background: #ffffff;
+  border: 1px solid var(--clr-border);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-lg);
+  overflow: hidden;
+  animation: fadeInUp 0.5s ease both;
+  backdrop-filter: blur(12px);
+}
+
+/* Header */
+.form-card__header {
+  display: flex;
   align-items: center;
-  min-height: 100vh;
-  background: linear-gradient(135deg, #283e51, #485563);
-  font-family: "Poppins", sans-serif;
+  gap: 18px;
+  padding: 28px 32px;
+  background: linear-gradient(135deg, rgba(217,119,6,0.04) 0%, rgba(13,148,136,0.04) 100%);
+  border-bottom: 1px solid var(--clr-border);
 }
 
-.gameadd-form {
-  background: #fff;
-  padding: 30px 25px;
-  border-radius: 12px;
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.2);
-  width: 400px;
+.form-card__icon {
+  font-size: 36px;
+  filter: drop-shadow(0 0 12px rgba(245,158,11,0.4));
 }
 
-.gameadd-form h2 {
-  text-align: center;
-  margin-bottom: 20px;
+.form-card__title {
+  font-family: var(--font-display);
   font-size: 22px;
-  color: #333;
+  font-weight: 700;
+  color: var(--clr-text);
+  margin-bottom: 3px;
+}
+
+.form-card__sub {
+  font-size: 13px;
+  color: var(--clr-text-3);
+}
+
+/* Form body */
+.form-body {
+  padding: 32px;
+}
+
+/* Grid Layout */
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  margin-bottom: 28px;
+}
+
+.form-grid--single {
+  grid-template-columns: 1fr;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.form-group--full {
+  grid-column: 1 / -1;
+}
+
+/* Label */
+.form-label {
+  font-size: 13px;
   font-weight: 600;
+  color: var(--clr-text-2);
+  letter-spacing: 0.02em;
 }
 
-.gameadd-form label {
-  display: block;
-  margin-bottom: 6px;
+/* Input */
+.form-input {
+  padding: 11px 14px;
+  background: var(--clr-surface);
+  border: 1px solid var(--clr-border);
+  border-radius: var(--radius-sm);
   font-size: 14px;
-  color: #333;
-}
-
-.gameadd-form input,
-.gameadd-form select {
-  width: 100%;
-  padding: 10px;
-  margin-bottom: 18px;
-  border: 1px solid #ccc;
-  border-radius: 6px;
-  font-size: 14px;
+  color: var(--clr-text);
+  transition: var(--transition);
+  font-family: var(--font-primary);
   outline: none;
-  transition: all 0.3s ease;
-}
-
-.gameadd-form input:focus,
-.gameadd-form select:focus {
-  border-color: #007bff;
-  box-shadow: 0 0 5px rgba(0, 123, 255, 0.4);
-}
-
-.gameadd-form button {
   width: 100%;
-  padding: 12px;
-  background: #28a745;
-  border: none;
-  border-radius: 6px;
-  font-size: 15px;
-  color: #fff;
-  cursor: pointer;
-  font-weight: 600;
-  transition: all 0.3s ease;
 }
 
-.gameadd-form button:hover {
-  background: #218838;
+.form-input::placeholder {
+  color: var(--clr-text-3);
+}
+
+.form-input:focus {
+  border-color: var(--clr-gold);
+  background: rgba(245,158,11,0.05);
+  box-shadow: 0 0 0 3px rgba(245,158,11,0.1);
+}
+
+.form-input:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Select */
+.form-select {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%2394a3b8' d='M6 8L0 0h12z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  padding-right: 36px;
+  cursor: pointer;
+}
+
+.form-select option {
+  background: #ffffff;
+  color: var(--clr-text);
+}
+
+/* Actions */
+.form-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  padding-top: 12px;
+  border-top: 1px solid var(--clr-border);
+}
+
+/* Buttons */
+.form-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 11px 28px;
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  transition: var(--transition);
+  font-family: var(--font-primary);
+  letter-spacing: 0.02em;
+}
+
+.form-btn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.form-btn--primary {
+  background: var(--grad-gold);
+  color: #ffffff;
+  box-shadow: var(--shadow-gold);
+}
+
+.form-btn--primary:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(245,158,11,0.4);
+  filter: brightness(1.08);
+}
+
+.form-btn--secondary {
+  background: var(--clr-surface-2);
+  color: var(--clr-text-2);
+  border: 1px solid var(--clr-border);
+}
+
+.form-btn--secondary:hover:not(:disabled) {
+  background: var(--clr-surface);
+  color: var(--clr-text);
+  border-color: var(--clr-border-2);
+}
+
+/* Responsive */
+@media (max-width: 600px) {
+  .form-page  { padding: 20px 16px 40px; }
+  .form-body  { padding: 24px 20px; }
+  .form-grid  { grid-template-columns: 1fr; }
+  .form-card__header { padding: 22px 20px; }
+  .form-actions { flex-direction: column-reverse; }
+  .form-btn { width: 100%; }
 }

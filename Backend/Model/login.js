@@ -27,8 +27,8 @@ const loginSchema = mongoose.Schema({
         type:String,
         required:true,
         validate(value){
-            if(value.lenght < 4){
-                throw new Error('Password must be grether then 4',{})
+            if(value.length < 4){
+                throw new Error('Password must be greater than 4 characters',{})
             }
         }
     },
@@ -51,9 +51,8 @@ loginSchema.pre("save",async function(next){
 loginSchema.statics.loginCheck = async function (email,password){
     console.log("ok")
     const temp = await this.findOne({email})
-    // console.log(temp)
-    if(!email){
-        throw new Error("User not found")
+    if(!temp){
+        throw new Error("User not found. Please check your email.")
     }
     const isMatch = await bcrypt.compare(password,temp.password)
     if(isMatch){
@@ -67,7 +66,7 @@ loginSchema.statics.loginCheck = async function (email,password){
 
 loginSchema.methods.generateToken = async function(){
     const loginForToken = this
-    let token = jwt.sign({_id:loginForToken._id.toString()},'newtokencreated')
+    let token = jwt.sign({_id:loginForToken._id.toString()}, process.env.JWT_SECRET || 'newtokencreated')
 
     loginForToken.tokens = await loginForToken.tokens.concat({token})
     await loginForToken.save()

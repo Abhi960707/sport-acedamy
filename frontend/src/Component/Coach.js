@@ -1,174 +1,179 @@
-// import { useState } from "react";
-  
+import { useState } from 'react';
+import { useToast } from './Toast';
+import '../Style/Coach.css';
 
-  
-  
-//   function CoachAdd(){
-//       const [addCoach,setAddCoach]=useState({
-//           coachId:'',
-//           name:'',
-//           sportSpecialization:'',
-//           contact:'',
-//           experience:''
-        
-//       })
-  
-//       const handleCoach = (e)=>{
-//           setAddCoach({ ...addCoach,[e.target.name]:e.target.value})
-//       }
-  
-//       const coachSubmit =async (s)=>{
-//         s.preventDefault();
-//         const token=localStorage.getItem("token")
-//         console.log(token)
-//         try{
-          
-//           const res = await fetch("http://localhost:4005/coach/add",{
-//               method:"POST",
-//               headers:{
-//                   "Content-Type":"application/json",
-//                   Authorization: `Bearer ${token}`
-//               },
-//               body:JSON.stringify(addCoach)
-//           })
-  
-//           const result = await res.json();
-//           console.log(result)
-  
-//           if(result.success){
-//               alert("Coach add successful")
-//           }
-//           else{
-//               alert("Coach not added")
-//           }
-//         }
-//         catch(error){
-//               alert("server error")
-//         }
-//       }
-
-
-
-    
-      
-//   return(<>
-//   <div>
-//     <h2></h2>
-//     <form onSubmit={coachSubmit}>
-//     <label>CoachId</label><input type="text" name="coachId" value={addCoach.coachId}  onChange={handleCoach}></input>
-//     <label>Name</label><input type="text" name="name" value={addCoach.name} onChange={handleCoach}></input>
-//     <label>Sport Specilization</label> <input type="text" name="sportSpecialization" value={addCoach.sportSpecialization} onChange={handleCoach}></input> 
-//     <label>Contact</label><input type="text" name="contact" value={addCoach.contact} onChange={handleCoach}></input>
-//     <label>Experience</label><input type="text" name="experience" value={addCoach.experience} onChange={handleCoach}></input>
-//     <button type="submit">Save</button>
-// </form>
-//   </div>
-//   </>
-
-//   );
-// }
-// export default CoachAdd
-  
-  
-  
-    
-import { useState } from "react";
-import "../Style/Coach.css";
+const INITIAL_STATE = {
+  coachId: '',
+  name: '',
+  middlename: '',
+  sportSpecialization: '',
+  contact: '',
+  experience: '',
+};
 
 function CoachAdd() {
-  const [addCoach, setAddCoach] = useState({
-    coachId: "",
-    name: "",
-    sportSpecialization: "",
-    contact: "",
-    experience: ""
-  });
+  const toast = useToast();
+  const [addCoach, setAddCoach] = useState(INITIAL_STATE);
+  const [loading, setLoading] = useState(false);
 
   const handleCoach = (e) => {
-    setAddCoach({ ...addCoach, [e.target.name]: e.target.value });
+    setAddCoach(prev => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
-  const coachSubmit = async (s) => {
-    s.preventDefault();
-    const token = localStorage.getItem("token");
-    console.log(token);
+  const coachSubmit = async (e) => {
+    e.preventDefault();
+    const { coachId, name, sportSpecialization, contact, experience,middlename } = addCoach;
+    if (!coachId || !name || !sportSpecialization || !contact || !experience || !middlename) {
+      toast('Please fill in all fields', 'warning');
+      return;
+    }
+
+    setLoading(true);
+    const token = localStorage.getItem('token');
     try {
-      const res = await fetch("https://sport-acedamy-1.onrender.com/coach/add", {
-        method: "POST",
+      const res = await fetch('http://localhost:4005/coach/add', {
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify(addCoach)
+        body: JSON.stringify(addCoach),
       });
 
       const result = await res.json();
-      console.log(result);
-
       if (result.success) {
-        alert("Coach add successful");
-         setAddCoach({
-          coachId: "",
-          name: "",
-          sportSpecialization: "",
-          contact: "",
-          experience: ""
-        });
+        toast('Coach added successfully!', 'success');
+        setAddCoach(INITIAL_STATE);
       } else {
-        alert("Coach not added");
+        toast(result.message || 'Failed to add coach', 'error');
       }
     } catch (error) {
-      alert("server error");
+      toast('Server error. Please try again.', 'error');
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <div className="coachadd-container">
-      <form className="coachadd-form" onSubmit={coachSubmit}>
-        <h2>Add New Coach</h2>
+    <div className="form-page">
+      <div className="form-card">
+        <div className="form-card__header">
+          <span className="form-card__icon">👤</span>
+          <div>
+            <h2 className="form-card__title">Add New Coach</h2>
+            <p className="form-card__sub">Register a coach to the academy</p>
+          </div>
+        </div>
 
-        <label>Coach ID</label>
-        <input
-          type="text"
-          name="coachId"
-          value={addCoach.coachId}
-          onChange={handleCoach}
-        />
+        <form className="form-body" onSubmit={coachSubmit} id="coach-add-form" noValidate>
+          <div className="form-grid">
+            <div className="form-group">
+              <label className="form-label" htmlFor="coach-id">Coach ID</label>
+              <input
+                id="coach-id"
+                className="form-input"
+                type="text"
+                name="coachId"
+                placeholder="e.g. C001"
+                value={addCoach.coachId}
+                onChange={handleCoach}
+                disabled={loading}
+              />
+            </div>
 
-        <label>Name</label>
-        <input
-          type="text"
-          name="name"
-          value={addCoach.name}
-          onChange={handleCoach}
-        />
+            <div className="form-group">
+              <label className="form-label" htmlFor="coach-name">Full Name</label>
+              <input
+                id="coach-name"
+                className="form-input"
+                type="text"
+                name="name"
+                placeholder="Coach full name"
+                value={addCoach.name}
+                onChange={handleCoach}
+                disabled={loading}
+              />
+            </div>
 
-        <label>Sport Specialization</label>
-        <input
-          type="text"
-          name="sportSpecialization"
-          value={addCoach.sportSpecialization}
-          onChange={handleCoach}
-        />
+            <div className="form-group">
+              <label className="form-label" htmlFor="coach-middlename">Middle Name</label>
+              <input
+                id="coach-middlename"
+                className="form-input"
+                type="text"
+                name="middlename"
+                placeholder="Coach Middle name"
+                value={addCoach.middlename}
+                onChange={handleCoach}
+                disabled={loading}
+              />
+            </div>
 
-        <label>Contact</label>
-        <input
-          type="text"
-          name="contact"
-          value={addCoach.contact}
-          onChange={handleCoach}
-        />
+            <div className="form-group">
+              <label className="form-label" htmlFor="coach-sport">Sport Specialization</label>
+              <input
+                id="coach-sport"
+                className="form-input"
+                type="text"
+                name="sportSpecialization"
+                placeholder="e.g. Cricket"
+                value={addCoach.sportSpecialization}
+                onChange={handleCoach}
+                disabled={loading}
+              />
+            </div>
 
-        <label>Experience</label>
-        <input
-          type="text"
-          name="experience"
-          value={addCoach.experience}
-          onChange={handleCoach}
-        />
+            <div className="form-group">
+              <label className="form-label" htmlFor="coach-contact">Contact Number</label>
+              <input
+                id="coach-contact"
+                className="form-input"
+                type="text"
+                name="contact"
+                placeholder="e.g. 9876543210"
+                value={addCoach.contact}
+                onChange={handleCoach}
+                disabled={loading}
+              />
+            </div>
 
-        <button type="submit">Save</button>
-      </form>
+            <div className="form-group form-group--full">
+              <label className="form-label" htmlFor="coach-exp">Experience</label>
+              <input
+                id="coach-exp"
+                className="form-input"
+                type="text"
+                name="experience"
+                placeholder="e.g. 5 years"
+                value={addCoach.experience}
+                onChange={handleCoach}
+                disabled={loading}
+              />
+            </div>
+          </div>
+
+          <div className="form-actions">
+            <button
+              id="coach-reset-btn"
+              type="button"
+              className="form-btn form-btn--secondary"
+              onClick={() => setAddCoach(INITIAL_STATE)}
+              disabled={loading}
+            >
+              Reset
+            </button>
+            <button
+              id="coach-submit-btn"
+              type="submit"
+              className="form-btn form-btn--primary"
+              disabled={loading}
+            >
+              {loading && <span className="loading-spinner" />}
+              {loading ? 'Saving...' : 'Save Coach'}
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
   );
 }

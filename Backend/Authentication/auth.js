@@ -2,14 +2,15 @@ const jwt = require('jsonwebtoken')
 const Login = require('../Model/login')
 
 const auth = async function(req, res, next) {
-  const loginToken = req.header('Authorization').replace('Bearer ', '');
+  const authHeader = req.header('Authorization');
+  const loginToken = authHeader ? authHeader.replace('Bearer ', '') : null;
 
   if (!loginToken) {
     return res.status(401).json({ success: false, message: 'No token provided' });
   }
 
   try {
-    const empObj = jwt.verify(loginToken, 'newtokencreated');
+    const empObj = jwt.verify(loginToken, process.env.JWT_SECRET || 'newtokencreated');
     const tempEmp = await Login.findOne({ _id: empObj._id, 'tokens.token': loginToken });
 
     if (!tempEmp) {

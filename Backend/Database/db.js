@@ -18,8 +18,15 @@
 // else
 //     console.log('connection failed to DB')
 
-const mongoose = require("mongoose");
+// const mongoose = require("mongoose");
+// console.log("URI =", process.env.MONGO_URI);
+// mongoose.connect(process.env.MONGO_URI)
+//   .then(() => console.log("Connected to MongoDB Atlas"))
+//   .catch((err) => console.log("DB Connection Failed:", err));
 
-mongoose.connect(process.env.MONGO_URI)
-  .then(() => console.log("Connected to MongoDB Atlas"))
-  .catch((err) => console.log("DB Connection Failed:", err));
+
+  const mongoose = require('mongoose');
+
+mongoose.connect('mongodb://127.0.0.1:27017/sportAcademy')
+  .then(() => console.log('Connected to Local MongoDB'))
+  .catch(err => console.log('DB Connection Failed:', err));

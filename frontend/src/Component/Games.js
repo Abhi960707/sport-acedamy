@@ -1,184 +1,186 @@
-// import { useState } from "react";
+import { useState } from 'react';
+import { useToast } from './Toast';
+import '../Style/Games.css';
 
-// function GameAdd(){
-//     const [addGame,setAddGame]=useState({
-//         gameId:'',
-//         gameName:'',
-//         category:'',
-//         gameType:'',
-//         duration:'',
-//         gameFee:''
-//     })
-
-//     const handleGame = (e)=>{
-//         setAddGame({ ...addGame,[e.target.name]:e.target.value})
-//     }
-
-//     const gameSubmit =async (s)=>{
-//       s.preventDefault();
-//       const token=localStorage.getItem("token")
-//       console.log(token)
-//       try{
-        
-//         const res = await fetch("http://localhost:4005/games/add",{
-//             method:"POST",
-//             headers:{
-//                 "Content-Type":"application/json",
-//                 Authorization: `Bearer ${token}`
-//             },
-//             body:JSON.stringify(addGame)
-//         })
-
-//         const result = await res.json();
-//         console.log(result)
-
-//         if(result.success){
-//             alert("game add successful")
-//         }
-//         else{
-//             alert("game not added")
-//         }
-//       }
-//       catch(error){
-//             alert("server error")
-//       }
-//     }
-//     return(<>
-        
-//         <div>
-//        <h2>omka</h2> 
-//        <form onSubmit={gameSubmit}>
-//         <label>Game Id</label><input type="text" name="gameId" value={addGame.gameId} onChange={handleGame}></input>
-//         <label>Game Name</label><input type="text" name="gameName" value={addGame.gameName} onChange={handleGame}></input>
-//        <label>Category</label>
-//        <select name="category" value={addGame.category} onChange={handleGame}> 
-//         <option>Select</option>
-//         <option value="single">Single</option>
-//         <option value="double">Double</option> 
-//         <option value="team">Team</option>       
-//        </select>
-//        <label>GameType</label>
-//        <select name="gameType" value={addGame.gameType} onChange={handleGame}>
-//         <option>Select</option> 
-//         <option value="indoor">Indoor</option>
-//         <option value="outdoor">Outdoor</option>                       
-//          </select>
-//          <label>Duration</label><input type="text" name="duration" value={addGame.duration} onChange={handleGame}></input>
-//          <label>Game Fee</label><input type="number" name="gameFee" value={addGame.gameFee} onChange={handleGame}></input>
-//          <button type="submit">Save</button>
-
-//        </form>
-//         </div>
-//         </>
-//     );
-// }
-//  export default GameAdd
-import { useState } from "react";
-import "../Style/Games.css";
+const INITIAL_STATE = {
+  gameId: '',
+  gameName: '',
+  category: '',
+  gameType: '',
+  duration: '',
+  gameFee: '',
+};
 
 function GameAdd() {
-  const [addGame, setAddGame] = useState({
-    gameId: "",
-    gameName: "",
-    category: "",
-    gameType: "",
-    duration: "",
-    gameFee: ""
-  });
+  const toast = useToast();
+  const [addGame, setAddGame] = useState(INITIAL_STATE);
+  const [loading, setLoading] = useState(false);
 
   const handleGame = (e) => {
-    setAddGame({ ...addGame, [e.target.name]: e.target.value });
+    setAddGame(prev => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
-  const gameSubmit = async (s) => {
-    s.preventDefault();
-    const token = localStorage.getItem("token");
-    console.log(token);
+  const gameSubmit = async (e) => {
+    e.preventDefault();
+    const { gameId, gameName, category, gameType, duration, gameFee } = addGame;
+    if (!gameId || !gameName || !category || !gameType || !duration || !gameFee) {
+      toast('Please fill in all fields', 'warning');
+      return;
+    }
+
+    setLoading(true);
+    const token = localStorage.getItem('token');
     try {
-      const res = await fetch("https://sport-acedamy-1.onrender.com/games/add", {
-        method: "POST",
+      const res = await fetch('http://localhost:4005/games/add', {
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify(addGame)
+        body: JSON.stringify(addGame),
       });
 
       const result = await res.json();
-      console.log(result);
-
       if (result.success) {
-        alert("game add successful");
-        setAddGame({
-          gameId: "",
-          gameName: "",
-          category: "",
-          gameType: "",
-          duration: "",
-          gameFee: "" //
-        });
+        toast('Game added successfully!', 'success');
+        setAddGame(INITIAL_STATE);
       } else {
-        alert("game not added");
+        toast(result.message || 'Failed to add game', 'error');
       }
     } catch (error) {
-      alert("server error");
+      toast('Server error. Please try again.', 'error');
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <div className="gameadd-container">
-      <form className="gameadd-form" onSubmit={gameSubmit}>
-        <h2>Add New Game</h2>
+    <div className="form-page">
+      <div className="form-card">
+        {/* Header */}
+        <div className="form-card__header">
+          <span className="form-card__icon">🎮</span>
+          <div>
+            <h2 className="form-card__title">Add New Game</h2>
+            <p className="form-card__sub">Register a new sport to the academy</p>
+          </div>
+        </div>
 
-        <label>Game Id</label>
-        <input
-          type="text"
-          name="gameId"
-          value={addGame.gameId}
-          onChange={handleGame}
-        />
+        <form className="form-body" onSubmit={gameSubmit} id="game-add-form" noValidate>
+          <div className="form-grid">
+            <div className="form-group">
+              <label className="form-label" htmlFor="game-id">Game ID</label>
+              <input
+                id="game-id"
+                className="form-input"
+                type="text"
+                name="gameId"
+                placeholder="e.g. G001"
+                value={addGame.gameId}
+                onChange={handleGame}
+                disabled={loading}
+              />
+            </div>
 
-        <label>Game Name</label>
-        <input
-          type="text"
-          name="gameName"
-          value={addGame.gameName}
-          onChange={handleGame}
-        />
+            <div className="form-group">
+              <label className="form-label" htmlFor="game-name">Game Name</label>
+              <input
+                id="game-name"
+                className="form-input"
+                type="text"
+                name="gameName"
+                placeholder="e.g. Cricket"
+                value={addGame.gameName}
+                onChange={handleGame}
+                disabled={loading}
+              />
+            </div>
 
-        <label>Category</label>
-        <select name="category" value={addGame.category} onChange={handleGame}>
-          <option value="">Select</option>
-          <option value="single">Single</option>
-          <option value="double">Double</option>
-          <option value="team">Team</option>
-        </select>
+            <div className="form-group">
+              <label className="form-label" htmlFor="game-category">Category</label>
+              <select
+                id="game-category"
+                className="form-input form-select"
+                name="category"
+                value={addGame.category}
+                onChange={handleGame}
+                disabled={loading}
+              >
+                <option value="">Select Category</option>
+                <option value="single">Single</option>
+                <option value="double">Double</option>
+                <option value="team">Team</option>
+              </select>
+            </div>
 
-        <label>Game Type</label>
-        <select name="gameType" value={addGame.gameType} onChange={handleGame}>
-          <option value="">Select</option>
-          <option value="indoor">Indoor</option>
-          <option value="outdoor">Outdoor</option>
-        </select>
+            <div className="form-group">
+              <label className="form-label" htmlFor="game-type">Game Type</label>
+              <select
+                id="game-type"
+                className="form-input form-select"
+                name="gameType"
+                value={addGame.gameType}
+                onChange={handleGame}
+                disabled={loading}
+              >
+                <option value="">Select Type</option>
+                <option value="indoor">Indoor</option>
+                <option value="outdoor">Outdoor</option>
+              </select>
+            </div>
 
-        <label>Duration</label>
-        <input
-          type="text"
-          name="duration"
-          value={addGame.duration}
-          onChange={handleGame}
-        />
+            <div className="form-group">
+              <label className="form-label" htmlFor="game-duration">Duration</label>
+              <input
+                id="game-duration"
+                className="form-input"
+                type="text"
+                name="duration"
+                placeholder="e.g. 60 mins"
+                value={addGame.duration}
+                onChange={handleGame}
+                disabled={loading}
+              />
+            </div>
 
-        <label>Game Fee</label>
-        <input
-          type="number"
-          name="gameFee"
-          value={addGame.gameFee}
-          onChange={handleGame}
-        />
+            <div className="form-group">
+              <label className="form-label" htmlFor="game-fee">Game Fee (₹)</label>
+              <input
+                id="game-fee"
+                className="form-input"
+                type="number"
+                name="gameFee"
+                placeholder="e.g. 1500"
+                value={addGame.gameFee}
+                onChange={handleGame}
+                disabled={loading}
+                min="0"
+              />
+            </div>
+          </div>
 
-        <button type="submit">Save</button>
-      </form>
+          <div className="form-actions">
+            <button
+              id="game-reset-btn"
+              type="button"
+              className="form-btn form-btn--secondary"
+              onClick={() => setAddGame(INITIAL_STATE)}
+              disabled={loading}
+            >
+              Reset
+            </button>
+            <button
+              id="game-submit-btn"
+              type="submit"
+              className="form-btn form-btn--primary"
+              disabled={loading}
+            >
+              {loading && <span className="loading-spinner" />}
+              {loading ? 'Saving...' : 'Save Game'}
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
   );
 }

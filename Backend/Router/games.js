@@ -28,7 +28,7 @@ router.post('/games/add',auth,async(req, res)=>{
         res.status(400).json({
             success:false,
             message:"game not add",
-            error:e.error
+            error:e.message
             
         })
     }

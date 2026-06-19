@@ -1,158 +1,117 @@
-// import { useState,useEffect } from "react";
-// import { useNavigate } from "react-router-dom";
-// import axios from 'axios'
-// function GameReport(){
-//     const navigate = useNavigate()
-//     const[tasks,setTasks]=useState([]);
-//     const token = localStorage.getItem('token');
-
-//     useEffect(() => {
-//     const fetchtasks = async () => {
-//       try {
-//         const res = await axios.get('http://localhost:4005/games/report', {
-//           headers: {
-//             Authorization: `Bearer ${token}`
-//           }
-//         });
-
-//         setTasks(res.data.data);
-//       } catch (err) {
-//         alert('Failed to fetch games report');
-//       }
-//     };
-
-//     fetchtasks();
-// },[token]);
-
-// const Gamedelete=async(id)=>{
-//   const rem = await fetch(`http://localhost:4005/games/delete/${id}`,{
-//     method:"DELETE"
-//   })
-//   const emp = await rem.json() 
-  
-//   if(emp.success){
-//     alert("deleted")
-//     window.location.reload()
-//   }
-//   else{
-//     alert("not deleted")
-//   }
-// }
-    
-//     return(
-//         <div>
-//             <h1></h1>
-//             <table border={2}> 
-//                 <thead>
-//                     <tr>
-//                         <th>Sr.no</th>
-//                     <th>GameId</th>
-//                     <th>GameName</th>
-//                     <th>Category</th>
-//                     <th>GameType</th>
-//                     <th>Duration</th>
-//                     <th>GameFee</th>
-//                     <th>Delete</th>
-
-//                   </tr>                
-//                 </thead>
-//                <tbody>
-//           {tasks.map((p, i) => (
-//             <tr key={i}>
-//               <td>{i+1}</td>
-//               <td>{p.gameId}</td>
-//               <td>{p.gameName}</td>
-//               <td>{p.category}</td>
-//               <td>{p.gameType}</td>
-//               <td>{p.duration}</td>
-//               <td>{p.gameFee}</td>
-//               <td><button onClick={()=>Gamedelete(p._id)}>Delete</button></td>
-//            </tr>
-//           ))}
-//         </tbody>
-//             </table>
-
-//         </div>
-//     );
-// }
-
-// export default GameReport
-
-import { useState, useEffect } from "react";
-import axios from "axios";
-import "../Style/Reportgame.css";
+import { useState, useEffect } from 'react';
+import axios from 'axios';
+import { useToast } from './Toast';
+import '../Style/Reportgame.css';
 
 function GameReport() {
+  const toast = useToast();
   const [tasks, setTasks] = useState([]);
-  const token = localStorage.getItem("token");
+  const [loading, setLoading] = useState(true);
+  const [deletingId, setDeletingId] = useState(null);
+  const token = localStorage.getItem('token');
 
   useEffect(() => {
-    const fetchtasks = async () => {
+    const fetchTasks = async () => {
+      setLoading(true);
       try {
-        const res = await axios.get("https://sport-acedamy-1.onrender.com/games/report", {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+        const res = await axios.get('http://localhost:4005/games/report', {
+          headers: { Authorization: `Bearer ${token}` },
         });
-
         setTasks(res.data.data);
       } catch (err) {
-        alert("Failed to fetch games report");
+        toast('Failed to fetch games report', 'error');
+      } finally {
+        setLoading(false);
       }
     };
+    fetchTasks();
+  }, [token]); // eslint-disable-line react-hooks/exhaustive-deps
 
-    fetchtasks();
-  }, [token]);
-
-  const Gamedelete = async (id) => {
-    const rem = await fetch(`https://sport-acedamy-1.onrender.com/games/delete/${id}`, {
-      method: "DELETE",
-    });
-    const emp = await rem.json();
-
-    if (emp.success) {
-      alert("Deleted");
-      window.location.reload();
-    } else {
-      alert("Not deleted");
+  const handleDelete = async (id) => {
+    if (!window.confirm('Are you sure you want to delete this game?')) return;
+    setDeletingId(id);
+    try {
+      const rem = await fetch(`http://localhost:4005/games/delete/${id}`, {
+        method: 'DELETE',
+      });
+      const emp = await rem.json();
+      if (emp.success) {
+        // BUG FIX: update state instead of window.location.reload()
+        setTasks(prev => prev.filter(t => t._id !== id));
+        toast('Game deleted successfully', 'success');
+      } else {
+        toast('Failed to delete game', 'error');
+      }
+    } catch {
+      toast('Server error during deletion', 'error');
+    } finally {
+      setDeletingId(null);
     }
   };
 
   return (
-    <div className="gamereport-container">
-      <h2 className="gamereport-title">Games Report</h2>
-      <table className="gamereport-table">
-        <thead>
-          <tr>
-            <th>Sr.no</th>
-            <th>GameId</th>
-            <th>GameName</th>
-            <th>Category</th>
-            <th>GameType</th>
-            <th>Duration</th>
-            <th>GameFee</th>
-            <th>Delete</th>
-          </tr>
-        </thead>
-        <tbody>
-          {tasks.map((p, i) => (
-            <tr key={i}>
-              <td>{i + 1}</td>
-              <td>{p.gameId}</td>
-              <td>{p.gameName}</td>
-              <td>{p.category}</td>
-              <td>{p.gameType}</td>
-              <td>{p.duration}</td>
-              <td>{p.gameFee}</td>
-              <td>
-                <button className="delete-btn" onClick={() => Gamedelete(p._id)}>
-                  Delete
-                </button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+    <div className="report-page">
+      <div className="report-header">
+        <div className="report-header__left">
+          <span className="report-header__icon">📊</span>
+          <div>
+            <h2 className="report-header__title">Games Report</h2>
+            <p className="report-header__sub">{tasks.length} game{tasks.length !== 1 ? 's' : ''} registered</p>
+          </div>
+        </div>
+      </div>
+
+      <div className="report-table-wrap">
+        {loading ? (
+          <div className="report-loading">
+            <span className="loading-spinner" style={{ width: 32, height: 32 }} />
+            <span>Loading games...</span>
+          </div>
+        ) : tasks.length === 0 ? (
+          <div className="report-empty">
+            <span className="report-empty__icon">🎮</span>
+            <p>No games found. Add your first game!</p>
+          </div>
+        ) : (
+          <table className="report-table">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Game ID</th>
+                <th>Game Name</th>
+                <th>Category</th>
+                <th>Type</th>
+                <th>Duration</th>
+                <th>Fee (₹)</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {tasks.map((p, i) => (
+                <tr key={p._id} className={deletingId === p._id ? 'row--deleting' : ''}>
+                  <td className="td--num">{i + 1}</td>
+                  <td><span className="badge">{p.gameId}</span></td>
+                  <td className="td--bold">{p.gameName}</td>
+                  <td><span className={`tag tag--${p.category}`}>{p.category}</span></td>
+                  <td><span className={`tag tag--${p.gameType}`}>{p.gameType}</span></td>
+                  <td>{p.duration}</td>
+                  <td className="td--fee">₹{p.gameFee}</td>
+                  <td>
+                    <button
+                      className="delete-btn"
+                      onClick={() => handleDelete(p._id)}
+                      disabled={deletingId === p._id}
+                      id={`delete-game-${p._id}`}
+                    >
+                      {deletingId === p._id ? '...' : '🗑 Delete'}
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
     </div>
   );
 }

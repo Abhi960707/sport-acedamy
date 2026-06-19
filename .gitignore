@@ -1,1 +1,10 @@
 .vercel
+node_modules/
+.env
+dist/
+build/
+.expo/
+coverage/
+backend/uploads/
+frontend/.env
+backend/.env

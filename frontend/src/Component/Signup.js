@@ -1,101 +1,162 @@
-import React, { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import React, { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { useToast } from './Toast';
 import '../Style/Signup.css';
 
 function Signup() {
-
-  const navigate = useNavigate()
-  const [signupInfo, setSignupInfo]=useState({
-    name:'',
-    email:'',
-    password:''
-  })
+  const navigate = useNavigate();
+  const toast = useToast();
+  const [loading, setLoading] = useState(false);
+  const [signupInfo, setSignupInfo] = useState({ name: '', email: '', password: '' });
 
   const handleChange = (e) => {
-    const {name, value } = e.target
-    // console.log(name,value )
-    const copySignupInfo = { ...signupInfo}
-    copySignupInfo[name] = value
-    setSignupInfo(copySignupInfo)
-  }
+    const { name, value } = e.target;
+    setSignupInfo(prev => ({ ...prev, [name]: value }));
+  };
 
   const handleSignup = async (e) => {
-    e.preventDefault()
-    const {name, email, password} = signupInfo
-    if(!name || !email || !password){
-      alert('name, email and password are required')
-    }
-    try{
-      const url = "https://sport-acedamy-1.onrender.com/login/signup"
-      const response = await fetch(url,{
-      method:"post",
-      headers :{
-        'Content-Type':'application/json'
-      },
-      body:JSON.stringify(signupInfo)
-    })
+    e.preventDefault();
+    const { name, email, password } = signupInfo;
 
-    const result = await response.json()
-    const { success, error } = result
-    if(success){
-      alert('signup successfull')
-      navigate('/Login')
-    }
-    else if(error){
-      alert('signup fail',error)
-      
-      
-    }
-    else if(!success){
-     alert('server erroe')
+    // BUG FIX: added return so code doesn't fall into try/catch
+    if (!name || !email || !password) {
+      toast('Name, email and password are required', 'warning');
+      return;
     }
 
-  }
-    catch(e){
-      console.log("error",e)
-    }
-  }
+    setLoading(true);
+    try {
+      const response = await fetch('http://localhost:4005/login/signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(signupInfo),
+      });
 
+      const result = await response.json();
+      const { success, error } = result;
+
+      if (success) {
+        toast('Account created successfully! Please sign in.', 'success');
+        // BUG FIX: was '/Login' (uppercase) — route is '/login'
+        setTimeout(() => navigate('/login'), 900);
+      } else if (error) {
+        toast(typeof error === 'string' ? error : 'Signup failed. Please try again.', 'error');
+      } else {
+        toast('Server error. Please try again later.', 'error');
+      }
+    } catch (err) {
+      toast('Server not responding. Please try again.', 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
-    <div className='container'>
-      
-      <form onSubmit={handleSignup}>
-        <div>
-          <label htmlFor="name">Name *</label>
-          <input type="text"
-                  onChange={handleChange}
-                  name='name'
-                  autoFocus
-                  placeholder='Enter your name...'
+    <div className="auth-page">
+      <div className="auth-bg">
+        <div className="auth-bg__orb auth-bg__orb--1" />
+        <div className="auth-bg__orb auth-bg__orb--2" />
+        <div className="auth-bg__orb auth-bg__orb--3" />
+      </div>
+
+      <div className="auth-container">
+        {/* Left panel */}
+        <div className="auth-panel auth-panel--left">
+          <div className="auth-panel__content">
+            <div className="auth-panel__trophy">🥇</div>
+            <h1 className="auth-panel__title">Join the Academy</h1>
+            <p className="auth-panel__sub">Create your account</p>
+            <ul className="auth-panel__features">
+              <li>✅ Free to Sign Up</li>
+              <li>🔐 Secure &amp; Private</li>
+              <li>📱 Access Anywhere</li>
+              <li>🚀 Get Started Instantly</li>
+            </ul>
+          </div>
+        </div>
+
+        {/* Signup form */}
+        <div className="auth-card">
+          <div className="auth-card__header">
+            <h2 className="auth-card__title">Create Account</h2>
+            <p className="auth-card__subtitle">Fill in the details below to get started</p>
+          </div>
+
+          <form className="auth-form" onSubmit={handleSignup} id="signup-form" noValidate>
+            <div className="auth-form__group">
+              <label className="auth-form__label" htmlFor="signup-name">Full Name</label>
+              <div className="auth-form__input-wrap">
+                <span className="auth-form__input-icon">👤</span>
+                <input
+                  id="signup-name"
+                  className="auth-form__input"
+                  type="text"
+                  name="name"
+                  placeholder="Enter your full name"
                   value={signupInfo.name}
-          />
-        </div>
-        <div>
-          <label htmlFor="email">Email *</label>
-          <input type="email"
                   onChange={handleChange}
-                  name='email'
-                  placeholder='Enter your email...'
+                  disabled={loading}
+                  autoFocus
+                  autoComplete="name"
+                />
+              </div>
+            </div>
+
+            <div className="auth-form__group">
+              <label className="auth-form__label" htmlFor="signup-email">Email Address</label>
+              <div className="auth-form__input-wrap">
+                <span className="auth-form__input-icon">✉</span>
+                <input
+                  id="signup-email"
+                  className="auth-form__input"
+                  type="email"
+                  name="email"
+                  placeholder="Enter your email"
                   value={signupInfo.email}
-          />
-        </div>
-        <div>
-          <label htmlFor="password">Password *</label>
-          <input type="password"
                   onChange={handleChange}
-                  name='password'
-                  placeholder='Enter your password...'
+                  disabled={loading}
+                  autoComplete="email"
+                />
+              </div>
+            </div>
+
+            <div className="auth-form__group">
+              <label className="auth-form__label" htmlFor="signup-password">Password</label>
+              <div className="auth-form__input-wrap">
+                <span className="auth-form__input-icon">🔒</span>
+                <input
+                  id="signup-password"
+                  className="auth-form__input"
+                  type="password"
+                  name="password"
+                  placeholder="Create a password"
                   value={signupInfo.password}
-          />
+                  onChange={handleChange}
+                  disabled={loading}
+                  autoComplete="new-password"
+                />
+              </div>
+            </div>
+
+            <button
+              id="signup-submit-btn"
+              className="auth-btn auth-btn--teal"
+              type="submit"
+              disabled={loading}
+            >
+              {loading && <span className="loading-spinner" />}
+              {loading ? 'Creating Account...' : 'Create Account'}
+            </button>
+
+            <p className="auth-form__footer">
+              Already have an account?{' '}
+              <Link className="auth-form__link" to="/login">Sign in</Link>
+            </p>
+          </form>
         </div>
-        <button type='submit'>Signup</button>
-        <span>Already have an account ?
-          <Link to='/login'>Login</Link>
-        </span>
-      </form>
+      </div>
     </div>
-  )
+  );
 }
 
-export default Signup
+export default Signup;
