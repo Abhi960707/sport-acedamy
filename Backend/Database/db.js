@@ -28,5 +28,5 @@
   const mongoose = require('mongoose');
 
 mongoose.connect('mongodb://127.0.0.1:27017/sportAcademy')
-  .then(() => console.log('Connected to Local MongoDB'))
+  .then(() => console.log('Connected to MongoDB '))
   .catch(err => console.log('DB Connection Failed:', err));

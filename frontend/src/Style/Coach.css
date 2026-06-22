@@ -1,5 +1,0 @@
-/* Coach uses shared form styles from Games.css */
-/* Teal accent override for coach card header icon glow */
-.form-card__icon--teal {
-  filter: drop-shadow(0 0 12px rgba(20,184,166,0.5));
-}

@@ -3,11 +3,13 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "dev": "concurrently \"pnpm --filter backend dev\" \"pnpm --filter frontend dev\"",
+    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
     "start": "concurrently \"npm run start:backend\" \"npm run start:frontend\"",
-    "start:backend": "cd Backend && node server.js",
-    "start:frontend": "cd frontend && react-scripts start",
-    "install:all": "pnpm install"
+    "dev:backend": "cd Backend && npm run dev",
+    "dev:frontend": "cd frontend && npm run dev",
+    "start:backend": "cd Backend && npm start",
+    "start:frontend": "cd frontend && npm start",
+    "install:all": "npm install && cd Backend && npm install && cd ../frontend && npm install"
   },
   "devDependencies": {
     "concurrently": "^8.2.2"

@@ -1,0 +1,507 @@
+import React, { useState, useEffect } from 'react';
+import { useToast } from './Toast';
+import { FiUser, FiPhone, FiMail, FiMapPin, FiCalendar } from 'react-icons/fi';
+import { FaRupeeSign } from 'react-icons/fa';
+
+const INITIAL_STATE = {
+  playerId: '',
+  fullName: '',
+  dateOfBirth: '',
+  gender: '',
+  contactNumber: '',
+  email: '',
+  address: '',
+  sportChosen: '',
+  coachAssigned: '',
+  joiningDate: '',
+  totalFee: '',
+  payingFee: '',
+  pendingFee: '',
+};
+
+function PlayerAdd() {
+  const toast = useToast();
+  const [addPlayers, setAddPlayers] = useState(INITIAL_STATE);
+  const [loading, setLoading] = useState(false);
+  const [gamesList, setGamesList] = useState([]);
+  const [coachesList, setCoachesList] = useState([]);
+  const [errors, setErrors] = useState({});
+
+  const fetchNextId = async () => {
+    const token = localStorage.getItem('token');
+    try {
+      const res = await fetch('http://localhost:4005/players/next-id', {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const result = await res.json();
+      if (result.success) {
+        setAddPlayers(prev => ({ ...prev, playerId: result.nextId }));
+      }
+    } catch (err) {
+      console.error('Error fetching next player ID:', err);
+    }
+  };
+
+  const fetchOptionsData = async () => {
+    const token = localStorage.getItem('token');
+    try {
+      const [gamesRes, coachesRes] = await Promise.all([
+        fetch('http://localhost:4005/games/report', { headers: { Authorization: `Bearer ${token}` } }),
+        fetch('http://localhost:4005/coach/report', { headers: { Authorization: `Bearer ${token}` } }),
+      ]);
+      const gamesData = await gamesRes.json();
+      const coachesData = await coachesRes.json();
+
+      if (gamesData.success) {
+        setGamesList(gamesData.data || []);
+      }
+      if (coachesData.success) {
+        setCoachesList(coachesData.data || []);
+      }
+    } catch (err) {
+      console.error('Error fetching dynamic select options:', err);
+    }
+  };
+
+  useEffect(() => {
+    fetchNextId();
+    fetchOptionsData();
+  }, []);
+
+  const validate = () => {
+    const tempErrors = {};
+    if (!addPlayers.fullName) tempErrors.fullName = 'Full name is required';
+    if (!addPlayers.dateOfBirth) tempErrors.dateOfBirth = 'Date of birth is required';
+    if (!addPlayers.gender) tempErrors.gender = 'Gender selection is required';
+    
+    if (!addPlayers.contactNumber) {
+      tempErrors.contactNumber = 'Contact number is required';
+    } else if (!/^[6-9]\d{9}$/.test(addPlayers.contactNumber)) {
+      tempErrors.contactNumber = 'Contact must be a valid 10-digit number';
+    }
+
+    if (!addPlayers.email) {
+      tempErrors.email = 'Email address is required';
+    } else if (!/\S+@\S+\.\S+/.test(addPlayers.email)) {
+      tempErrors.email = 'Invalid email address format';
+    }
+
+    if (!addPlayers.address) tempErrors.address = 'Full address is required';
+    if (!addPlayers.sportChosen) tempErrors.sportChosen = 'Sport selection is required';
+    if (!addPlayers.coachAssigned) tempErrors.coachAssigned = 'Coach assignment is required';
+    if (!addPlayers.joiningDate) tempErrors.joiningDate = 'Joining date is required';
+    
+    const tf = parseFloat(addPlayers.totalFee) || 0;
+    const pf = parseFloat(addPlayers.payingFee) || 0;
+    if (addPlayers.payingFee === '') {
+      tempErrors.payingFee = 'Paying fee is required';
+    } else if (isNaN(pf) || pf < 0) {
+      tempErrors.payingFee = 'Paying fee must be a positive number';
+    } else if (pf > tf) {
+      tempErrors.payingFee = `Paying fee (₹${pf}) cannot exceed Total fee (₹${tf})`;
+    }
+
+    setErrors(tempErrors);
+    return Object.keys(tempErrors).length === 0;
+  };
+
+  const handlePlayers = (e) => {
+    const { name, value } = e.target;
+    
+    setAddPlayers(prev => {
+      const updated = { ...prev, [name]: value };
+      
+      // Auto-set Total Fee when sportChosen changes
+      if (name === 'sportChosen') {
+        const game = gamesList.find(g => g.gameName === value);
+        const gameFee = game ? game.gameFee : '';
+        updated.totalFee = gameFee;
+        
+        // Recalculate pending fee
+        const tf = parseFloat(gameFee) || 0;
+        const pf = parseFloat(updated.payingFee) || 0;
+        updated.pendingFee = (tf - pf >= 0 ? tf - pf : 0).toString();
+      }
+
+      // Recalculate Pending Fee when payingFee changes
+      if (name === 'payingFee') {
+        const tf = parseFloat(updated.totalFee) || 0;
+        const pf = parseFloat(value) || 0;
+        updated.pendingFee = (tf - pf >= 0 ? tf - pf : 0).toString();
+      }
+
+      return updated;
+    });
+
+    if (errors[name]) {
+      setErrors(prev => ({ ...prev, [name]: '' }));
+    }
+  };
+
+  const playersSubmit = async (e) => {
+    e.preventDefault();
+    if (!validate()) {
+      toast('Please correct the validation errors', 'warning');
+      return;
+    }
+
+    if (addPlayers.contactNumber === addPlayers.email) {
+      toast('Contact number and Email cannot be the same', 'warning');
+      return;
+    }
+
+    setLoading(true);
+    const token = localStorage.getItem('token');
+    try {
+      const res = await fetch('http://localhost:4005/players/add', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(addPlayers),
+      });
+
+      const result = await res.json();
+      if (result.success) {
+        toast('Player added successfully!', 'success');
+        setAddPlayers(INITIAL_STATE);
+        setErrors({});
+        fetchNextId();
+      } else {
+        toast(result.message || 'Failed to add player', 'error');
+      }
+    } catch (error) {
+      toast('Server error. Please try again.', 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="max-w-5xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8 animate-fade-in-up">
+      <div className="bg-white border border-gray-100 rounded-3xl shadow-xl overflow-hidden">
+        
+        {/* Header */}
+        <div className="flex items-center gap-4 px-6 sm:px-8 py-6 bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-gray-100">
+          <span className="w-12 h-12 rounded-2xl bg-blue-100 text-blue-600 flex items-center justify-center text-2xl shadow-sm">
+            🏃
+          </span>
+          <div>
+            <h2 className="text-xl sm:text-2xl font-bold font-display text-gray-800">Add New Player</h2>
+            <p className="text-xs sm:text-sm text-gray-500 font-medium">Enroll a new student to the sports academy</p>
+          </div>
+        </div>
+
+        {/* Form Body */}
+        <form className="p-6 sm:p-8 space-y-8" onSubmit={playersSubmit} id="player-add-form" noValidate>
+          
+          {/* Section: Personal Info */}
+          <div className="space-y-4">
+            <h3 className="text-xs font-bold text-blue-600 uppercase tracking-widest border-b border-blue-50 pb-2">Personal Information</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+              
+              {/* Player ID */}
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-gray-600 uppercase tracking-wider" htmlFor="player-id">Player ID</label>
+                <input
+                  id="player-id"
+                  className="w-full px-4 py-2.5 text-sm bg-gray-50 border border-gray-200 rounded-xl text-gray-400 font-semibold cursor-not-allowed"
+                  type="text"
+                  name="playerId"
+                  value={addPlayers.playerId}
+                  disabled={true}
+                />
+              </div>
+
+              {/* Full Name */}
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-gray-600 uppercase tracking-wider" htmlFor="player-name">Full Name</label>
+                <div className="relative flex items-center">
+                  <span className="absolute left-3 text-gray-400 text-sm"><FiUser /></span>
+                  <input
+                    id="player-name"
+                    className={`w-full pl-9 pr-4 py-2.5 text-sm bg-white border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all ${
+                      errors.fullName ? 'border-red-400' : 'border-gray-200'
+                    }`}
+                    type="text"
+                    name="fullName"
+                    placeholder="Enter player name"
+                    value={addPlayers.fullName}
+                    onChange={handlePlayers}
+                    disabled={loading}
+                  />
+                </div>
+                {errors.fullName && <p className="text-[11px] font-semibold text-red-500">{errors.fullName}</p>}
+              </div>
+
+              {/* Date of Birth */}
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-gray-600 uppercase tracking-wider" htmlFor="player-dob">Date of Birth</label>
+                <input
+                  id="player-dob"
+                  className={`w-full px-4 py-2.5 text-sm bg-white border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all cursor-pointer ${
+                    errors.dateOfBirth ? 'border-red-400' : 'border-gray-200'
+                  }`}
+                  type="date"
+                  name="dateOfBirth"
+                  value={addPlayers.dateOfBirth}
+                  onChange={handlePlayers}
+                  disabled={loading}
+                />
+                {errors.dateOfBirth && <p className="text-[11px] font-semibold text-red-500">{errors.dateOfBirth}</p>}
+              </div>
+
+              {/* Gender */}
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-gray-600 uppercase tracking-wider" htmlFor="player-gender">Gender</label>
+                <select
+                  id="player-gender"
+                  className={`w-full px-4 py-2.5 text-sm bg-white border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all cursor-pointer ${
+                    errors.gender ? 'border-red-400' : 'border-gray-200'
+                  }`}
+                  name="gender"
+                  value={addPlayers.gender}
+                  onChange={handlePlayers}
+                  disabled={loading}
+                >
+                  <option value="">Select Gender</option>
+                  <option value="male">Male</option>
+                  <option value="female">Female</option>
+                </select>
+                {errors.gender && <p className="text-[11px] font-semibold text-red-500">{errors.gender}</p>}
+              </div>
+
+              {/* Contact Number */}
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-gray-600 uppercase tracking-wider" htmlFor="player-contact">Contact Number</label>
+                <div className="relative flex items-center">
+                  <span className="absolute left-3 text-gray-400 text-sm"><FiPhone /></span>
+                  <input
+                    id="player-contact"
+                    className={`w-full pl-9 pr-4 py-2.5 text-sm bg-white border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all ${
+                      errors.contactNumber ? 'border-red-400' : 'border-gray-200'
+                    }`}
+                    type="text"
+                    name="contactNumber"
+                    placeholder="e.g. 9876543210"
+                    value={addPlayers.contactNumber}
+                    onChange={handlePlayers}
+                    disabled={loading}
+                  />
+                </div>
+                {errors.contactNumber && <p className="text-[11px] font-semibold text-red-500">{errors.contactNumber}</p>}
+              </div>
+
+              {/* Email Address */}
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-gray-600 uppercase tracking-wider" htmlFor="player-email">Email Address</label>
+                <div className="relative flex items-center">
+                  <span className="absolute left-3 text-gray-400 text-sm"><FiMail /></span>
+                  <input
+                    id="player-email"
+                    className={`w-full pl-9 pr-4 py-2.5 text-sm bg-white border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all ${
+                      errors.email ? 'border-red-400' : 'border-gray-200'
+                    }`}
+                    type="email"
+                    name="email"
+                    placeholder="name@example.com"
+                    value={addPlayers.email}
+                    onChange={handlePlayers}
+                    disabled={loading}
+                  />
+                </div>
+                {errors.email && <p className="text-[11px] font-semibold text-red-500">{errors.email}</p>}
+              </div>
+
+              {/* Address */}
+              <div className="space-y-1 sm:col-span-2 md:col-span-3">
+                <label className="text-xs font-bold text-gray-600 uppercase tracking-wider" htmlFor="player-address">Address</label>
+                <div className="relative flex items-center">
+                  <span className="absolute left-3 text-gray-400 text-sm"><FiMapPin /></span>
+                  <input
+                    id="player-address"
+                    className={`w-full pl-9 pr-4 py-2.5 text-sm bg-white border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all ${
+                      errors.address ? 'border-red-400' : 'border-gray-200'
+                    }`}
+                    type="text"
+                    name="address"
+                    placeholder="Full residential address"
+                    value={addPlayers.address}
+                    onChange={handlePlayers}
+                    disabled={loading}
+                  />
+                </div>
+                {errors.address && <p className="text-[11px] font-semibold text-red-500">{errors.address}</p>}
+              </div>
+
+            </div>
+          </div>
+
+          {/* Section: Academy Info */}
+          <div className="space-y-4">
+            <h3 className="text-xs font-bold text-blue-600 uppercase tracking-widest border-b border-blue-50 pb-2">Academy Registration</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+              
+              {/* Sport Chosen */}
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-gray-600 uppercase tracking-wider" htmlFor="player-sport">Sport Chosen</label>
+                <select
+                  id="player-sport"
+                  className={`w-full px-4 py-2.5 text-sm bg-white border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all cursor-pointer ${
+                    errors.sportChosen ? 'border-red-400' : 'border-gray-200'
+                  }`}
+                  name="sportChosen"
+                  value={addPlayers.sportChosen}
+                  onChange={handlePlayers}
+                  disabled={loading}
+                >
+                  <option value="">Select Sport</option>
+                  {gamesList.map((g) => (
+                    <option key={g._id} value={g.gameName}>{g.gameName}</option>
+                  ))}
+                </select>
+                {errors.sportChosen && <p className="text-[11px] font-semibold text-red-500">{errors.sportChosen}</p>}
+              </div>
+
+              {/* Coach Assigned */}
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-gray-600 uppercase tracking-wider" htmlFor="player-coach">Coach Assigned</label>
+                <select
+                  id="player-coach"
+                  className={`w-full px-4 py-2.5 text-sm bg-white border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all cursor-pointer ${
+                    errors.coachAssigned ? 'border-red-400' : 'border-gray-200'
+                  }`}
+                  name="coachAssigned"
+                  value={addPlayers.coachAssigned}
+                  onChange={handlePlayers}
+                  disabled={loading}
+                >
+                  <option value="">Select Coach</option>
+                  {coachesList.map((c) => (
+                    <option key={c._id} value={c.name}>{c.name} ({c.sportSpecialization})</option>
+                  ))}
+                </select>
+                {errors.coachAssigned && <p className="text-[11px] font-semibold text-red-500">{errors.coachAssigned}</p>}
+              </div>
+
+              {/* Joining Date */}
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-gray-600 uppercase tracking-wider" htmlFor="player-joining">Joining Date</label>
+                <div className="relative flex items-center">
+                  <span className="absolute left-3 text-gray-400 text-sm"><FiCalendar /></span>
+                  <input
+                    id="player-joining"
+                    className={`w-full pl-9 pr-4 py-2.5 text-sm bg-white border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all cursor-pointer ${
+                      errors.joiningDate ? 'border-red-400' : 'border-gray-200'
+                    }`}
+                    type="date"
+                    name="joiningDate"
+                    value={addPlayers.joiningDate}
+                    onChange={handlePlayers}
+                    disabled={loading}
+                  />
+                </div>
+                {errors.joiningDate && <p className="text-[11px] font-semibold text-red-500">{errors.joiningDate}</p>}
+              </div>
+
+            </div>
+          </div>
+
+          {/* Section: Fee Info */}
+          <div className="space-y-4">
+            <h3 className="text-xs font-bold text-blue-600 uppercase tracking-widest border-b border-blue-50 pb-2">Fee Configuration</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+              
+              {/* Total Fee (ReadOnly) */}
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-gray-600 uppercase tracking-wider" htmlFor="player-totalfee">Total Fee (₹)</label>
+                <div className="relative flex items-center">
+                  <span className="absolute left-3 text-gray-400 text-sm"><FaRupeeSign /></span>
+                  <input
+                    id="player-totalfee"
+                    className="w-full pl-9 pr-4 py-2.5 text-sm bg-gray-50 border border-gray-200 rounded-xl text-gray-500 font-semibold cursor-not-allowed"
+                    type="text"
+                    name="totalFee"
+                    placeholder="0.00"
+                    value={addPlayers.totalFee}
+                    readOnly={true}
+                  />
+                </div>
+              </div>
+
+              {/* Paying Fee */}
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-gray-600 uppercase tracking-wider" htmlFor="player-paying">Paying Fee (₹)</label>
+                <div className="relative flex items-center">
+                  <span className="absolute left-3 text-gray-400 text-sm"><FaRupeeSign /></span>
+                  <input
+                    id="player-paying"
+                    className={`w-full pl-9 pr-4 py-2.5 text-sm bg-white border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all ${
+                      errors.payingFee ? 'border-red-400' : 'border-gray-200'
+                    }`}
+                    type="number"
+                    name="payingFee"
+                    placeholder="0.00"
+                    value={addPlayers.payingFee}
+                    onChange={handlePlayers}
+                    disabled={loading}
+                    min="0"
+                  />
+                </div>
+                {errors.payingFee && <p className="text-[11px] font-semibold text-red-500">{errors.payingFee}</p>}
+              </div>
+
+              {/* Pending Fee (ReadOnly) */}
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-gray-600 uppercase tracking-wider" htmlFor="player-pending">Pending Fee (₹)</label>
+                <div className="relative flex items-center">
+                  <span className="absolute left-3 text-gray-400 text-sm"><FaRupeeSign /></span>
+                  <input
+                    id="player-pending"
+                    className="w-full pl-9 pr-4 py-2.5 text-sm bg-gray-50 border border-gray-200 rounded-xl text-gray-500 font-semibold cursor-not-allowed"
+                    type="text"
+                    name="pendingFee"
+                    placeholder="0.00"
+                    value={addPlayers.pendingFee}
+                    readOnly={true}
+                  />
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+          {/* Form Actions */}
+          <div className="flex flex-col-reverse sm:flex-row gap-3 justify-end pt-6 border-t border-gray-100">
+            <button
+              id="player-reset-btn"
+              type="button"
+              className="px-6 py-2.5 border border-gray-200 hover:border-gray-300 text-gray-600 text-sm font-bold rounded-xl transition-all cursor-pointer text-center"
+              onClick={() => {
+                setAddPlayers(INITIAL_STATE);
+                setErrors({});
+                fetchNextId();
+              }}
+              disabled={loading}
+            >
+              Reset
+            </button>
+            <button
+              id="player-submit-btn"
+              type="submit"
+              className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold rounded-xl shadow-lg shadow-blue-500/10 hover:shadow-blue-500/20 transition-all disabled:opacity-55 cursor-pointer flex items-center justify-center gap-2"
+              disabled={loading}
+            >
+              {loading && <span className="animate-spin inline-block w-4 h-4 border-2 border-white/20 border-t-white rounded-full" />}
+              {loading ? 'Saving...' : 'Save Player'}
+            </button>
+          </div>
+        </form>
+
+      </div>
+    </div>
+  );
+}
+
+export default PlayerAdd;
