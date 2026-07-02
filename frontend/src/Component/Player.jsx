@@ -17,15 +17,74 @@ const INITIAL_STATE = {
   totalFee: '',
   payingFee: '',
   pendingFee: '',
+  playerImage: '',
+  emergencyContact: '',
 };
 
 function PlayerAdd() {
   const toast = useToast();
-  const [addPlayers, setAddPlayers] = useState(INITIAL_STATE);
+  const [addPlayers, setAddPlayers] = useState(() => {
+    try {
+      const saved = localStorage.getItem('playerFormDraft');
+      return saved ? JSON.parse(saved) : INITIAL_STATE;
+    } catch (e) {
+      return INITIAL_STATE;
+    }
+  });
+
+  useEffect(() => {
+    localStorage.setItem('playerFormDraft', JSON.stringify(addPlayers));
+  }, [addPlayers]);
   const [loading, setLoading] = useState(false);
   const [gamesList, setGamesList] = useState([]);
   const [coachesList, setCoachesList] = useState([]);
   const [errors, setErrors] = useState({});
+
+  const handleImageUpload = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onloadend = async () => {
+      const base64Data = reader.result;
+      const token = localStorage.getItem('token');
+      try {
+        const res = await fetch('http://localhost:4005/api/upload', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`
+          },
+          body: JSON.stringify({ image: base64Data })
+        });
+        const data = await res.json();
+        if (data.success) {
+          setAddPlayers(prev => ({ ...prev, playerImage: data.url }));
+          toast('Image uploaded successfully', 'success');
+        } else {
+          toast('Upload failed', 'error');
+        }
+      } catch (err) {
+        toast('Failed to upload image', 'error');
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const calculatedAge = React.useMemo(() => {
+    if (!addPlayers.dateOfBirth) return '';
+    const dob = new Date(addPlayers.dateOfBirth);
+    if (Number.isNaN(dob.getTime())) return '';
+
+    const today = new Date();
+    let age = today.getFullYear() - dob.getFullYear();
+    const monthDelta = today.getMonth() - dob.getMonth();
+    if (monthDelta < 0 || (monthDelta === 0 && today.getDate() < dob.getDate())) {
+      age -= 1;
+    }
+
+    return age >= 0 ? age : '';
+  }, [addPlayers.dateOfBirth]);
 
   const fetchNextId = async () => {
     const token = localStorage.getItem('token');
@@ -70,14 +129,21 @@ function PlayerAdd() {
 
   const validate = () => {
     const tempErrors = {};
-    if (!addPlayers.fullName) tempErrors.fullName = 'Full name is required';
+    if (!addPlayers.fullName || addPlayers.fullName.trim().length < 3) tempErrors.fullName = 'Full name must be at least 3 characters';
     if (!addPlayers.dateOfBirth) tempErrors.dateOfBirth = 'Date of birth is required';
+    if (addPlayers.dateOfBirth && new Date(addPlayers.dateOfBirth) > new Date()) tempErrors.dateOfBirth = 'Date of birth cannot be in the future';
     if (!addPlayers.gender) tempErrors.gender = 'Gender selection is required';
     
     if (!addPlayers.contactNumber) {
       tempErrors.contactNumber = 'Contact number is required';
-    } else if (!/^[6-9]\d{9}$/.test(addPlayers.contactNumber)) {
+    } else if (!/^\d{10}$/.test(addPlayers.contactNumber)) {
       tempErrors.contactNumber = 'Contact must be a valid 10-digit number';
+    }
+
+    if (!addPlayers.emergencyContact) {
+      tempErrors.emergencyContact = 'Emergency contact is required';
+    } else if (!/^\d{10}$/.test(addPlayers.emergencyContact)) {
+      tempErrors.emergencyContact = 'Emergency contact must be a valid 10-digit number';
     }
 
     if (!addPlayers.email) {
@@ -86,10 +152,11 @@ function PlayerAdd() {
       tempErrors.email = 'Invalid email address format';
     }
 
-    if (!addPlayers.address) tempErrors.address = 'Full address is required';
+    if (!addPlayers.address || addPlayers.address.trim().length < 5) tempErrors.address = 'Full address is required';
     if (!addPlayers.sportChosen) tempErrors.sportChosen = 'Sport selection is required';
     if (!addPlayers.coachAssigned) tempErrors.coachAssigned = 'Coach assignment is required';
     if (!addPlayers.joiningDate) tempErrors.joiningDate = 'Joining date is required';
+    if (addPlayers.joiningDate && new Date(addPlayers.joiningDate) > new Date()) tempErrors.joiningDate = 'Joining date cannot be in the future';
     
     const tf = parseFloat(addPlayers.totalFee) || 0;
     const pf = parseFloat(addPlayers.payingFee) || 0;
@@ -106,8 +173,12 @@ function PlayerAdd() {
   };
 
   const handlePlayers = (e) => {
-    const { name, value } = e.target;
+    let { name, value } = e.target;
     
+    if (name === 'contactNumber' || name === 'emergencyContact') {
+      value = value.replace(/\D/g, '');
+    }
+
     setAddPlayers(prev => {
       const updated = { ...prev, [name]: value };
       
@@ -141,12 +212,17 @@ function PlayerAdd() {
   const playersSubmit = async (e) => {
     e.preventDefault();
     if (!validate()) {
-      toast('Please correct the validation errors', 'warning');
+      toast('Unable to submit the form. Please check the highlighted fields and try again.', 'warning');
       return;
     }
 
     if (addPlayers.contactNumber === addPlayers.email) {
       toast('Contact number and Email cannot be the same', 'warning');
+      return;
+    }
+
+    if (addPlayers.sportChosen && !addPlayers.totalFee) {
+      toast('Selected sport does not have a configured fee', 'warning');
       return;
     }
 
@@ -166,10 +242,17 @@ function PlayerAdd() {
       if (result.success) {
         toast('Player added successfully!', 'success');
         setAddPlayers(INITIAL_STATE);
+        localStorage.removeItem('playerFormDraft');
         setErrors({});
         fetchNextId();
       } else {
-        toast(result.message || 'Failed to add player', 'error');
+        let msg = result.message || 'Failed to add player';
+        if (result.error && result.error.includes('E11000')) {
+          if (result.error.includes('email')) msg = 'Email address already exists';
+          else if (result.error.includes('contactNumber')) msg = 'Contact number already exists';
+          else msg = 'Record already exists';
+        }
+        toast(msg, 'error');
       }
     } catch (error) {
       toast('Server error. Please try again.', 'error');
@@ -179,7 +262,7 @@ function PlayerAdd() {
   };
 
   return (
-    <div className="max-w-5xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8 animate-fade-in-up">
+    <div className="max-w-5xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8 animate-fade-in-up overflow-x-hidden">
       <div className="bg-white border border-gray-100 rounded-3xl shadow-xl overflow-hidden">
         
         {/* Header */}
@@ -199,7 +282,36 @@ function PlayerAdd() {
           {/* Section: Personal Info */}
           <div className="space-y-4">
             <h3 className="text-xs font-bold text-blue-600 uppercase tracking-widest border-b border-blue-50 pb-2">Personal Information</h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
+
+              {/* Player Image Upload */}
+              <div className="space-y-1 sm:col-span-2 xl:col-span-3 flex items-center gap-4 p-4 border border-dashed border-gray-200 rounded-2xl bg-gray-50/50 mb-2">
+                <div className="w-16 h-16 rounded-full border border-gray-200 bg-white flex items-center justify-center text-gray-400 overflow-hidden shrink-0">
+                  {addPlayers.playerImage ? (
+                    <img src={addPlayers.playerImage} alt="Player Preview" className="w-full h-full object-cover" />
+                  ) : (
+                    <span className="text-2xl">👤</span>
+                  )}
+                </div>
+                <div className="space-y-1">
+                  <div className="text-xs font-bold text-gray-600 uppercase">Player Photo</div>
+                  <div className="flex gap-2">
+                    <label className="px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-600 text-xs font-bold rounded-lg cursor-pointer transition flex items-center gap-1">
+                      <span>Upload Photo</span>
+                      <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
+                    </label>
+                    {addPlayers.playerImage && (
+                      <button
+                        type="button"
+                        onClick={() => setAddPlayers(prev => ({ ...prev, playerImage: '' }))}
+                        className="px-3 py-1.5 bg-red-50 hover:bg-red-100 text-red-600 text-xs font-bold rounded-lg transition"
+                      >
+                        Remove
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
               
               {/* Player ID */}
               <div className="space-y-1">
@@ -248,8 +360,22 @@ function PlayerAdd() {
                   value={addPlayers.dateOfBirth}
                   onChange={handlePlayers}
                   disabled={loading}
+                  max={new Date().toISOString().split('T')[0]}
                 />
                 {errors.dateOfBirth && <p className="text-[11px] font-semibold text-red-500">{errors.dateOfBirth}</p>}
+              </div>
+
+              {/* Age */}
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-gray-600 uppercase tracking-wider" htmlFor="player-age">Age</label>
+                <input
+                  id="player-age"
+                  className="w-full px-4 py-2.5 text-sm bg-gray-50 border border-gray-200 rounded-xl text-gray-500 font-semibold cursor-not-allowed"
+                  type="text"
+                  value={calculatedAge === '' ? '' : `${calculatedAge} years`}
+                  readOnly
+                  aria-readonly="true"
+                />
               </div>
 
               {/* Gender */}
@@ -288,9 +414,36 @@ function PlayerAdd() {
                     value={addPlayers.contactNumber}
                     onChange={handlePlayers}
                     disabled={loading}
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    maxLength={10}
                   />
                 </div>
                 {errors.contactNumber && <p className="text-[11px] font-semibold text-red-500">{errors.contactNumber}</p>}
+              </div>
+
+              {/* Emergency Contact */}
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-gray-600 uppercase tracking-wider" htmlFor="player-emergency">Emergency Contact</label>
+                <div className="relative flex items-center">
+                  <span className="absolute left-3 text-gray-400 text-sm"><FiPhone /></span>
+                  <input
+                    id="player-emergency"
+                    className={`w-full pl-9 pr-4 py-2.5 text-sm bg-white border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all ${
+                      errors.emergencyContact ? 'border-red-400' : 'border-gray-200'
+                    }`}
+                    type="text"
+                    name="emergencyContact"
+                    placeholder="Emergency number"
+                    value={addPlayers.emergencyContact}
+                    onChange={handlePlayers}
+                    disabled={loading}
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    maxLength={10}
+                  />
+                </div>
+                {errors.emergencyContact && <p className="text-[11px] font-semibold text-red-500">{errors.emergencyContact}</p>}
               </div>
 
               {/* Email Address */}
@@ -400,6 +553,7 @@ function PlayerAdd() {
                     value={addPlayers.joiningDate}
                     onChange={handlePlayers}
                     disabled={loading}
+                    max={new Date().toISOString().split('T')[0]}
                   />
                 </div>
                 {errors.joiningDate && <p className="text-[11px] font-semibold text-red-500">{errors.joiningDate}</p>}
@@ -447,6 +601,7 @@ function PlayerAdd() {
                     onChange={handlePlayers}
                     disabled={loading}
                     min="0"
+                    step="1"
                   />
                 </div>
                 {errors.payingFee && <p className="text-[11px] font-semibold text-red-500">{errors.payingFee}</p>}
@@ -480,6 +635,7 @@ function PlayerAdd() {
               className="px-6 py-2.5 border border-gray-200 hover:border-gray-300 text-gray-600 text-sm font-bold rounded-xl transition-all cursor-pointer text-center"
               onClick={() => {
                 setAddPlayers(INITIAL_STATE);
+                localStorage.removeItem('playerFormDraft');
                 setErrors({});
                 fetchNextId();
               }}

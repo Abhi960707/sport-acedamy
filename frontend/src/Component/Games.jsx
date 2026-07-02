@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useToast } from './Toast';
-import { FiAward, FiClock } from 'react-icons/fi';
+import { FiAward, FiClock, FiUsers, FiFileText } from 'react-icons/fi';
 import { FaRupeeSign } from 'react-icons/fa';
 
 const INITIAL_STATE = {
@@ -10,11 +10,26 @@ const INITIAL_STATE = {
   gameType: '',
   duration: '',
   gameFee: '',
+  gameImage: '',
+  maximumCapacity: '',
+  description: '',
+  status: 'Active',
 };
 
 function GameAdd() {
   const toast = useToast();
-  const [addGame, setAddGame] = useState(INITIAL_STATE);
+  const [addGame, setAddGame] = useState(() => {
+    try {
+      const saved = localStorage.getItem('gameFormDraft');
+      return saved ? JSON.parse(saved) : INITIAL_STATE;
+    } catch (e) {
+      return INITIAL_STATE;
+    }
+  });
+
+  useEffect(() => {
+    localStorage.setItem('gameFormDraft', JSON.stringify(addGame));
+  }, [addGame]);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
 
@@ -37,16 +52,58 @@ function GameAdd() {
     fetchNextId();
   }, []);
 
+  const handleImageUpload = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onloadend = async () => {
+      const base64Data = reader.result;
+      const token = localStorage.getItem('token');
+      try {
+        const res = await fetch('http://localhost:4005/api/upload', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`
+          },
+          body: JSON.stringify({ image: base64Data })
+        });
+        const data = await res.json();
+        if (data.success) {
+          setAddGame(prev => ({ ...prev, gameImage: data.url }));
+          toast('Image uploaded successfully', 'success');
+        } else {
+          toast('Upload failed', 'error');
+        }
+      } catch (err) {
+        toast('Failed to upload image', 'error');
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
   const validate = () => {
     const tempErrors = {};
-    if (!addGame.gameName) tempErrors.gameName = 'Game name is required';
+    if (!addGame.gameName || addGame.gameName.trim().length < 2) tempErrors.gameName = 'Game name is required';
     if (!addGame.category) tempErrors.category = 'Category is required';
     if (!addGame.gameType) tempErrors.gameType = 'Game type is required';
-    if (!addGame.duration) tempErrors.duration = 'Duration is required';
+    if (!addGame.duration || addGame.duration.trim().length < 2) tempErrors.duration = 'Duration is required';
+    
     if (!addGame.gameFee) {
       tempErrors.gameFee = 'Game fee is required';
     } else if (Number(addGame.gameFee) < 0) {
       tempErrors.gameFee = 'Game fee cannot be negative';
+    }
+
+    if (!addGame.maximumCapacity) {
+      tempErrors.maximumCapacity = 'Maximum capacity is required';
+    } else if (Number(addGame.maximumCapacity) <= 0) {
+      tempErrors.maximumCapacity = 'Capacity must be greater than zero';
+    }
+
+    if (!addGame.description || addGame.description.trim().length < 5) {
+      tempErrors.description = 'Provide a brief description of at least 5 characters';
     }
 
     setErrors(tempErrors);
@@ -64,7 +121,7 @@ function GameAdd() {
   const gameSubmit = async (e) => {
     e.preventDefault();
     if (!validate()) {
-      toast('Please correct the validation errors', 'warning');
+      toast('Unable to submit the form. Please check the highlighted fields and try again.', 'warning');
       return;
     }
 
@@ -84,6 +141,7 @@ function GameAdd() {
       if (result.success) {
         toast('Game added successfully!', 'success');
         setAddGame(INITIAL_STATE);
+        localStorage.removeItem('gameFormDraft');
         fetchNextId();
       } else {
         toast(result.message || 'Failed to add game', 'error');
@@ -96,7 +154,7 @@ function GameAdd() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8 animate-fade-in-up">
+    <div className="max-w-4xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8 animate-fade-in-up overflow-x-hidden">
       <div className="bg-white border border-gray-100 rounded-3xl shadow-xl overflow-hidden">
         
         {/* Header */}
@@ -112,6 +170,36 @@ function GameAdd() {
 
         {/* Form Body */}
         <form className="p-6 sm:p-8 space-y-6" onSubmit={gameSubmit} id="game-add-form" noValidate>
+          
+          {/* Game Photo Upload */}
+          <div className="flex items-center gap-4 p-4 border border-dashed border-gray-200 rounded-2xl bg-gray-50/50">
+            <div className="w-16 h-16 rounded-2xl border border-gray-200 bg-white flex items-center justify-center text-gray-400 overflow-hidden shrink-0">
+              {addGame.gameImage ? (
+                <img src={addGame.gameImage} alt="Game Preview" className="w-full h-full object-contain p-2" />
+              ) : (
+                <span className="text-2xl">🎮</span>
+              )}
+            </div>
+            <div className="space-y-1">
+              <div className="text-xs font-bold text-gray-600 uppercase">Game Icon/Image</div>
+              <div className="flex gap-2">
+                <label className="px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-600 text-xs font-bold rounded-lg cursor-pointer transition flex items-center gap-1">
+                  <span>Upload Photo</span>
+                  <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
+                </label>
+                {addGame.gameImage && (
+                  <button
+                    type="button"
+                    onClick={() => setAddGame(prev => ({ ...prev, gameImage: '' }))}
+                    className="px-3 py-1.5 bg-red-50 hover:bg-red-100 text-red-600 text-xs font-bold rounded-lg transition"
+                  >
+                    Remove
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
             
             {/* Game ID */}
@@ -230,6 +318,64 @@ function GameAdd() {
               {errors.gameFee && <p className="text-[11px] font-semibold text-red-500">{errors.gameFee}</p>}
             </div>
 
+            {/* Maximum Capacity */}
+            <div className="space-y-1">
+              <label className="text-xs font-bold text-gray-600 uppercase tracking-wider" htmlFor="game-capacity">Maximum Capacity</label>
+              <div className="relative flex items-center">
+                <span className="absolute left-3 text-gray-400 text-sm"><FiUsers /></span>
+                <input
+                  id="game-capacity"
+                  className={`w-full pl-9 pr-4 py-2.5 text-sm bg-white border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all ${
+                    errors.maximumCapacity ? 'border-red-400' : 'border-gray-200'
+                  }`}
+                  type="number"
+                  name="maximumCapacity"
+                  placeholder="e.g. 30 players"
+                  value={addGame.maximumCapacity}
+                  onChange={handleGame}
+                  disabled={loading}
+                  min="1"
+                />
+              </div>
+              {errors.maximumCapacity && <p className="text-[11px] font-semibold text-red-500">{errors.maximumCapacity}</p>}
+            </div>
+
+            {/* Status */}
+            <div className="space-y-1">
+              <label className="text-xs font-bold text-gray-600 uppercase tracking-wider" htmlFor="game-status">Status</label>
+              <select
+                id="game-status"
+                className="w-full px-4 py-2.5 text-sm bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 cursor-pointer"
+                name="status"
+                value={addGame.status}
+                onChange={handleGame}
+                disabled={loading}
+              >
+                <option value="Active">Active</option>
+                <option value="Inactive">Inactive</option>
+              </select>
+            </div>
+
+            {/* Description */}
+            <div className="space-y-1 sm:col-span-2">
+              <label className="text-xs font-bold text-gray-600 uppercase tracking-wider" htmlFor="game-desc">Description</label>
+              <div className="relative flex items-start">
+                <span className="absolute left-3 top-3 text-gray-400 text-sm"><FiFileText /></span>
+                <textarea
+                  id="game-desc"
+                  className={`w-full pl-9 pr-4 py-2 text-sm bg-white border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all h-24 resize-y ${
+                    errors.description ? 'border-red-400' : 'border-gray-200'
+                  }`}
+                  name="description"
+                  placeholder="Provide game description details..."
+                  value={addGame.description}
+                  onChange={handleGame}
+                  disabled={loading}
+                />
+              </div>
+              {errors.description && <p className="text-[11px] font-semibold text-red-500">{errors.description}</p>}
+            </div>
+
           </div>
 
           {/* Form Actions */}
@@ -240,6 +386,7 @@ function GameAdd() {
               className="px-6 py-2.5 border border-gray-200 hover:border-gray-300 text-gray-600 text-sm font-bold rounded-xl transition-all cursor-pointer text-center"
               onClick={() => {
                 setAddGame(INITIAL_STATE);
+                localStorage.removeItem('gameFormDraft');
                 setErrors({});
                 fetchNextId();
               }}

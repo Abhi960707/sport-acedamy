@@ -3,6 +3,9 @@ import axios from 'axios';
 import { useToast } from './Toast';
 import { FiTrash2, FiEdit2, FiChevronLeft, FiChevronRight, FiChevronUp, FiChevronDown, FiPhone, FiMail, FiCalendar, FiMapPin } from 'react-icons/fi';
 import { FaRupeeSign } from 'react-icons/fa';
+import { canManageAcademyRecords } from './access';
+import ExportDropdown from './ExportDropdown';
+import { downloadCsv, downloadPdf } from './reportExport';
 
 export default function PlayerReport({ searchQuery }) {
   const toast = useToast();
@@ -22,7 +25,8 @@ export default function PlayerReport({ searchQuery }) {
   // Sorting and Pagination State
   const [sortConfig, setSortConfig] = useState({ key: 'playerId', direction: 'asc' });
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 8;
+  const itemsPerPage = 6;
+  const canManageRecords = canManageAcademyRecords();
 
   // Reset pagination to page 1 on search
   useEffect(() => {
@@ -69,11 +73,16 @@ export default function PlayerReport({ searchQuery }) {
   }, [token]);
 
   const handleDelete = async (id) => {
+    if (!canManageRecords) {
+      toast('You do not have permission to delete player records', 'warning');
+      return;
+    }
     if (!window.confirm('Are you sure you want to delete this player?')) return;
     setDeletingId(id);
     try {
       const rem = await fetch(`http://localhost:4005/players/delete/${id}`, {
         method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
       });
       const emp = await rem.json();
       if (emp.success) {
@@ -93,6 +102,10 @@ export default function PlayerReport({ searchQuery }) {
   };
 
   const handleEditClick = (player) => {
+    if (!canManageRecords) {
+      toast('You do not have permission to edit player records', 'warning');
+      return;
+    }
     setEditPlayer({ ...player });
   };
 
@@ -123,13 +136,17 @@ export default function PlayerReport({ searchQuery }) {
 
   const handleUpdateSubmit = async (e) => {
     e.preventDefault();
+    if (!canManageRecords) {
+      toast('You do not have permission to update player records', 'warning');
+      return;
+    }
     
     // Validations
     if (!editPlayer.fullName || !editPlayer.dateOfBirth || !editPlayer.gender || !editPlayer.contactNumber || !editPlayer.email || !editPlayer.address || !editPlayer.sportChosen || !editPlayer.coachAssigned || !editPlayer.joiningDate) {
       toast('Please fill in all required fields', 'warning');
       return;
     }
-    if (!/^[6-9]\d{9}$/.test(editPlayer.contactNumber)) {
+    if (!/^\d{10}$/.test(editPlayer.contactNumber)) {
       toast('Contact must be a valid 10-digit number', 'warning');
       return;
     }
@@ -229,6 +246,13 @@ export default function PlayerReport({ searchQuery }) {
 
   const totalPages = Math.ceil(filteredTasks.length / itemsPerPage);
 
+  useEffect(() => {
+    const nextTotalPages = Math.max(1, Math.ceil(filteredTasks.length / itemsPerPage));
+    if (currentPage > nextTotalPages) {
+      setCurrentPage(nextTotalPages);
+    }
+  }, [filteredTasks.length, currentPage]);
+
   const requestSort = (key) => {
     let direction = 'asc';
     if (sortConfig.key === key && sortConfig.direction === 'asc') {
@@ -242,6 +266,45 @@ export default function PlayerReport({ searchQuery }) {
     if (sortConfig.key !== key) return null;
     return sortConfig.direction === 'asc' ? <FiChevronUp className="inline ml-1" /> : <FiChevronDown className="inline ml-1" />;
   };
+
+  const reportColumns = [
+    { label: 'Player ID', value: 'playerId' },
+    { label: 'Full Name', value: 'fullName' },
+    { label: 'Date of Birth', value: 'dateOfBirth' },
+    { label: 'Gender', value: 'gender' },
+    { label: 'Contact Number', value: 'contactNumber' },
+    { label: 'Email', value: 'email' },
+    { label: 'Sport Chosen', value: 'sportChosen' },
+    { label: 'Coach Assigned', value: 'coachAssigned' },
+    { label: 'Joining Date', value: 'joiningDate' },
+    { label: 'Total Fee', value: 'totalFee' },
+    { label: 'Paying Fee', value: 'payingFee' },
+    { label: 'Pending Fee', value: 'pendingFee' },
+  ];
+
+  const handleExportCsv = () => {
+    if (!filteredTasks.length) {
+      toast('No player records available to export', 'warning');
+      return;
+    }
+    downloadCsv('players-report.csv', reportColumns, filteredTasks);
+    toast('Player report exported as CSV', 'success');
+  };
+
+  const handleExportPdf = () => {
+    if (!filteredTasks.length) {
+      toast('No player records available to export', 'warning');
+      return;
+    }
+    downloadPdf('players-report.pdf', reportColumns, filteredTasks, 'Players Report');
+    toast('Player report exported as PDF', 'success');
+  };
+
+  const handlePrint = () => {
+    window.print();
+  };
+
+  const isSearchActive = Boolean(searchQuery && searchQuery.trim());
 
   return (
     <div className="max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8 space-y-6 animate-fade-in-up">
@@ -259,6 +322,13 @@ export default function PlayerReport({ searchQuery }) {
             </p>
           </div>
         </div>
+
+        <ExportDropdown
+          onExportCsv={handleExportCsv}
+          onExportPdf={handleExportPdf}
+          onPrint={handlePrint}
+          showPrint={true}
+        />
       </div>
 
       {/* Main Table Card */}
@@ -277,9 +347,93 @@ export default function PlayerReport({ searchQuery }) {
           </div>
         ) : (
           <div className="flex flex-col">
-            
-            {/* Scrollable table wrapper */}
-            <div className="overflow-x-auto">
+            <div className="md:hidden space-y-3 p-4">
+              {paginatedTasks.map((player, index) => (
+                <article
+                  key={player._id}
+                  className={`rounded-2xl border border-gray-100 bg-white shadow-sm p-4 space-y-4 ${deletingId === player._id ? 'opacity-40' : ''} ${isSearchActive ? 'ring-1 ring-blue-100 bg-blue-50/20' : ''}`}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="space-y-1 min-w-0">
+                      <div className="text-[11px] font-bold uppercase tracking-wider text-gray-400">Player #{(currentPage - 1) * itemsPerPage + index + 1}</div>
+                      <h3 className="text-base font-bold text-gray-800 truncate">{player.fullName}</h3>
+                      <div className="inline-flex px-2.5 py-1 bg-blue-50 border border-blue-100 rounded-md text-blue-600 text-xs font-bold font-mono w-fit">
+                        {player.playerId}
+                      </div>
+                    </div>
+                    <span className={`inline-flex px-2 py-1 rounded-full text-[11px] font-bold border ${
+                      Number(player.pendingFee) > 0 ? 'bg-red-50 text-red-700 border-red-100' : 'bg-emerald-50 text-emerald-700 border-emerald-100'
+                    }`}>
+                      ₹{player.pendingFee}
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-1 gap-2 text-sm">
+                    <div className="flex items-center justify-between gap-4">
+                      <span className="text-gray-400 font-semibold">DOB</span>
+                      <span className="text-gray-700 font-medium">{player.dateOfBirth}</span>
+                    </div>
+                    <div className="flex items-center justify-between gap-4">
+                      <span className="text-gray-400 font-semibold">Gender</span>
+                      <span className={`inline-flex px-2 py-0.5 rounded-full text-[11px] font-bold ${player.gender === 'male' ? 'bg-blue-50 text-blue-700 border border-blue-100' : 'bg-pink-50 text-pink-700 border border-pink-100'}`}>
+                        {player.gender}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between gap-4">
+                      <span className="text-gray-400 font-semibold">Contact</span>
+                      <span className="text-gray-700 font-medium text-right">{player.contactNumber}</span>
+                    </div>
+                    <div className="flex items-center justify-between gap-4">
+                      <span className="text-gray-400 font-semibold">Email</span>
+                      <span className="text-gray-700 font-medium text-right break-all">{player.email}</span>
+                    </div>
+                    <div className="flex items-center justify-between gap-4">
+                      <span className="text-gray-400 font-semibold">Sport</span>
+                      <span className="inline-flex px-2.5 py-0.5 bg-indigo-50 border border-indigo-100 text-indigo-700 rounded-full text-xs font-bold">{player.sportChosen}</span>
+                    </div>
+                    <div className="flex items-center justify-between gap-4">
+                      <span className="text-gray-400 font-semibold">Coach</span>
+                      <span className="text-gray-700 font-medium text-right">{player.coachAssigned}</span>
+                    </div>
+                    <div className="flex items-center justify-between gap-4">
+                      <span className="text-gray-400 font-semibold">Joining</span>
+                      <span className="text-gray-700 font-medium text-right">{player.joiningDate}</span>
+                    </div>
+                    <div className="flex items-center justify-between gap-4">
+                      <span className="text-gray-400 font-semibold">Total / Paid</span>
+                      <span className="text-gray-700 font-medium text-right">₹{player.totalFee} / ₹{player.payingFee}</span>
+                    </div>
+                    <div className="text-gray-700 font-medium">
+                      <span className="text-gray-400 font-semibold mr-2">Address</span>
+                      <span className="block mt-1 break-words">{player.address}</span>
+                    </div>
+                  </div>
+
+                  {canManageRecords && (
+                    <div className="flex flex-col sm:flex-row gap-2">
+                      <button
+                        onClick={() => handleEditClick(player)}
+                        className="inline-flex items-center justify-center gap-1.5 w-full px-3 py-3 text-sm font-bold text-blue-600 bg-blue-50 border border-blue-100 hover:bg-blue-600 hover:text-white rounded-xl transition-all cursor-pointer min-h-11"
+                      >
+                        <FiEdit2 />
+                        <span>Edit</span>
+                      </button>
+                      <button
+                        onClick={() => handleDelete(player._id)}
+                        disabled={deletingId === player._id}
+                        id={`delete-player-${player._id}`}
+                        className="inline-flex items-center justify-center gap-1.5 w-full px-3 py-3 text-sm font-bold text-red-600 bg-red-50 border border-red-100 hover:bg-red-600 hover:text-white rounded-xl transition-all disabled:opacity-50 cursor-pointer min-h-11"
+                      >
+                        <FiTrash2 />
+                        <span>Delete</span>
+                      </button>
+                    </div>
+                  )}
+                </article>
+              ))}
+            </div>
+
+            <div className="hidden md:block overflow-x-auto">
               <table className="w-full text-left border-collapse text-sm min-w-[1000px]">
                 <thead>
                   <tr className="bg-gray-50/75 border-b border-gray-100">
@@ -337,14 +491,14 @@ export default function PlayerReport({ searchQuery }) {
                     >
                       Pending {getSortIcon('pendingFee')}
                     </th>
-                    <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-center">Actions</th>
+                    {canManageRecords && <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-center">Actions</th>}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
                   {paginatedTasks.map((player, index) => (
                     <tr 
                       key={player._id} 
-                      className={`hover:bg-blue-50/20 transition-colors ${deletingId === player._id ? 'opacity-40' : ''}`}
+                      className={`hover:bg-blue-50/20 transition-colors ${deletingId === player._id ? 'opacity-40' : ''} ${isSearchActive ? 'bg-blue-50/20' : ''}`}
                     >
                       <td className="px-6 py-3.5 text-gray-400 font-medium">
                         {(currentPage - 1) * itemsPerPage + index + 1}
@@ -397,26 +551,28 @@ export default function PlayerReport({ searchQuery }) {
                           ₹{player.pendingFee}
                         </span>
                       </td>
-                      <td className="px-6 py-3.5 text-center">
-                        <div className="flex items-center justify-center gap-2">
-                          <button
-                            onClick={() => handleEditClick(player)}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-blue-600 bg-blue-50 border border-blue-100 hover:bg-blue-600 hover:text-white rounded-xl transition-all cursor-pointer"
-                          >
-                            <FiEdit2 />
-                            <span>Edit</span>
-                          </button>
-                          <button
-                            onClick={() => handleDelete(player._id)}
-                            disabled={deletingId === player._id}
-                            id={`delete-player-${player._id}`}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-red-600 bg-red-50 border border-red-100 hover:bg-red-600 hover:text-white rounded-xl transition-all disabled:opacity-50 cursor-pointer"
-                          >
-                            <FiTrash2 />
-                            <span>Delete</span>
-                          </button>
-                        </div>
-                      </td>
+                      {canManageRecords && (
+                        <td className="px-6 py-3.5 text-center">
+                          <div className="flex items-center justify-center gap-2">
+                            <button
+                              onClick={() => handleEditClick(player)}
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-blue-600 bg-blue-50 border border-blue-100 hover:bg-blue-600 hover:text-white rounded-xl transition-all cursor-pointer"
+                            >
+                              <FiEdit2 />
+                              <span>Edit</span>
+                            </button>
+                            <button
+                              onClick={() => handleDelete(player._id)}
+                              disabled={deletingId === player._id}
+                              id={`delete-player-${player._id}`}
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-red-600 bg-red-50 border border-red-100 hover:bg-red-600 hover:text-white rounded-xl transition-all disabled:opacity-50 cursor-pointer"
+                            >
+                              <FiTrash2 />
+                              <span>Delete</span>
+                            </button>
+                          </div>
+                        </td>
+                      )}
                     </tr>
                   ))}
                 </tbody>

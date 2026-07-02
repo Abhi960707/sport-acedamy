@@ -1,0 +1,214 @@
+[2026-06-22T13:21:35.473Z] ERROR [Global Error Handler]: Cannot set property query of #<IncomingMessage> which has only a getter
+TypeError: Cannot set property query of #<IncomingMessage> which has only a getter
+    at E:\Mern\Projects\sport acedamy\sport acedamy\Backend\node_modules\.pnpm\express-mongo-sanitize@2.2.0\node_modules\express-mongo-sanitize\index.js:113:18
+    at Array.forEach (<anonymous>)
+    at E:\Mern\Projects\sport acedamy\sport acedamy\Backend\node_modules\.pnpm\express-mongo-sanitize@2.2.0\node_modules\express-mongo-sanitize\index.js:110:44
+    at Layer.handleRequest (E:\Mern\Projects\sport acedamy\sport acedamy\Backend\node_modules\.pnpm\router@2.2.0\node_modules\router\lib\layer.js:152:17)
+    at trimPrefix (E:\Mern\Projects\sport acedamy\sport acedamy\Backend\node_modules\.pnpm\router@2.2.0\node_modules\router\index.js:342:13)
+    at E:\Mern\Projects\sport acedamy\sport acedamy\Backend\node_modules\.pnpm\router@2.2.0\node_modules\router\index.js:297:9
+    at processParams (E:\Mern\Projects\sport acedamy\sport acedamy\Backend\node_modules\.pnpm\router@2.2.0\node_modules\router\index.js:582:12)
+    at next (E:\Mern\Projects\sport acedamy\sport acedamy\Backend\node_modules\.pnpm\router@2.2.0\node_modules\router\index.js:291:5)
+    at read (E:\Mern\Projects\sport acedamy\sport acedamy\Backend\node_modules\.pnpm\body-parser@2.2.2\node_modules\body-parser\lib\read.js:42:5)
+    at urlencodedParser (E:\Mern\Projects\sport acedamy\sport acedamy\Backend\node_modules\.pnpm\body-parser@2.2.2\node_modules\body-parser\lib\types\urlencoded.js:57:5)
+
+[2026-06-23T05:01:47.436Z] ERROR [Global Error Handler]: Cannot set property query of #<IncomingMessage> which has only a getter
+TypeError: Cannot set property query of #<IncomingMessage> which has only a getter
+    at E:\Mern\Projects\sport acedamy\sport acedamy\Backend\node_modules\.pnpm\express-mongo-sanitize@2.2.0\node_modules\express-mongo-sanitize\index.js:113:18
+    at Array.forEach (<anonymous>)
+    at E:\Mern\Projects\sport acedamy\sport acedamy\Backend\node_modules\.pnpm\express-mongo-sanitize@2.2.0\node_modules\express-mongo-sanitize\index.js:110:44
+    at Layer.handleRequest (E:\Mern\Projects\sport acedamy\sport acedamy\Backend\node_modules\.pnpm\router@2.2.0\node_modules\router\lib\layer.js:152:17)
+    at trimPrefix (E:\Mern\Projects\sport acedamy\sport acedamy\Backend\node_modules\.pnpm\router@2.2.0\node_modules\router\index.js:342:13)
+    at E:\Mern\Projects\sport acedamy\sport acedamy\Backend\node_modules\.pnpm\router@2.2.0\node_modules\router\index.js:297:9
+    at processParams (E:\Mern\Projects\sport acedamy\sport acedamy\Backend\node_modules\.pnpm\router@2.2.0\node_modules\router\index.js:582:12)
+    at next (E:\Mern\Projects\sport acedamy\sport acedamy\Backend\node_modules\.pnpm\router@2.2.0\node_modules\router\index.js:291:5)
+    at read (E:\Mern\Projects\sport acedamy\sport acedamy\Backend\node_modules\.pnpm\body-parser@2.2.2\node_modules\body-parser\lib\read.js:42:5)
+    at urlencodedParser (E:\Mern\Projects\sport acedamy\sport acedamy\Backend\node_modules\.pnpm\body-parser@2.2.2\node_modules\body-parser\lib\types\urlencoded.js:57:5)
+
+[2026-06-23T05:01:52.859Z] ERROR [Global Error Handler]: Cannot set property query of #<IncomingMessage> which has only a getter
+TypeError: Cannot set property query of #<IncomingMessage> which has only a getter
+    at E:\Mern\Projects\sport acedamy\sport acedamy\Backend\node_modules\.pnpm\express-mongo-sanitize@2.2.0\node_modules\express-mongo-sanitize\index.js:113:18
+    at Array.forEach (<anonymous>)
+    at E:\Mern\Projects\sport acedamy\sport acedamy\Backend\node_modules\.pnpm\express-mongo-sanitize@2.2.0\node_modules\express-mongo-sanitize\index.js:110:44
+    at Layer.handleRequest (E:\Mern\Projects\sport acedamy\sport acedamy\Backend\node_modules\.pnpm\router@2.2.0\node_modules\router\lib\layer.js:152:17)
+    at trimPrefix (E:\Mern\Projects\sport acedamy\sport acedamy\Backend\node_modules\.pnpm\router@2.2.0\node_modules\router\index.js:342:13)
+    at E:\Mern\Projects\sport acedamy\sport acedamy\Backend\node_modules\.pnpm\router@2.2.0\node_modules\router\index.js:297:9
+    at processParams (E:\Mern\Projects\sport acedamy\sport acedamy\Backend\node_modules\.pnpm\router@2.2.0\node_modules\router\index.js:582:12)
+    at next (E:\Mern\Projects\sport acedamy\sport acedamy\Backend\node_modules\.pnpm\router@2.2.0\node_modules\router\index.js:291:5)
+    at read (E:\Mern\Projects\sport acedamy\sport acedamy\Backend\node_modules\.pnpm\body-parser@2.2.2\node_modules\body-parser\lib\read.js:42:5)
+    at urlencodedParser (E:\Mern\Projects\sport acedamy\sport acedamy\Backend\node_modules\.pnpm\body-parser@2.2.2\node_modules\body-parser\lib\types\urlencoded.js:57:5)
+
+[2026-06-23T05:01:56.853Z] ERROR [Global Error Handler]: Cannot set property query of #<IncomingMessage> which has only a getter
+TypeError: Cannot set property query of #<IncomingMessage> which has only a getter
+    at E:\Mern\Projects\sport acedamy\sport acedamy\Backend\node_modules\.pnpm\express-mongo-sanitize@2.2.0\node_modules\express-mongo-sanitize\index.js:113:18
+    at Array.forEach (<anonymous>)
+    at E:\Mern\Projects\sport acedamy\sport acedamy\Backend\node_modules\.pnpm\express-mongo-sanitize@2.2.0\node_modules\express-mongo-sanitize\index.js:110:44
+    at Layer.handleRequest (E:\Mern\Projects\sport acedamy\sport acedamy\Backend\node_modules\.pnpm\router@2.2.0\node_modules\router\lib\layer.js:152:17)
+    at trimPrefix (E:\Mern\Projects\sport acedamy\sport acedamy\Backend\node_modules\.pnpm\router@2.2.0\node_modules\router\index.js:342:13)
+    at E:\Mern\Projects\sport acedamy\sport acedamy\Backend\node_modules\.pnpm\router@2.2.0\node_modules\router\index.js:297:9
+    at processParams (E:\Mern\Projects\sport acedamy\sport acedamy\Backend\node_modules\.pnpm\router@2.2.0\node_modules\router\index.js:582:12)
+    at next (E:\Mern\Projects\sport acedamy\sport acedamy\Backend\node_modules\.pnpm\router@2.2.0\node_modules\router\index.js:291:5)
+    at read (E:\Mern\Projects\sport acedamy\sport acedamy\Backend\node_modules\.pnpm\body-parser@2.2.2\node_modules\body-parser\lib\read.js:42:5)
+    at urlencodedParser (E:\Mern\Projects\sport acedamy\sport acedamy\Backend\node_modules\.pnpm\body-parser@2.2.2\node_modules\body-parser\lib\types\urlencoded.js:57:5)
+
+[2026-06-23T05:02:30.077Z] ERROR [Global Error Handler]: Cannot set property query of #<IncomingMessage> which has only a getter
+TypeError: Cannot set property query of #<IncomingMessage> which has only a getter
+    at E:\Mern\Projects\sport acedamy\sport acedamy\Backend\node_modules\.pnpm\express-mongo-sanitize@2.2.0\node_modules\express-mongo-sanitize\index.js:113:18
+    at Array.forEach (<anonymous>)
+    at E:\Mern\Projects\sport acedamy\sport acedamy\Backend\node_modules\.pnpm\express-mongo-sanitize@2.2.0\node_modules\express-mongo-sanitize\index.js:110:44
+    at Layer.handleRequest (E:\Mern\Projects\sport acedamy\sport acedamy\Backend\node_modules\.pnpm\router@2.2.0\node_modules\router\lib\layer.js:152:17)
+    at trimPrefix (E:\Mern\Projects\sport acedamy\sport acedamy\Backend\node_modules\.pnpm\router@2.2.0\node_modules\router\index.js:342:13)
+    at E:\Mern\Projects\sport acedamy\sport acedamy\Backend\node_modules\.pnpm\router@2.2.0\node_modules\router\index.js:297:9
+    at processParams (E:\Mern\Projects\sport acedamy\sport acedamy\Backend\node_modules\.pnpm\router@2.2.0\node_modules\router\index.js:582:12)
+    at next (E:\Mern\Projects\sport acedamy\sport acedamy\Backend\node_modules\.pnpm\router@2.2.0\node_modules\router\index.js:291:5)
+    at read (E:\Mern\Projects\sport acedamy\sport acedamy\Backend\node_modules\.pnpm\body-parser@2.2.2\node_modules\body-parser\lib\read.js:42:5)
+    at urlencodedParser (E:\Mern\Projects\sport acedamy\sport acedamy\Backend\node_modules\.pnpm\body-parser@2.2.2\node_modules\body-parser\lib\types\urlencoded.js:57:5)
+
+[2026-06-23T05:03:18.872Z] ERROR [Global Error Handler]: Cannot set property query of #<IncomingMessage> which has only a getter
+TypeError: Cannot set property query of #<IncomingMessage> which has only a getter
+    at E:\Mern\Projects\sport acedamy\sport acedamy\Backend\node_modules\.pnpm\express-mongo-sanitize@2.2.0\node_modules\express-mongo-sanitize\index.js:113:18
+    at Array.forEach (<anonymous>)
+    at E:\Mern\Projects\sport acedamy\sport acedamy\Backend\node_modules\.pnpm\express-mongo-sanitize@2.2.0\node_modules\express-mongo-sanitize\index.js:110:44
+    at Layer.handleRequest (E:\Mern\Projects\sport acedamy\sport acedamy\Backend\node_modules\.pnpm\router@2.2.0\node_modules\router\lib\layer.js:152:17)
+    at trimPrefix (E:\Mern\Projects\sport acedamy\sport acedamy\Backend\node_modules\.pnpm\router@2.2.0\node_modules\router\index.js:342:13)
+    at E:\Mern\Projects\sport acedamy\sport acedamy\Backend\node_modules\.pnpm\router@2.2.0\node_modules\router\index.js:297:9
+    at processParams (E:\Mern\Projects\sport acedamy\sport acedamy\Backend\node_modules\.pnpm\router@2.2.0\node_modules\router\index.js:582:12)
+    at next (E:\Mern\Projects\sport acedamy\sport acedamy\Backend\node_modules\.pnpm\router@2.2.0\node_modules\router\index.js:291:5)
+    at read (E:\Mern\Projects\sport acedamy\sport acedamy\Backend\node_modules\.pnpm\body-parser@2.2.2\node_modules\body-parser\lib\read.js:42:5)
+    at urlencodedParser (E:\Mern\Projects\sport acedamy\sport acedamy\Backend\node_modules\.pnpm\body-parser@2.2.2\node_modules\body-parser\lib\types\urlencoded.js:57:5)
+
+[2026-06-23T05:03:28.533Z] ERROR [Global Error Handler]: Cannot set property query of #<IncomingMessage> which has only a getter
+TypeError: Cannot set property query of #<IncomingMessage> which has only a getter
+    at E:\Mern\Projects\sport acedamy\sport acedamy\Backend\node_modules\.pnpm\express-mongo-sanitize@2.2.0\node_modules\express-mongo-sanitize\index.js:113:18
+    at Array.forEach (<anonymous>)
+    at E:\Mern\Projects\sport acedamy\sport acedamy\Backend\node_modules\.pnpm\express-mongo-sanitize@2.2.0\node_modules\express-mongo-sanitize\index.js:110:44
+    at Layer.handleRequest (E:\Mern\Projects\sport acedamy\sport acedamy\Backend\node_modules\.pnpm\router@2.2.0\node_modules\router\lib\layer.js:152:17)
+    at trimPrefix (E:\Mern\Projects\sport acedamy\sport acedamy\Backend\node_modules\.pnpm\router@2.2.0\node_modules\router\index.js:342:13)
+    at E:\Mern\Projects\sport acedamy\sport acedamy\Backend\node_modules\.pnpm\router@2.2.0\node_modules\router\index.js:297:9
+    at processParams (E:\Mern\Projects\sport acedamy\sport acedamy\Backend\node_modules\.pnpm\router@2.2.0\node_modules\router\index.js:582:12)
+    at next (E:\Mern\Projects\sport acedamy\sport acedamy\Backend\node_modules\.pnpm\router@2.2.0\node_modules\router\index.js:291:5)
+    at read (E:\Mern\Projects\sport acedamy\sport acedamy\Backend\node_modules\.pnpm\body-parser@2.2.2\node_modules\body-parser\lib\read.js:42:5)
+    at urlencodedParser (E:\Mern\Projects\sport acedamy\sport acedamy\Backend\node_modules\.pnpm\body-parser@2.2.2\node_modules\body-parser\lib\types\urlencoded.js:57:5)
+
+[2026-06-23T05:03:36.293Z] ERROR [Global Error Handler]: Cannot set property query of #<IncomingMessage> which has only a getter
+TypeError: Cannot set property query of #<IncomingMessage> which has only a getter
+    at E:\Mern\Projects\sport acedamy\sport acedamy\Backend\node_modules\.pnpm\express-mongo-sanitize@2.2.0\node_modules\express-mongo-sanitize\index.js:113:18
+    at Array.forEach (<anonymous>)
+    at E:\Mern\Projects\sport acedamy\sport acedamy\Backend\node_modules\.pnpm\express-mongo-sanitize@2.2.0\node_modules\express-mongo-sanitize\index.js:110:44
+    at Layer.handleRequest (E:\Mern\Projects\sport acedamy\sport acedamy\Backend\node_modules\.pnpm\router@2.2.0\node_modules\router\lib\layer.js:152:17)
+    at trimPrefix (E:\Mern\Projects\sport acedamy\sport acedamy\Backend\node_modules\.pnpm\router@2.2.0\node_modules\router\index.js:342:13)
+    at E:\Mern\Projects\sport acedamy\sport acedamy\Backend\node_modules\.pnpm\router@2.2.0\node_modules\router\index.js:297:9
+    at processParams (E:\Mern\Projects\sport acedamy\sport acedamy\Backend\node_modules\.pnpm\router@2.2.0\node_modules\router\index.js:582:12)
+    at next (E:\Mern\Projects\sport acedamy\sport acedamy\Backend\node_modules\.pnpm\router@2.2.0\node_modules\router\index.js:291:5)
+    at read (E:\Mern\Projects\sport acedamy\sport acedamy\Backend\node_modules\.pnpm\body-parser@2.2.2\node_modules\body-parser\lib\read.js:42:5)
+    at urlencodedParser (E:\Mern\Projects\sport acedamy\sport acedamy\Backend\node_modules\.pnpm\body-parser@2.2.2\node_modules\body-parser\lib\types\urlencoded.js:57:5)
+
+[2026-06-23T05:15:51.538Z] ERROR [Global Error Handler]: Cannot set property query of #<IncomingMessage> which has only a getter
+TypeError: Cannot set property query of #<IncomingMessage> which has only a getter
+    at E:\Mern\Projects\sport acedamy\sport acedamy\Backend\node_modules\.pnpm\express-mongo-sanitize@2.2.0\node_modules\express-mongo-sanitize\index.js:113:18
+    at Array.forEach (<anonymous>)
+    at E:\Mern\Projects\sport acedamy\sport acedamy\Backend\node_modules\.pnpm\express-mongo-sanitize@2.2.0\node_modules\express-mongo-sanitize\index.js:110:44
+    at Layer.handleRequest (E:\Mern\Projects\sport acedamy\sport acedamy\Backend\node_modules\.pnpm\router@2.2.0\node_modules\router\lib\layer.js:152:17)
+    at trimPrefix (E:\Mern\Projects\sport acedamy\sport acedamy\Backend\node_modules\.pnpm\router@2.2.0\node_modules\router\index.js:342:13)
+    at E:\Mern\Projects\sport acedamy\sport acedamy\Backend\node_modules\.pnpm\router@2.2.0\node_modules\router\index.js:297:9
+    at processParams (E:\Mern\Projects\sport acedamy\sport acedamy\Backend\node_modules\.pnpm\router@2.2.0\node_modules\router\index.js:582:12)
+    at next (E:\Mern\Projects\sport acedamy\sport acedamy\Backend\node_modules\.pnpm\router@2.2.0\node_modules\router\index.js:291:5)
+    at read (E:\Mern\Projects\sport acedamy\sport acedamy\Backend\node_modules\.pnpm\body-parser@2.2.2\node_modules\body-parser\lib\read.js:42:5)
+    at urlencodedParser (E:\Mern\Projects\sport acedamy\sport acedamy\Backend\node_modules\.pnpm\body-parser@2.2.2\node_modules\body-parser\lib\types\urlencoded.js:57:5)
+
+[2026-06-23T05:16:46.731Z] ERROR [Global Error Handler]: Cannot set property query of #<IncomingMessage> which has only a getter
+TypeError: Cannot set property query of #<IncomingMessage> which has only a getter
+    at E:\Mern\Projects\sport acedamy\sport acedamy\Backend\node_modules\.pnpm\express-mongo-sanitize@2.2.0\node_modules\express-mongo-sanitize\index.js:113:18
+    at Array.forEach (<anonymous>)
+    at E:\Mern\Projects\sport acedamy\sport acedamy\Backend\node_modules\.pnpm\express-mongo-sanitize@2.2.0\node_modules\express-mongo-sanitize\index.js:110:44
+    at Layer.handleRequest (E:\Mern\Projects\sport acedamy\sport acedamy\Backend\node_modules\.pnpm\router@2.2.0\node_modules\router\lib\layer.js:152:17)
+    at trimPrefix (E:\Mern\Projects\sport acedamy\sport acedamy\Backend\node_modules\.pnpm\router@2.2.0\node_modules\router\index.js:342:13)
+    at E:\Mern\Projects\sport acedamy\sport acedamy\Backend\node_modules\.pnpm\router@2.2.0\node_modules\router\index.js:297:9
+    at processParams (E:\Mern\Projects\sport acedamy\sport acedamy\Backend\node_modules\.pnpm\router@2.2.0\node_modules\router\index.js:582:12)
+    at next (E:\Mern\Projects\sport acedamy\sport acedamy\Backend\node_modules\.pnpm\router@2.2.0\node_modules\router\index.js:291:5)
+    at read (E:\Mern\Projects\sport acedamy\sport acedamy\Backend\node_modules\.pnpm\body-parser@2.2.2\node_modules\body-parser\lib\read.js:42:5)
+    at urlencodedParser (E:\Mern\Projects\sport acedamy\sport acedamy\Backend\node_modules\.pnpm\body-parser@2.2.2\node_modules\body-parser\lib\types\urlencoded.js:57:5)
+
+[2026-06-23T05:18:29.197Z] ERROR [Global Error Handler]: Cannot set property query of #<IncomingMessage> which has only a getter
+TypeError: Cannot set property query of #<IncomingMessage> which has only a getter
+    at E:\Mern\Projects\sport acedamy\sport acedamy\Backend\node_modules\.pnpm\express-mongo-sanitize@2.2.0\node_modules\express-mongo-sanitize\index.js:113:18
+    at Array.forEach (<anonymous>)
+    at E:\Mern\Projects\sport acedamy\sport acedamy\Backend\node_modules\.pnpm\express-mongo-sanitize@2.2.0\node_modules\express-mongo-sanitize\index.js:110:44
+    at Layer.handleRequest (E:\Mern\Projects\sport acedamy\sport acedamy\Backend\node_modules\.pnpm\router@2.2.0\node_modules\router\lib\layer.js:152:17)
+    at trimPrefix (E:\Mern\Projects\sport acedamy\sport acedamy\Backend\node_modules\.pnpm\router@2.2.0\node_modules\router\index.js:342:13)
+    at E:\Mern\Projects\sport acedamy\sport acedamy\Backend\node_modules\.pnpm\router@2.2.0\node_modules\router\index.js:297:9
+    at processParams (E:\Mern\Projects\sport acedamy\sport acedamy\Backend\node_modules\.pnpm\router@2.2.0\node_modules\router\index.js:582:12)
+    at next (E:\Mern\Projects\sport acedamy\sport acedamy\Backend\node_modules\.pnpm\router@2.2.0\node_modules\router\index.js:291:5)
+    at read (E:\Mern\Projects\sport acedamy\sport acedamy\Backend\node_modules\.pnpm\body-parser@2.2.2\node_modules\body-parser\lib\read.js:42:5)
+    at urlencodedParser (E:\Mern\Projects\sport acedamy\sport acedamy\Backend\node_modules\.pnpm\body-parser@2.2.2\node_modules\body-parser\lib\types\urlencoded.js:57:5)
+
+[2026-06-23T05:18:32.537Z] ERROR [Global Error Handler]: Cannot set property query of #<IncomingMessage> which has only a getter
+TypeError: Cannot set property query of #<IncomingMessage> which has only a getter
+    at E:\Mern\Projects\sport acedamy\sport acedamy\Backend\node_modules\.pnpm\express-mongo-sanitize@2.2.0\node_modules\express-mongo-sanitize\index.js:113:18
+    at Array.forEach (<anonymous>)
+    at E:\Mern\Projects\sport acedamy\sport acedamy\Backend\node_modules\.pnpm\express-mongo-sanitize@2.2.0\node_modules\express-mongo-sanitize\index.js:110:44
+    at Layer.handleRequest (E:\Mern\Projects\sport acedamy\sport acedamy\Backend\node_modules\.pnpm\router@2.2.0\node_modules\router\lib\layer.js:152:17)
+    at trimPrefix (E:\Mern\Projects\sport acedamy\sport acedamy\Backend\node_modules\.pnpm\router@2.2.0\node_modules\router\index.js:342:13)
+    at E:\Mern\Projects\sport acedamy\sport acedamy\Backend\node_modules\.pnpm\router@2.2.0\node_modules\router\index.js:297:9
+    at processParams (E:\Mern\Projects\sport acedamy\sport acedamy\Backend\node_modules\.pnpm\router@2.2.0\node_modules\router\index.js:582:12)
+    at next (E:\Mern\Projects\sport acedamy\sport acedamy\Backend\node_modules\.pnpm\router@2.2.0\node_modules\router\index.js:291:5)
+    at read (E:\Mern\Projects\sport acedamy\sport acedamy\Backend\node_modules\.pnpm\body-parser@2.2.2\node_modules\body-parser\lib\read.js:42:5)
+    at urlencodedParser (E:\Mern\Projects\sport acedamy\sport acedamy\Backend\node_modules\.pnpm\body-parser@2.2.2\node_modules\body-parser\lib\types\urlencoded.js:57:5)
+
+[2026-06-23T05:21:42.368Z] ERROR [Global Error Handler]: Cannot set property query of #<IncomingMessage> which has only a getter
+TypeError: Cannot set property query of #<IncomingMessage> which has only a getter
+    at E:\Mern\Projects\sport acedamy\sport acedamy\Backend\node_modules\.pnpm\express-mongo-sanitize@2.2.0\node_modules\express-mongo-sanitize\index.js:113:18
+    at Array.forEach (<anonymous>)
+    at E:\Mern\Projects\sport acedamy\sport acedamy\Backend\node_modules\.pnpm\express-mongo-sanitize@2.2.0\node_modules\express-mongo-sanitize\index.js:110:44
+    at Layer.handleRequest (E:\Mern\Projects\sport acedamy\sport acedamy\Backend\node_modules\.pnpm\router@2.2.0\node_modules\router\lib\layer.js:152:17)
+    at trimPrefix (E:\Mern\Projects\sport acedamy\sport acedamy\Backend\node_modules\.pnpm\router@2.2.0\node_modules\router\index.js:342:13)
+    at E:\Mern\Projects\sport acedamy\sport acedamy\Backend\node_modules\.pnpm\router@2.2.0\node_modules\router\index.js:297:9
+    at processParams (E:\Mern\Projects\sport acedamy\sport acedamy\Backend\node_modules\.pnpm\router@2.2.0\node_modules\router\index.js:582:12)
+    at next (E:\Mern\Projects\sport acedamy\sport acedamy\Backend\node_modules\.pnpm\router@2.2.0\node_modules\router\index.js:291:5)
+    at read (E:\Mern\Projects\sport acedamy\sport acedamy\Backend\node_modules\.pnpm\body-parser@2.2.2\node_modules\body-parser\lib\read.js:53:5)
+    at urlencodedParser (E:\Mern\Projects\sport acedamy\sport acedamy\Backend\node_modules\.pnpm\body-parser@2.2.2\node_modules\body-parser\lib\types\urlencoded.js:57:5)
+
+[2026-06-23T05:22:11.654Z] ERROR [Global Error Handler]: Cannot set property query of #<IncomingMessage> which has only a getter
+TypeError: Cannot set property query of #<IncomingMessage> which has only a getter
+    at E:\Mern\Projects\sport acedamy\sport acedamy\Backend\node_modules\.pnpm\express-mongo-sanitize@2.2.0\node_modules\express-mongo-sanitize\index.js:113:18
+    at Array.forEach (<anonymous>)
+    at E:\Mern\Projects\sport acedamy\sport acedamy\Backend\node_modules\.pnpm\express-mongo-sanitize@2.2.0\node_modules\express-mongo-sanitize\index.js:110:44
+    at Layer.handleRequest (E:\Mern\Projects\sport acedamy\sport acedamy\Backend\node_modules\.pnpm\router@2.2.0\node_modules\router\lib\layer.js:152:17)
+    at trimPrefix (E:\Mern\Projects\sport acedamy\sport acedamy\Backend\node_modules\.pnpm\router@2.2.0\node_modules\router\index.js:342:13)
+    at E:\Mern\Projects\sport acedamy\sport acedamy\Backend\node_modules\.pnpm\router@2.2.0\node_modules\router\index.js:297:9
+    at processParams (E:\Mern\Projects\sport acedamy\sport acedamy\Backend\node_modules\.pnpm\router@2.2.0\node_modules\router\index.js:582:12)
+    at next (E:\Mern\Projects\sport acedamy\sport acedamy\Backend\node_modules\.pnpm\router@2.2.0\node_modules\router\index.js:291:5)
+    at read (E:\Mern\Projects\sport acedamy\sport acedamy\Backend\node_modules\.pnpm\body-parser@2.2.2\node_modules\body-parser\lib\read.js:42:5)
+    at urlencodedParser (E:\Mern\Projects\sport acedamy\sport acedamy\Backend\node_modules\.pnpm\body-parser@2.2.2\node_modules\body-parser\lib\types\urlencoded.js:57:5)
+
+[2026-06-23T05:25:35.290Z] ERROR [Global Error Handler]: Cannot read properties of undefined (reading 'email')
+TypeError: Cannot read properties of undefined (reading 'email')
+    at E:\Mern\Projects\sport acedamy\sport acedamy\Backend\Router\login.js:92:35
+    at Layer.handleRequest (E:\Mern\Projects\sport acedamy\sport acedamy\Backend\node_modules\.pnpm\router@2.2.0\node_modules\router\lib\layer.js:152:17)
+    at next (E:\Mern\Projects\sport acedamy\sport acedamy\Backend\node_modules\.pnpm\router@2.2.0\node_modules\router\lib\route.js:157:13)
+    at E:\Mern\Projects\sport acedamy\sport acedamy\Backend\node_modules\.pnpm\express-rate-limit@8.5.2_express@5.2.1\node_modules\express-rate-limit\dist\index.cjs:999:7
+    at async E:\Mern\Projects\sport acedamy\sport acedamy\Backend\node_modules\.pnpm\express-rate-limit@8.5.2_express@5.2.1\node_modules\express-rate-limit\dist\index.cjs:854:5
+
+[2026-06-23T05:25:42.069Z] ERROR [Global Error Handler]: Cannot read properties of undefined (reading 'email')
+TypeError: Cannot read properties of undefined (reading 'email')
+    at E:\Mern\Projects\sport acedamy\sport acedamy\Backend\Router\login.js:92:35
+    at Layer.handleRequest (E:\Mern\Projects\sport acedamy\sport acedamy\Backend\node_modules\.pnpm\router@2.2.0\node_modules\router\lib\layer.js:152:17)
+    at next (E:\Mern\Projects\sport acedamy\sport acedamy\Backend\node_modules\.pnpm\router@2.2.0\node_modules\router\lib\route.js:157:13)
+    at E:\Mern\Projects\sport acedamy\sport acedamy\Backend\node_modules\.pnpm\express-rate-limit@8.5.2_express@5.2.1\node_modules\express-rate-limit\dist\index.cjs:999:7
+    at async E:\Mern\Projects\sport acedamy\sport acedamy\Backend\node_modules\.pnpm\express-rate-limit@8.5.2_express@5.2.1\node_modules\express-rate-limit\dist\index.cjs:854:5
+
+[2026-06-23T05:26:01.581Z] ERROR [Global Error Handler]: Cannot read properties of undefined (reading 'email')
+TypeError: Cannot read properties of undefined (reading 'email')
+    at E:\Mern\Projects\sport acedamy\sport acedamy\Backend\Router\login.js:92:35
+    at Layer.handleRequest (E:\Mern\Projects\sport acedamy\sport acedamy\Backend\node_modules\.pnpm\router@2.2.0\node_modules\router\lib\layer.js:152:17)
+    at next (E:\Mern\Projects\sport acedamy\sport acedamy\Backend\node_modules\.pnpm\router@2.2.0\node_modules\router\lib\route.js:157:13)
+    at E:\Mern\Projects\sport acedamy\sport acedamy\Backend\node_modules\.pnpm\express-rate-limit@8.5.2_express@5.2.1\node_modules\express-rate-limit\dist\index.cjs:999:7
+    at async E:\Mern\Projects\sport acedamy\sport acedamy\Backend\node_modules\.pnpm\express-rate-limit@8.5.2_express@5.2.1\node_modules\express-rate-limit\dist\index.cjs:854:5
+
+[2026-06-23T05:26:30.037Z] ERROR [Global Error Handler]: Cannot read properties of undefined (reading 'email')
+TypeError: Cannot read properties of undefined (reading 'email')
+    at E:\Mern\Projects\sport acedamy\sport acedamy\Backend\Router\login.js:92:35
+    at Layer.handleRequest (E:\Mern\Projects\sport acedamy\sport acedamy\Backend\node_modules\.pnpm\router@2.2.0\node_modules\router\lib\layer.js:152:17)
+    at next (E:\Mern\Projects\sport acedamy\sport acedamy\Backend\node_modules\.pnpm\router@2.2.0\node_modules\router\lib\route.js:157:13)
+    at E:\Mern\Projects\sport acedamy\sport acedamy\Backend\node_modules\.pnpm\express-rate-limit@8.5.2_express@5.2.1\node_modules\express-rate-limit\dist\index.cjs:999:7
+    at async E:\Mern\Projects\sport acedamy\sport acedamy\Backend\node_modules\.pnpm\express-rate-limit@8.5.2_express@5.2.1\node_modules\express-rate-limit\dist\index.cjs:854:5
+

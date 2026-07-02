@@ -28,6 +28,22 @@ const gamesSchema = mongoose.Schema({
         type:String,
         required:true
     },
+    gameImage:{
+        type:String,
+        default:''
+    },
+    maximumCapacity:{
+        type:String,
+        default:''
+    },
+    description:{
+        type:String,
+        default:''
+    },
+    status:{
+        type:String,
+        default:'Active'
+    },
 
     owner:{
         type:mongoose.Schema.Types.ObjectId,

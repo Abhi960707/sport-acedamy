@@ -4,10 +4,12 @@ const router = new express.Router()
 const auth = require('../Authentication/auth')
 const games = require('../Model/games')
 const coach = require('../Model/coach')
+const { createAuditLog } = require('../Utils/audit')
 
 router.get('/coach/next-id', auth, async (req, res) => {
     try {
-        const allCoaches = await coach.find({ owner: req.currentEmp._id });
+        const filter = ['superadmin', 'coach', 'accountant'].includes(req.userRole) ? {} : { owner: req.currentEmp._id };
+        const allCoaches = await coach.find(filter);
         let maxId = 0;
         allCoaches.forEach(c => {
             const match = c.coachId ? c.coachId.match(/\d+/) : null;
@@ -32,22 +34,36 @@ router.get('/coach/next-id', auth, async (req, res) => {
 });
 
 
-router.post('/coach/add',auth,async(req, res)=>{
+router.post('/coach/add', auth, auth.allowRoles('superadmin', 'admin'), async(req, res)=>{
     try{
-        console.log('coach')
+        const existingContact = await coach.findOne({ contact: req.body.contact });
+        if (existingContact) {
+            return res.status(400).json({ success: false, message: "Contact number already exists" });
+        }
+        
         const coachAdd = new coach({
-        coachId: req.body.coachId,
-        name: req.body.name,
-        sportSpecialization: req.body.sportSpecialization,
-        contact: req.body.contact,
-        experience: req.body.experience,
-                owner: req.currentEmp._id
+            coachId: req.body.coachId,
+            name: req.body.name,
+            sportSpecialization: req.body.sportSpecialization,
+            contact: req.body.contact,
+            experience: req.body.experience,
+            coachImage: req.body.coachImage || '',
+            qualification: req.body.qualification || '',
+            salary: req.body.salary || '',
+            joiningDate: req.body.joiningDate || '',
+            status: req.body.status || 'Active',
+            owner: req.currentEmp._id
         })
 
-
-
-
         await coachAdd.save()
+        createAuditLog({
+            actor: req.currentEmp._id,
+            action: 'create',
+            collectionName: 'coach',
+            recordId: coachAdd._id.toString(),
+            message: 'Coach created',
+            metadata: { coachId: coachAdd.coachId, name: coachAdd.name },
+        })
         res.status(200).json({
             success:true,
             message:"Coach Add Successfully...",
@@ -65,10 +81,18 @@ router.post('/coach/add',auth,async(req, res)=>{
 })
 
 
-router.delete('/coach/delete/:id',async(req,res)=>{      
-        const del=await coach.findByIdAndDelete(req.params.id)
-        console.log("el") 
+router.delete('/coach/delete/:id', auth, auth.allowRoles('superadmin', 'admin'), async(req,res)=>{      
+        const filter = req.userRole === 'superadmin' ? { _id: req.params.id } : { _id: req.params.id, owner: req.currentEmp._id };
+        const del=await coach.findOneAndDelete(filter)
         if(del){
+            createAuditLog({
+                actor: req.currentEmp._id,
+                action: 'delete',
+                collectionName: 'coach',
+                recordId: del._id.toString(),
+                message: 'Coach deleted',
+                metadata: { coachId: del.coachId, name: del.name },
+            })
             res.status(200).json({
                 success:true,
                 message: "coach is delete",
@@ -76,7 +100,7 @@ router.delete('/coach/delete/:id',async(req,res)=>{
         
         }
         else{
-            res.status(400).json({
+            res.status(404).json({
                 success:false,
                 message:"coach is not delete"
             })
@@ -84,21 +108,40 @@ router.delete('/coach/delete/:id',async(req,res)=>{
         
 })
 
-router.put('/coach/update/:id', auth, async (req, res) => {
+router.put('/coach/update/:id', auth, auth.allowRoles('superadmin', 'admin'), async (req, res) => {
     try {
+        const existingContact = await coach.findOne({ contact: req.body.contact, _id: { $ne: req.params.id } });
+        if (existingContact) {
+            return res.status(400).json({ success: false, message: "Contact number already exists" });
+        }
+
+        const filter = req.userRole === 'superadmin' ? { _id: req.params.id } : { _id: req.params.id, owner: req.currentEmp._id };
         const updatedCoach = await coach.findOneAndUpdate(
-            { _id: req.params.id, owner: req.currentEmp._id },
+            filter,
             {
                 name: req.body.name,
                 sportSpecialization: req.body.sportSpecialization,
                 contact: req.body.contact,
                 experience: req.body.experience,
+                coachImage: req.body.coachImage,
+                qualification: req.body.qualification,
+                salary: req.body.salary,
+                joiningDate: req.body.joiningDate,
+                status: req.body.status,
             },
             { new: true }
         );
         if (!updatedCoach) {
             return res.status(404).json({ success: false, message: "Coach not found or unauthorized" });
         }
+        createAuditLog({
+            actor: req.currentEmp._id,
+            action: 'update',
+            collectionName: 'coach',
+            recordId: updatedCoach._id.toString(),
+            message: 'Coach updated',
+            metadata: { coachId: updatedCoach.coachId, name: updatedCoach.name },
+        })
         res.status(200).json({ success: true, message: "Coach updated successfully", data: updatedCoach });
     } catch (e) {
         res.status(400).json({ success: false, message: "Failed to update coach", error: e.message });

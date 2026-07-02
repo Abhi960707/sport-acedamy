@@ -7,7 +7,8 @@ const players = require('../Model/players')
 router.get('/players/report',auth,async(req,res)=>{
     console.log("report")
     try{
-        const playersreport = await players.find({owner:req.currentEmp._id})
+        const filter = ['superadmin', 'coach', 'accountant'].includes(req.userRole) ? {} : {owner:req.currentEmp._id};
+        const playersreport = await players.find(filter)
         res.status(200).json({
             success:true,
             message:"players Report  Successfully...",

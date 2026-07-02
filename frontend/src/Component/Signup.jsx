@@ -47,7 +47,7 @@ function Signup() {
     e.preventDefault();
 
     if (!validate()) {
-      toast('Please correct the validation errors', 'warning');
+      toast('Unable to submit. Please try again.', 'warning');
       return;
     }
 

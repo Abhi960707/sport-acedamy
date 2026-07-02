@@ -42,6 +42,13 @@
   to   { opacity: 1; }
 }
 
+@media print {
+  nav { display: none !important; }
+  body { font-size: 10px !important; }
+  article { page-break-inside: avoid; border: 1px solid #ccc !important; padding: 10px !important; margin-bottom: 10px !important; }
+  @page { margin: 10mm; }
+}
+
 @keyframes slideInRight {
   from { opacity: 0; transform: translateX(100%); }
   to   { opacity: 1; transform: translateX(0); }

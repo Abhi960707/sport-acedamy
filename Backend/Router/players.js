@@ -3,10 +3,12 @@ const Games = require('../Model/games')
 const router = new express.Router()
 const auth = require('../Authentication/auth')
 const players = require('../Model/players')
+const { createAuditLog } = require('../Utils/audit')
 
 router.get('/players/next-id', auth, async (req, res) => {
     try {
-        const allPlayers = await players.find({ owner: req.currentEmp._id });
+        const filter = ['superadmin', 'coach', 'accountant'].includes(req.userRole) ? {} : { owner: req.currentEmp._id };
+        const allPlayers = await players.find(filter);
         let maxId = 0;
         allPlayers.forEach(p => {
             const match = p.playerId ? p.playerId.match(/\d+/) : null;
@@ -35,33 +37,51 @@ router.get('/players/next-id', auth, async (req, res) => {
     }
 });
 
-router.post('/players/add',auth,async(req, res)=>{
+router.post('/players/add', auth, auth.allowRoles('superadmin', 'admin'), async(req, res)=>{
     try{
-        console.log('players')
         if (req.body.contactNumber === req.body.email) {
             return res.status(400).json({
                 success: false,
                 message: "Contact number and Email cannot be the same"
             });
         }
+        
+        const existingEmail = await players.findOne({ email: req.body.email });
+        if (existingEmail) {
+            return res.status(400).json({ success: false, message: "Email address already exists" });
+        }
+        const existingContact = await players.findOne({ contactNumber: req.body.contactNumber });
+        if (existingContact) {
+            return res.status(400).json({ success: false, message: "Contact number already exists" });
+        }
         const playersAdd = new players({
-        playerId: req.body.playerId,
-        fullName: req.body.fullName,
-        dateOfBirth: req.body.dateOfBirth,
-        gender: req.body.gender,
-        contactNumber: req.body.contactNumber,
-        email: req.body.email,
-        address: req.body.address,
-        sportChosen: req.body.sportChosen,
-        coachAssigned: req.body.coachAssigned,
-        joiningDate: req.body.joiningDate,
-        totalFee: req.body.totalFee,
-        payingFee: req.body.payingFee,
-        pendingFee: req.body.pendingFee,
-        owner: req.currentEmp._id
+            playerId: req.body.playerId,
+            fullName: req.body.fullName,
+            dateOfBirth: req.body.dateOfBirth,
+            gender: req.body.gender,
+            contactNumber: req.body.contactNumber,
+            email: req.body.email,
+            address: req.body.address,
+            sportChosen: req.body.sportChosen,
+            coachAssigned: req.body.coachAssigned,
+            joiningDate: req.body.joiningDate,
+            totalFee: req.body.totalFee,
+            payingFee: req.body.payingFee,
+            pendingFee: req.body.pendingFee,
+            playerImage: req.body.playerImage || '',
+            emergencyContact: req.body.emergencyContact || '',
+            owner: req.currentEmp._id
         })
 
         await playersAdd.save()
+        createAuditLog({
+            actor: req.currentEmp._id,
+            action: 'create',
+            collectionName: 'players',
+            recordId: playersAdd._id.toString(),
+            message: 'Player created',
+            metadata: { playerId: playersAdd.playerId, fullName: playersAdd.fullName },
+        })
         res.status(200).json({
             success:true,
             message:"player Add Successfully...",
@@ -79,18 +99,26 @@ router.post('/players/add',auth,async(req, res)=>{
 })
 
 
-router.delete('/players/delete/:id',async(req,res)=>{
-    const remove=await players.findByIdAndDelete(req.params.id)
-    console.log("re")
+router.delete('/players/delete/:id', auth, auth.allowRoles('superadmin', 'admin'), async(req,res)=>{
+    const filter = req.userRole === 'superadmin' ? { _id: req.params.id } : { _id: req.params.id, owner: req.currentEmp._id };
+    const remove=await players.findOneAndDelete(filter)
 
     if(remove){
+        createAuditLog({
+            actor: req.currentEmp._id,
+            action: 'delete',
+            collectionName: 'players',
+            recordId: remove._id.toString(),
+            message: 'Player deleted',
+            metadata: { playerId: remove.playerId, fullName: remove.fullName },
+        })
         res.status(200).json({
             success:true,
             message: "players is delete",
         })
     }
      else{
-        res.status(400).json({
+        res.status(404).json({
             success:false,
             message:"players is not delete"
         })
@@ -113,7 +141,7 @@ router.get('/players', async (req, res) => {
 })
 
 
-router.put('/players/update/:id', auth, async (req, res) => {
+router.put('/players/update/:id', auth, auth.allowRoles('superadmin', 'admin'), async (req, res) => {
     try {
         if (req.body.contactNumber === req.body.email) {
             return res.status(400).json({
@@ -121,8 +149,17 @@ router.put('/players/update/:id', auth, async (req, res) => {
                 message: "Contact number and Email cannot be the same"
             });
         }
+        const existingEmail = await players.findOne({ email: req.body.email, _id: { $ne: req.params.id } });
+        if (existingEmail) {
+            return res.status(400).json({ success: false, message: "Email address already exists" });
+        }
+        const existingContact = await players.findOne({ contactNumber: req.body.contactNumber, _id: { $ne: req.params.id } });
+        if (existingContact) {
+            return res.status(400).json({ success: false, message: "Contact number already exists" });
+        }
+        const filter = req.userRole === 'superadmin' ? { _id: req.params.id } : { _id: req.params.id, owner: req.currentEmp._id };
         const updatedPlayer = await players.findOneAndUpdate(
-            { _id: req.params.id, owner: req.currentEmp._id },
+            filter,
             {
                 fullName: req.body.fullName,
                 dateOfBirth: req.body.dateOfBirth,
@@ -136,12 +173,22 @@ router.put('/players/update/:id', auth, async (req, res) => {
                 totalFee: req.body.totalFee,
                 payingFee: req.body.payingFee,
                 pendingFee: req.body.pendingFee,
+                playerImage: req.body.playerImage,
+                emergencyContact: req.body.emergencyContact,
             },
             { new: true }
         );
         if (!updatedPlayer) {
             return res.status(404).json({ success: false, message: "Player not found or unauthorized" });
         }
+        createAuditLog({
+            actor: req.currentEmp._id,
+            action: 'update',
+            collectionName: 'players',
+            recordId: updatedPlayer._id.toString(),
+            message: 'Player updated',
+            metadata: { playerId: updatedPlayer.playerId, fullName: updatedPlayer.fullName },
+        })
         res.status(200).json({ success: true, message: "Player updated successfully", data: updatedPlayer });
     } catch (e) {
         res.status(400).json({ success: false, message: "Failed to update player", error: e.message });

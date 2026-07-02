@@ -3,6 +3,9 @@ import axios from 'axios';
 import { useToast } from './Toast';
 import { FiAward, FiTrash2, FiEdit2, FiChevronLeft, FiChevronRight, FiChevronUp, FiChevronDown, FiClock } from 'react-icons/fi';
 import { FaRupeeSign } from 'react-icons/fa';
+import { canManageAcademyRecords } from './access';
+import ExportDropdown from './ExportDropdown';
+import { downloadCsv, downloadPdf } from './reportExport';
 
 export default function GameReport({ searchQuery }) {
   const toast = useToast();
@@ -18,7 +21,8 @@ export default function GameReport({ searchQuery }) {
   // Sorting and Pagination State
   const [sortConfig, setSortConfig] = useState({ key: 'gameId', direction: 'asc' });
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 8;
+  const itemsPerPage = 6;
+  const canManageRecords = canManageAcademyRecords();
 
   // Reset pagination to page 1 when search query changes
   useEffect(() => {
@@ -43,11 +47,16 @@ export default function GameReport({ searchQuery }) {
   }, [token, toast]);
 
   const handleDelete = async (id) => {
+    if (!canManageRecords) {
+      toast('You do not have permission to delete game records', 'warning');
+      return;
+    }
     if (!window.confirm('Are you sure you want to delete this game?')) return;
     setDeletingId(id);
     try {
       const rem = await fetch(`http://localhost:4005/games/delete/${id}`, {
         method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
       });
       const emp = await rem.json();
       if (emp.success) {
@@ -67,11 +76,19 @@ export default function GameReport({ searchQuery }) {
   };
 
   const handleEditClick = (game) => {
+    if (!canManageRecords) {
+      toast('You do not have permission to edit game records', 'warning');
+      return;
+    }
     setEditGame({ ...game });
   };
 
   const handleUpdateSubmit = async (e) => {
     e.preventDefault();
+    if (!canManageRecords) {
+      toast('You do not have permission to update game records', 'warning');
+      return;
+    }
     if (!editGame.gameName || !editGame.category || !editGame.gameType || !editGame.duration || !editGame.gameFee) {
       toast('All fields are required', 'warning');
       return;
@@ -149,6 +166,13 @@ export default function GameReport({ searchQuery }) {
 
   const totalPages = Math.ceil(filteredTasks.length / itemsPerPage);
 
+  useEffect(() => {
+    const nextTotalPages = Math.max(1, Math.ceil(filteredTasks.length / itemsPerPage));
+    if (currentPage > nextTotalPages) {
+      setCurrentPage(nextTotalPages);
+    }
+  }, [filteredTasks.length, currentPage]);
+
   const requestSort = (key) => {
     let direction = 'asc';
     if (sortConfig.key === key && sortConfig.direction === 'asc') {
@@ -162,6 +186,39 @@ export default function GameReport({ searchQuery }) {
     if (sortConfig.key !== key) return null;
     return sortConfig.direction === 'asc' ? <FiChevronUp className="inline ml-1" /> : <FiChevronDown className="inline ml-1" />;
   };
+
+  const reportColumns = [
+    { label: 'Game Name', value: 'gameName' },
+    { label: 'Game ID', value: 'gameId' },
+    { label: 'Category', value: 'category' },
+    { label: 'Game Type', value: 'gameType' },
+    { label: 'Duration', value: 'duration' },
+    { label: 'Fee', value: 'gameFee' }
+  ];
+
+  const handleExportCsv = () => {
+    if (!filteredTasks.length) {
+      toast('No game records to export', 'warning');
+      return;
+    }
+    downloadCsv('game-report.csv', reportColumns, filteredTasks);
+    toast('Game report exported as CSV', 'success');
+  };
+
+  const handleExportPdf = () => {
+    if (!filteredTasks.length) {
+      toast('No game records to export', 'warning');
+      return;
+    }
+    downloadPdf('game-report.pdf', reportColumns, filteredTasks, 'Game Report');
+    toast('Game report exported as PDF', 'success');
+  };
+
+  const handlePrint = () => {
+    window.print();
+  };
+
+  const isSearchActive = Boolean(searchQuery && searchQuery.trim());
 
   return (
     <div className="max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8 space-y-6 animate-fade-in-up">
@@ -179,6 +236,13 @@ export default function GameReport({ searchQuery }) {
             </p>
           </div>
         </div>
+
+        <ExportDropdown
+          onExportCsv={handleExportCsv}
+          onExportPdf={handleExportPdf}
+          onPrint={handlePrint}
+          showPrint={true}
+        />
       </div>
 
       {/* Main Table Card */}
@@ -197,9 +261,75 @@ export default function GameReport({ searchQuery }) {
           </div>
         ) : (
           <div className="flex flex-col">
-            
-            {/* Table wrapper for horizontal scroll */}
-            <div className="overflow-x-auto">
+            <div className="md:hidden space-y-3 p-4">
+              {paginatedTasks.map((game, index) => (
+                <article
+                  key={game._id}
+                  className={`rounded-2xl border border-gray-100 bg-white shadow-sm p-4 space-y-4 ${deletingId === game._id ? 'opacity-40' : ''} ${isSearchActive ? 'ring-1 ring-blue-100 bg-blue-50/20' : ''}`}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="space-y-1 min-w-0">
+                      <div className="text-[11px] font-bold uppercase tracking-wider text-gray-400">Game #{(currentPage - 1) * itemsPerPage + index + 1}</div>
+                      <h3 className="text-base font-bold text-gray-800 truncate">{game.gameName}</h3>
+                      <div className="inline-flex px-2.5 py-1 bg-blue-50 border border-blue-100 rounded-md text-blue-600 text-xs font-bold font-mono w-fit">
+                        {game.gameId}
+                      </div>
+                    </div>
+                    <span className="inline-flex px-2 py-1 rounded-full text-[11px] font-bold bg-blue-50 text-blue-700 border border-blue-100">
+                      ₹{game.gameFee}
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-1 gap-2 text-sm">
+                    <div className="flex items-center justify-between gap-4">
+                      <span className="text-gray-400 font-semibold">Category</span>
+                      <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-bold ${game.category === 'single' ? 'bg-cyan-50 text-cyan-700 border border-cyan-100' : game.category === 'double' ? 'bg-indigo-50 text-indigo-700 border border-indigo-100' : 'bg-purple-50 text-purple-700 border border-purple-100'}`}>
+                        {game.category}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between gap-4">
+                      <span className="text-gray-400 font-semibold">Type</span>
+                      <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-bold ${game.gameType === 'indoor' ? 'bg-teal-50 text-teal-700 border border-teal-100' : 'bg-amber-50 text-amber-700 border border-amber-100'}`}>
+                        {game.gameType}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between gap-4">
+                      <span className="text-gray-400 font-semibold">Duration</span>
+                      <span className="text-gray-700 font-medium text-right">{game.duration}</span>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col sm:flex-row gap-2">
+                    {canManageRecords ? (
+                      <>
+                        <button
+                          onClick={() => handleEditClick(game)}
+                          className="inline-flex items-center justify-center gap-1.5 w-full px-3 py-3 text-sm font-bold text-blue-600 bg-blue-50 border border-blue-100 hover:bg-blue-600 hover:text-white rounded-xl transition-all cursor-pointer min-h-11"
+                        >
+                          <FiEdit2 />
+                          <span>Edit</span>
+                        </button>
+                        <button
+                          onClick={() => handleDelete(game._id)}
+                          disabled={deletingId === game._id}
+                          id={`delete-game-${game._id}`}
+                          className="inline-flex items-center justify-center gap-1.5 w-full px-3 py-3 text-sm font-bold text-red-600 bg-red-50 border border-red-100 hover:bg-red-600 hover:text-white rounded-xl transition-all disabled:opacity-50 cursor-pointer min-h-11"
+                        >
+                          <FiTrash2 />
+                          <span>Delete</span>
+                        </button>
+                      </>
+                    ) : (
+                      <div className="w-full rounded-xl border border-dashed border-gray-200 bg-gray-50 px-3 py-3 text-center text-xs font-semibold text-gray-500">
+                        View only access
+                      </div>
+                    )}
+                  </div>
+                </article>
+              ))}
+            </div>
+
+            <div className="hidden md:block overflow-x-auto">
               <table className="w-full text-left border-collapse text-sm">
                 <thead>
                   <tr className="bg-gray-50/75 border-b border-gray-100">
@@ -240,14 +370,14 @@ export default function GameReport({ searchQuery }) {
                     >
                       Fee (₹) {getSortIcon('gameFee')}
                     </th>
-                    <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-center">Actions</th>
+                    {canManageRecords && <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-center">Actions</th>}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
                   {paginatedTasks.map((game, index) => (
                     <tr 
                       key={game._id} 
-                      className={`hover:bg-blue-50/20 transition-colors ${deletingId === game._id ? 'opacity-40' : ''}`}
+                      className={`hover:bg-blue-50/20 transition-colors ${deletingId === game._id ? 'opacity-40' : ''} ${isSearchActive ? 'bg-blue-50/20' : ''}`}
                     >
                       <td className="px-6 py-3.5 text-gray-400 font-medium">
                         {(currentPage - 1) * itemsPerPage + index + 1}
@@ -277,26 +407,28 @@ export default function GameReport({ searchQuery }) {
                       </td>
                       <td className="px-6 py-3.5 text-gray-600 font-medium">{game.duration}</td>
                       <td className="px-6 py-3.5 font-bold text-blue-600">₹{game.gameFee}</td>
-                      <td className="px-6 py-3.5 text-center">
-                        <div className="flex justify-center items-center gap-2">
-                          <button
-                            onClick={() => handleEditClick(game)}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-blue-600 bg-blue-50 border border-blue-100 hover:bg-blue-600 hover:text-white rounded-xl transition-all cursor-pointer"
-                          >
-                            <FiEdit2 />
-                            <span>Edit</span>
-                          </button>
-                          <button
-                            onClick={() => handleDelete(game._id)}
-                            disabled={deletingId === game._id}
-                            id={`delete-game-${game._id}`}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-red-600 bg-red-50 border border-red-100 hover:bg-red-600 hover:text-white rounded-xl transition-all disabled:opacity-50 cursor-pointer"
-                          >
-                            <FiTrash2 />
-                            <span>Delete</span>
-                          </button>
-                        </div>
-                      </td>
+                      {canManageRecords && (
+                        <td className="px-6 py-3.5 text-center">
+                          <div className="flex justify-center items-center gap-2">
+                            <button
+                              onClick={() => handleEditClick(game)}
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-blue-600 bg-blue-50 border border-blue-100 hover:bg-blue-600 hover:text-white rounded-xl transition-all cursor-pointer"
+                            >
+                              <FiEdit2 />
+                              <span>Edit</span>
+                            </button>
+                            <button
+                              onClick={() => handleDelete(game._id)}
+                              disabled={deletingId === game._id}
+                              id={`delete-game-${game._id}`}
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-red-600 bg-red-50 border border-red-100 hover:bg-red-600 hover:text-white rounded-xl transition-all disabled:opacity-50 cursor-pointer"
+                            >
+                              <FiTrash2 />
+                              <span>Delete</span>
+                            </button>
+                          </div>
+                        </td>
+                      )}
                     </tr>
                   ))}
                 </tbody>

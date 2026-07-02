@@ -2,46 +2,138 @@ const express = require('express')
 const Login = require('../Model/login')
 const router = new express.Router()
 const auth = require('../Authentication/auth')
+const rateLimit = require('express-rate-limit')
+const validator = require('validator')
+const { createAuditLog } = require('../Utils/audit')
+const bcrypt = require('bcrypt')
+
+const loginLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 20,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: {
+        success: false,
+        message: 'Too many login attempts, please try again later.'
+    }
+})
+
+const validateSignupBody = (body) => {
+    const name = String(body.name || '').trim();
+    const email = String(body.email || '').trim().toLowerCase();
+    const password = String(body.password || '');
+    const role = String(body.role || 'admin').toLowerCase();
+
+    if (!name || name.length < 3) {
+        return 'Name must be at least 3 characters';
+    }
+    if (!validator.isAlpha(name.replace(/\s+/g, ''))) {
+        return 'Only alphabate are allowed';
+    }
+    if (!validator.isEmail(email)) {
+        return 'Enter valid email id';
+    }
+    if (!password || password.length < 4) {
+        return 'Password must be greater than 4 characters';
+    }
+    if (!['superadmin', 'admin', 'coach', 'accountant'].includes(role)) {
+        return 'Invalid role selected';
+    }
+
+    return null;
+};
 
 router.get('/login/test',async(req,res)=>{
     res.send({msg:"test router"})
 })
 
-router.post('/login/signup', async(req,res)=>{
+router.post('/login/signup', loginLimiter, async(req,res)=>{
     try{
-        const templogin = new Login(req.body)
+        const validationError = validateSignupBody(req.body);
+        if (validationError) {
+            return res.status(400).json({
+                success: false,
+                message: validationError
+            });
+        }
+
+        const email = String(req.body.email || '').trim().toLowerCase();
+        const existingUser = await Login.findOne({ email });
+        if (existingUser) {
+            return res.status(409).json({
+                success: false,
+                message: 'Email already exists'
+            });
+        }
+
+        const templogin = new Login({
+            name: String(req.body.name || '').trim(),
+            email,
+            password: req.body.password,
+            role: String(req.body.role || 'admin').toLowerCase()
+        })
         await templogin.save()
-        res.status(200).send({
+        res.status(201).send({
             success:true,
             message:"Signup Successfully"
         })
     }
     catch(e){
-        res.status(500).send({
+        const statusCode = e.code === 11000 ? 409 : 500;
+        res.status(statusCode).send({
             success:false,
-            message:"some error",
+            message: statusCode === 409 ? 'Email already exists' : 'some error',
             error: e.message
         })
     }
 })
 
-router.post('/login/login',async(req,res)=>{
-    const {email, password}=req.body
-    console.log(req.body)
+router.post('/login/login', loginLimiter, async(req,res)=>{
+    const email = String(req.body.email || '').trim().toLowerCase();
+    const password = String(req.body.password || '');
+
+    if (!validator.isEmail(email)) {
+        return res.status(400).json({
+            success:false,
+            message:'Enter valid email id'
+        });
+    }
+
+    if (!password) {
+        return res.status(400).json({
+            success:false,
+            message:'Password is required'
+        });
+    }
+
     try{
         const userlogin = await Login.loginCheck(email,password)
         const token = await userlogin.generateToken()
-        console.log(token)
+        createAuditLog({
+            actor: userlogin._id,
+            action: 'login',
+            collectionName: 'Login',
+            recordId: userlogin._id.toString(),
+            message: 'User logged in successfully',
+            metadata: { email: userlogin.email, role: userlogin.role || 'admin' },
+        })
         res.status(200).json({
             success:true,
             message:"login Successfully...",
-            token
+            token,
+            user: {
+                _id: userlogin._id,
+                name: userlogin.name,
+                email: userlogin.email,
+                role: userlogin.role || 'admin'
+            }
         })
     }
     catch(e){
-        res.status(500).json({
+        const statusCode = e.message.includes('User not found') || e.message.includes('Incorrect password') ? 401 : 500;
+        res.status(statusCode).json({
             success:false,
-            message:"login failed",error:e.message
+            message: statusCode === 401 ? 'Invalid email or password' : 'login failed',error:e.message
         })
     }
 })
@@ -51,6 +143,14 @@ router.post('/login/logout',auth, async(req,res)=>{
     try{
         req.currentEmp.tokens = req.currentEmp.tokens.filter((e)=>e.token!==req.token)
         await req.currentEmp.save()
+        createAuditLog({
+            actor: req.currentEmp._id,
+            action: 'logout',
+            collectionName: 'Login',
+            recordId: req.currentEmp._id.toString(),
+            message: 'User logged out successfully',
+            metadata: { email: req.currentEmp.email, role: req.currentEmp.role || 'admin' },
+        })
         res.status(200).json({
             message:"logout Successfully..."
         })
@@ -62,6 +162,100 @@ router.post('/login/logout',auth, async(req,res)=>{
     }
 })
 
- //only just added some times delete the line
+// Profile endpoints
+router.get('/auth/profile', auth, async (req, res) => {
+    try {
+        res.status(200).json({
+            success: true,
+            user: {
+                _id: req.currentEmp._id,
+                name: req.currentEmp.name,
+                email: req.currentEmp.email,
+                role: req.currentEmp.role,
+                profileImage: req.currentEmp.profileImage || ''
+            }
+        });
+    } catch (e) {
+        res.status(500).json({ success: false, message: 'Failed to fetch profile', error: e.message });
+    }
+});
 
-module.exports = router
+router.put('/auth/profile/update', auth, async (req, res) => {
+    try {
+        const { name, email, profileImage } = req.body;
+        
+        if (name) req.currentEmp.name = name;
+        if (email) {
+            if (!validator.isEmail(email)) {
+                return res.status(400).json({ success: false, message: 'Enter valid email id' });
+            }
+            // Check if email already exists for another user
+            const existing = await Login.findOne({ email, _id: { $ne: req.currentEmp._id } });
+            if (existing) {
+                return res.status(409).json({ success: false, message: 'Email already exists' });
+            }
+            req.currentEmp.email = email.trim().toLowerCase();
+        }
+        if (profileImage !== undefined) {
+            req.currentEmp.profileImage = profileImage;
+        }
+
+        await req.currentEmp.save();
+
+        createAuditLog({
+            actor: req.currentEmp._id,
+            action: 'update',
+            collectionName: 'Login',
+            recordId: req.currentEmp._id.toString(),
+            message: 'Profile details updated',
+        });
+
+        res.status(200).json({
+            success: true,
+            message: 'Profile updated successfully',
+            user: {
+                _id: req.currentEmp._id,
+                name: req.currentEmp.name,
+                email: req.currentEmp.email,
+                role: req.currentEmp.role,
+                profileImage: req.currentEmp.profileImage || ''
+            }
+        });
+    } catch (e) {
+        res.status(500).json({ success: false, message: 'Failed to update profile', error: e.message });
+    }
+});
+
+router.put('/auth/profile/change-password', auth, async (req, res) => {
+    try {
+        const { oldPassword, newPassword } = req.body;
+        if (!oldPassword || !newPassword) {
+            return res.status(400).json({ success: false, message: 'Old and new passwords are required' });
+        }
+        if (newPassword.length < 4) {
+            return res.status(400).json({ success: false, message: 'Password must be greater than 4 characters' });
+        }
+
+        const isMatch = await bcrypt.compare(oldPassword, req.currentEmp.password);
+        if (!isMatch) {
+            return res.status(400).json({ success: false, message: 'Incorrect old password' });
+        }
+
+        req.currentEmp.password = newPassword;
+        await req.currentEmp.save();
+
+        createAuditLog({
+            actor: req.currentEmp._id,
+            action: 'update',
+            collectionName: 'Login',
+            recordId: req.currentEmp._id.toString(),
+            message: 'Password changed successfully',
+        });
+
+        res.status(200).json({ success: true, message: 'Password changed successfully' });
+    } catch (e) {
+        res.status(500).json({ success: false, message: 'Failed to change password', error: e.message });
+    }
+});
+
+module.exports = router;

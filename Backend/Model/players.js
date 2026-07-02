@@ -56,6 +56,14 @@ const playersSchema = mongoose.Schema({
         type:String,
         required:true
     },
+    playerImage:{
+        type:String,
+        default:''
+    },
+    emergencyContact:{
+        type:String,
+        default:''
+    },
 
     owner:{
         type:mongoose.Schema.Types.ObjectId,
@@ -64,6 +72,11 @@ const playersSchema = mongoose.Schema({
     }
 
 })
+
+playersSchema.index({ playerId: 1 });
+playersSchema.index({ email: 1 });
+playersSchema.index({ sportChosen: 1 });
+playersSchema.index({ pendingFee: 1 });
 
 const players = mongoose.model('players',playersSchema)
 module.exports = players

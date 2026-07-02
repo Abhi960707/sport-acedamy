@@ -18,6 +18,7 @@ const auth = async function(req, res, next) {
     }
 
     req.currentEmp = tempEmp;
+    req.userRole = tempEmp.role || 'admin';
     req.token = loginToken;
     next();
 
@@ -25,4 +26,20 @@ const auth = async function(req, res, next) {
     return res.status(401).json({ success: false, message: 'Authentication failed' });
   }
 };
+
+auth.allowRoles = (...allowedRoles) => {
+  return (req, res, next) => {
+    if (!req.currentEmp) {
+      return res.status(401).json({ success: false, message: 'Authentication required' });
+    }
+
+    const currentRole = req.currentEmp.role || 'admin';
+    if (!allowedRoles.includes(currentRole)) {
+      return res.status(403).json({ success: false, message: 'Access denied' });
+    }
+
+    next();
+  };
+};
+
 module.exports = auth

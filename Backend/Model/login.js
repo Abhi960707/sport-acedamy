@@ -8,7 +8,7 @@ const loginSchema = mongoose.Schema({
         type: String,
         required: true,
         validate(value) {
-            if (!validator.isAlpha(value)) {
+            if (!validator.isAlpha(value.replace(/\s+/g, ''))) {
                 throw new Error('Only alphabate are allowed', {})
             }
         }
@@ -31,6 +31,15 @@ const loginSchema = mongoose.Schema({
                 throw new Error('Password must be greater than 4 characters', {})
             }
         }
+    },
+    role: {
+        type: String,
+        enum: ['superadmin', 'admin', 'coach', 'accountant'],
+        default: 'admin'
+    },
+    profileImage: {
+        type: String,
+        default: ''
     },
     tokens: [{
         token: {
@@ -66,7 +75,10 @@ loginSchema.statics.loginCheck = async function (email, password) {
 
 loginSchema.methods.generateToken = async function () {
     const loginForToken = this
-    let token = jwt.sign({ _id: loginForToken._id.toString() }, process.env.JWT_SECRET || 'newtokencreated')
+    let token = jwt.sign({
+        _id: loginForToken._id.toString(),
+        role: loginForToken.role || 'admin'
+    }, process.env.JWT_SECRET || 'newtokencreated')
 
     loginForToken.tokens = await loginForToken.tokens.concat({ token })
     await loginForToken.save()

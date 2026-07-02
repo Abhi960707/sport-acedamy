@@ -24,6 +24,26 @@ const coachSchema = mongoose.Schema({
         type:String,
         required:true
     },
+    coachImage:{
+        type:String,
+        default:''
+    },
+    qualification:{
+        type:String,
+        default:''
+    },
+    salary:{
+        type:String,
+        default:''
+    },
+    joiningDate:{
+        type:String,
+        default:''
+    },
+    status:{
+        type:String,
+        default:'Active'
+    },
     
     owner:{
         type:mongoose.Schema.Types.ObjectId,

@@ -13,12 +13,18 @@ function Login() {
   const [errors, setErrors] = useState({});
 
   useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      navigate('/home', { replace: true });
+      return;
+    }
+
     const savedEmail = localStorage.getItem('savedEmail');
     if (savedEmail) {
       setLogin(prev => ({ ...prev, email: savedEmail }));
       setRememberMe(true);
     }
-  }, []);
+  }, [navigate]);
 
   const validate = () => {
     const tempErrors = {};
@@ -49,7 +55,7 @@ function Login() {
     e.preventDefault();
 
     if (!validate()) {
-      toast('Please correct the validation errors', 'warning');
+      toast('Unable to Login ! please try again.', 'warning');
       return;
     }
 
@@ -62,10 +68,15 @@ function Login() {
       });
 
       const result = await response.json();
-      const { success, token, message } = result;
+      const { success, token, user, message } = result;
 
       if (success) {
         localStorage.setItem('token', token);
+        if (user) {
+          localStorage.setItem('authUser', JSON.stringify(user));
+        } else {
+          localStorage.removeItem('authUser');
+        }
         if (rememberMe) {
           localStorage.setItem('savedEmail', login.email);
         } else {
@@ -194,6 +205,7 @@ function Login() {
                 />
                 <span className="text-xs text-gray-600 font-medium">Remember email</span>
               </label>
+              <Link to="/forgot-password" className="text-xs text-blue-600 hover:underline font-bold">Forgot password?</Link>
             </div>
 
             {/* Submit Button */}

@@ -2,6 +2,9 @@ import React, { useState, useEffect, useMemo } from 'react';
 import axios from 'axios';
 import { useToast } from './Toast';
 import { FiUsers, FiTrash2, FiEdit2, FiChevronLeft, FiChevronRight, FiChevronUp, FiChevronDown, FiPhone, FiAward } from 'react-icons/fi';
+import { canManageAcademyRecords } from './access';
+import ExportDropdown from './ExportDropdown';
+import { downloadCsv, downloadPdf } from './reportExport';
 
 export default function CoachReport({ searchQuery }) {
   const toast = useToast();
@@ -17,7 +20,8 @@ export default function CoachReport({ searchQuery }) {
   // Sorting and Pagination State
   const [sortConfig, setSortConfig] = useState({ key: 'coachId', direction: 'asc' });
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 8;
+  const itemsPerPage = 6;
+  const canManageRecords = canManageAcademyRecords();
 
   // Reset pagination on search query change
   useEffect(() => {
@@ -42,11 +46,16 @@ export default function CoachReport({ searchQuery }) {
   }, [token, toast]);
 
   const handleDelete = async (id) => {
+    if (!canManageRecords) {
+      toast('You do not have permission to delete coach records', 'warning');
+      return;
+    }
     if (!window.confirm('Are you sure you want to delete this coach?')) return;
     setDeletingId(id);
     try {
       const rem = await fetch(`http://localhost:4005/coach/delete/${id}`, {
         method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
       });
       const emp = await rem.json();
       if (emp.success) {
@@ -66,16 +75,24 @@ export default function CoachReport({ searchQuery }) {
   };
 
   const handleEditClick = (coach) => {
+    if (!canManageRecords) {
+      toast('You do not have permission to edit coach records', 'warning');
+      return;
+    }
     setEditCoach({ ...coach });
   };
 
   const handleUpdateSubmit = async (e) => {
     e.preventDefault();
+    if (!canManageRecords) {
+      toast('You do not have permission to update coach records', 'warning');
+      return;
+    }
     if (!editCoach.name || !editCoach.sportSpecialization || !editCoach.contact || !editCoach.experience) {
       toast('All fields are required', 'warning');
       return;
     }
-    if (!/^[6-9]\d{9}$/.test(editCoach.contact)) {
+    if (!/^\d{10}$/.test(editCoach.contact)) {
       toast('Contact must be a valid 10-digit number', 'warning');
       return;
     }
@@ -147,6 +164,13 @@ export default function CoachReport({ searchQuery }) {
 
   const totalPages = Math.ceil(filteredTasks.length / itemsPerPage);
 
+  useEffect(() => {
+    const nextTotalPages = Math.max(1, Math.ceil(filteredTasks.length / itemsPerPage));
+    if (currentPage > nextTotalPages) {
+      setCurrentPage(nextTotalPages);
+    }
+  }, [filteredTasks.length, currentPage]);
+
   const requestSort = (key) => {
     let direction = 'asc';
     if (sortConfig.key === key && sortConfig.direction === 'asc') {
@@ -160,6 +184,38 @@ export default function CoachReport({ searchQuery }) {
     if (sortConfig.key !== key) return null;
     return sortConfig.direction === 'asc' ? <FiChevronUp className="inline ml-1" /> : <FiChevronDown className="inline ml-1" />;
   };
+
+  const reportColumns = [
+    { label: 'Coach ID', value: 'coachId' },
+    { label: 'Full Name', value: 'name' },
+    { label: 'Sport Specialization', value: 'sportSpecialization' },
+    { label: 'Contact', value: 'contact' },
+    { label: 'Experience', value: 'experience' },
+  ];
+
+  const handleExportCsv = () => {
+    if (!filteredTasks.length) {
+      toast('No coach records available to export', 'warning');
+      return;
+    }
+    downloadCsv('coaches-report.csv', reportColumns, filteredTasks);
+    toast('Coach report exported as CSV', 'success');
+  };
+
+  const handleExportPdf = () => {
+    if (!filteredTasks.length) {
+      toast('No coach records available to export', 'warning');
+      return;
+    }
+    downloadPdf('coaches-report.pdf', reportColumns, filteredTasks, 'Coach Report');
+    toast('Coach report exported as PDF', 'success');
+  };
+
+  const handlePrint = () => {
+    window.print();
+  };
+
+  const isSearchActive = Boolean(searchQuery && searchQuery.trim());
 
   return (
     <div className="max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8 space-y-6 animate-fade-in-up">
@@ -177,6 +233,13 @@ export default function CoachReport({ searchQuery }) {
             </p>
           </div>
         </div>
+
+        <ExportDropdown
+          onExportCsv={handleExportCsv}
+          onExportPdf={handleExportPdf}
+          onPrint={handlePrint}
+          showPrint={true}
+        />
       </div>
 
       {/* Main Table Card */}
@@ -195,9 +258,59 @@ export default function CoachReport({ searchQuery }) {
           </div>
         ) : (
           <div className="flex flex-col">
-            
-            {/* Table wrapper for horizontal scroll */}
-            <div className="overflow-x-auto">
+            <div className="md:hidden space-y-3 p-4">
+              {paginatedTasks.map((coach, index) => (
+                <article
+                  key={coach._id}
+                  className={`rounded-2xl border border-gray-100 bg-white shadow-sm p-4 space-y-4 ${deletingId === coach._id ? 'opacity-40' : ''} ${isSearchActive ? 'ring-1 ring-blue-100 bg-blue-50/20' : ''}`}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="space-y-1 min-w-0">
+                      <div className="text-[11px] font-bold uppercase tracking-wider text-gray-400">Coach #{(currentPage - 1) * itemsPerPage + index + 1}</div>
+                      <h3 className="text-base font-bold text-gray-800 truncate">{coach.name}</h3>
+                      <div className="inline-flex px-2.5 py-1 bg-blue-50 border border-blue-100 rounded-md text-blue-600 text-xs font-bold font-mono w-fit">
+                        {coach.coachId}
+                      </div>
+                    </div>
+                    <span className="inline-flex px-2 py-1 rounded-full text-[11px] font-bold bg-teal-50 text-teal-700 border border-teal-100">
+                      {coach.sportSpecialization}
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-1 gap-2 text-sm">
+                    <div className="flex items-center justify-between gap-4">
+                      <span className="text-gray-400 font-semibold">Contact</span>
+                      <span className="text-gray-700 font-medium text-right">{coach.contact}</span>
+                    </div>
+                    <div className="flex items-center justify-between gap-4">
+                      <span className="text-gray-400 font-semibold">Experience</span>
+                      <span className="text-gray-700 font-medium text-right">{coach.experience}</span>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col sm:flex-row gap-2">
+                    <button
+                      onClick={() => handleEditClick(coach)}
+                      className="inline-flex items-center justify-center gap-1.5 w-full px-3 py-3 text-sm font-bold text-blue-600 bg-blue-50 border border-blue-100 hover:bg-blue-600 hover:text-white rounded-xl transition-all cursor-pointer min-h-11"
+                    >
+                      <FiEdit2 />
+                      <span>Edit</span>
+                    </button>
+                    <button
+                      onClick={() => handleDelete(coach._id)}
+                      disabled={deletingId === coach._id}
+                      id={`delete-coach-${coach._id}`}
+                      className="inline-flex items-center justify-center gap-1.5 w-full px-3 py-3 text-sm font-bold text-red-600 bg-red-50 border border-red-100 hover:bg-red-600 hover:text-white rounded-xl transition-all disabled:opacity-50 cursor-pointer min-h-11"
+                    >
+                      <FiTrash2 />
+                      <span>Delete</span>
+                    </button>
+                  </div>
+                </article>
+              ))}
+            </div>
+
+            <div className="hidden md:block overflow-x-auto">
               <table className="w-full text-left border-collapse text-sm">
                 <thead>
                   <tr className="bg-gray-50/75 border-b border-gray-100">
@@ -232,14 +345,14 @@ export default function CoachReport({ searchQuery }) {
                     >
                       Experience {getSortIcon('experience')}
                     </th>
-                    <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-center">Actions</th>
+                    {canManageRecords && <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-center">Actions</th>}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
                   {paginatedTasks.map((coach, index) => (
                     <tr 
                       key={coach._id} 
-                      className={`hover:bg-blue-50/20 transition-colors ${deletingId === coach._id ? 'opacity-40' : ''}`}
+                      className={`hover:bg-blue-50/20 transition-colors ${deletingId === coach._id ? 'opacity-40' : ''} ${isSearchActive ? 'bg-blue-50/20' : ''}`}
                     >
                       <td className="px-6 py-3.5 text-gray-400 font-medium">
                         {(currentPage - 1) * itemsPerPage + index + 1}
@@ -261,26 +374,28 @@ export default function CoachReport({ searchQuery }) {
                         </span>
                       </td>
                       <td className="px-6 py-3.5 text-gray-600 font-medium">{coach.experience}</td>
-                      <td className="px-6 py-3.5 text-center">
-                        <div className="flex justify-center items-center gap-2">
-                          <button
-                            onClick={() => handleEditClick(coach)}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-blue-600 bg-blue-50 border border-blue-100 hover:bg-blue-600 hover:text-white rounded-xl transition-all cursor-pointer"
-                          >
-                            <FiEdit2 />
-                            <span>Edit</span>
-                          </button>
-                          <button
-                            onClick={() => handleDelete(coach._id)}
-                            disabled={deletingId === coach._id}
-                            id={`delete-coach-${coach._id}`}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-red-600 bg-red-50 border border-red-100 hover:bg-red-600 hover:text-white rounded-xl transition-all disabled:opacity-50 cursor-pointer"
-                          >
-                            <FiTrash2 />
-                            <span>Delete</span>
-                          </button>
-                        </div>
-                      </td>
+                      {canManageRecords && (
+                        <td className="px-6 py-3.5 text-center">
+                          <div className="flex justify-center items-center gap-2">
+                            <button
+                              onClick={() => handleEditClick(coach)}
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-blue-600 bg-blue-50 border border-blue-100 hover:bg-blue-600 hover:text-white rounded-xl transition-all cursor-pointer"
+                            >
+                              <FiEdit2 />
+                              <span>Edit</span>
+                            </button>
+                            <button
+                              onClick={() => handleDelete(coach._id)}
+                              disabled={deletingId === coach._id}
+                              id={`delete-coach-${coach._id}`}
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-red-600 bg-red-50 border border-red-100 hover:bg-red-600 hover:text-white rounded-xl transition-all disabled:opacity-50 cursor-pointer"
+                            >
+                              <FiTrash2 />
+                              <span>Delete</span>
+                            </button>
+                          </div>
+                        </td>
+                      )}
                     </tr>
                   ))}
                 </tbody>

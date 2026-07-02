@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
-import { FiAward, FiUsers, FiUserCheck, FiArrowRight, FiClock } from 'react-icons/fi';
+import { FiAward, FiUsers, FiUserCheck, FiArrowRight, FiClock, FiActivity, FiTrendingUp, FiPieChart, FiBarChart } from 'react-icons/fi';
 import { FaRupeeSign } from 'react-icons/fa';
 import { useToast } from './Toast';
 
@@ -15,24 +15,28 @@ export default function Home() {
     pendingFees: 0,
   });
   const [recentPlayers, setRecentPlayers] = useState([]);
+  const [recentActivity, setRecentActivity] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [playersData, setPlayersData] = useState([]);
 
   useEffect(() => {
     const fetchDashboardData = async () => {
       const token = localStorage.getItem('token');
       try {
-        // Fetch players, coaches, and games in parallel
-        const [playersRes, coachesRes, gamesRes] = await Promise.all([
+        const [playersRes, coachesRes, gamesRes, auditRes] = await Promise.all([
           axios.get('http://localhost:4005/players/report', { headers: { Authorization: `Bearer ${token}` } }),
           axios.get('http://localhost:4005/coach/report', { headers: { Authorization: `Bearer ${token}` } }),
           axios.get('http://localhost:4005/games/report', { headers: { Authorization: `Bearer ${token}` } }),
+          axios.get('http://localhost:4005/audit/report', { headers: { Authorization: `Bearer ${token}` } }),
         ]);
 
         const playersList = playersRes.data.data || [];
         const coachesList = coachesRes.data.data || [];
         const gamesList = gamesRes.data.data || [];
+        const auditList = auditRes.data.data || [];
 
-        // Compute sums
+        setPlayersData(playersList);
+
         let revenue = 0;
         let pending = 0;
         playersList.forEach(p => {
@@ -48,11 +52,16 @@ export default function Home() {
           pendingFees: pending,
         });
 
-        // Get last 4 players registered
         const sortedPlayers = [...playersList]
           .sort((a, b) => new Date(b.joiningDate || 0) - new Date(a.joiningDate || 0))
           .slice(0, 4);
         setRecentPlayers(sortedPlayers);
+
+        setRecentActivity(
+          [...auditList]
+            .sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0))
+            .slice(0, 4)
+        );
 
       } catch (err) {
         console.error('Error fetching dashboard statistics:', err);
@@ -65,6 +74,78 @@ export default function Home() {
     fetchDashboardData();
   }, [toast]);
 
+  // Chart 1: Admissions by Month (Line Chart)
+  const lineChartData = useMemo(() => {
+    if (!playersData.length) return [];
+    
+    // Group by Month (last 6 months)
+    const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    const counts = {};
+    
+    // Initialize last 6 months
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date();
+      d.setMonth(d.getMonth() - i);
+      const key = `${monthNames[d.getMonth()]} ${d.getFullYear().toString().slice(-2)}`;
+      counts[key] = { label: key, count: 0, index: d.getMonth() };
+    }
+
+    playersData.forEach(player => {
+      if (!player.joiningDate) return;
+      const date = new Date(player.joiningDate);
+      if (isNaN(date.getTime())) return;
+      const key = `${monthNames[date.getMonth()]} ${date.getFullYear().toString().slice(-2)}`;
+      if (counts[key]) {
+        counts[key].count += 1;
+      }
+    });
+
+    return Object.values(counts);
+  }, [playersData]);
+
+  // SVG coordinates for Line Chart
+  const linePoints = useMemo(() => {
+    if (!lineChartData.length) return "";
+    const maxVal = Math.max(...lineChartData.map(d => d.count), 5);
+    const width = 340;
+    const height = 120;
+    const padding = 20;
+
+    return lineChartData.map((d, i) => {
+      const x = padding + (i * (width - 2 * padding) / (lineChartData.length - 1));
+      const y = height - padding - (d.count * (height - 2 * padding) / maxVal);
+      return { x, y, val: d.count, label: d.label };
+    });
+  }, [lineChartData]);
+
+  // Chart 2: Players by Sport (Donut Chart)
+  const donutData = useMemo(() => {
+    const sports = {};
+    playersData.forEach(p => {
+      if (p.sportChosen) {
+        sports[p.sportChosen] = (sports[p.sportChosen] || 0) + 1;
+      }
+    });
+    const sorted = Object.entries(sports).map(([name, count]) => ({ name, count }));
+    const total = sorted.reduce((sum, item) => sum + item.count, 0);
+
+    const colors = ['#2563eb', '#0d9488', '#7c3aed', '#db2777', '#ea580c', '#eab308'];
+
+    let accumulatedPercentage = 0;
+    return sorted.slice(0, 5).map((item, idx) => {
+      const pct = (item.count / total) * 100;
+      const offset = 100 - accumulatedPercentage;
+      accumulatedPercentage += pct;
+      return {
+        ...item,
+        pct: Math.round(pct),
+        color: colors[idx % colors.length],
+        strokeDasharray: `${pct} ${100 - pct}`,
+        strokeDashoffset: (offset * 2.51).toFixed(1), // Scale to stroke circumference (2 * pi * r ≈ 251.2 for r=40)
+      };
+    });
+  }, [playersData]);
+
   const cards = [
     {
       title: 'Total Players',
@@ -72,7 +153,8 @@ export default function Home() {
       icon: <FiUserCheck />,
       color: 'from-blue-500 to-indigo-600',
       shadow: 'shadow-blue-500/10',
-      description: 'Active enrollments'
+      description: 'Active enrollments',
+      link: '/reportplayers'
     },
     {
       title: 'Total Coaches',
@@ -80,7 +162,8 @@ export default function Home() {
       icon: <FiUsers />,
       color: 'from-teal-500 to-emerald-600',
       shadow: 'shadow-teal-500/10',
-      description: 'Academy instructors'
+      description: 'Academy instructors',
+      link: '/reportcoachs'
     },
     {
       title: 'Total Games',
@@ -88,15 +171,17 @@ export default function Home() {
       icon: <FiAward />,
       color: 'from-purple-500 to-pink-600',
       shadow: 'shadow-purple-500/10',
-      description: 'Sports specialized'
+      description: 'Sports specialized',
+      link: '/reportgame'
     },
     {
       title: 'Total Revenue',
       value: `₹${stats.totalRevenue.toLocaleString('en-IN')}`,
       icon: <FaRupeeSign />,
-      color: 'from-amber-500 to-orange-600',
-      shadow: 'shadow-amber-500/10',
-      description: 'Collected fee earnings'
+      color: 'from-emerald-500 to-teal-600',
+      shadow: 'shadow-emerald-500/10',
+      description: 'Collected fee earnings',
+      link: '/payment'
     },
     {
       title: 'Pending Fees',
@@ -104,7 +189,8 @@ export default function Home() {
       icon: <FaRupeeSign />,
       color: 'from-rose-500 to-red-600',
       shadow: 'shadow-rose-500/10',
-      description: 'Awaiting collection'
+      description: 'Awaiting collection',
+      link: '/payment'
     },
   ];
 
@@ -143,9 +229,10 @@ export default function Home() {
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-5">
             {cards.map((card, i) => (
-              <div
+              <Link
                 key={i}
-                className={`bg-white border border-gray-100 rounded-2xl p-5 shadow-lg ${card.shadow} flex flex-col justify-between hover:scale-[1.02] hover:shadow-md transition-all duration-200`}
+                to={card.link}
+                className={`bg-white border border-gray-100 rounded-2xl p-5 shadow-lg ${card.shadow} flex flex-col justify-between hover:scale-[1.02] hover:shadow-md transition-all duration-200 block`}
               >
                 <div className="flex justify-between items-start">
                   <span className="text-xs font-bold uppercase tracking-wider text-gray-400">{card.title}</span>
@@ -157,13 +244,165 @@ export default function Home() {
                   <h3 className="text-xl font-extrabold text-gray-800 tracking-tight">{card.value}</h3>
                   <p className="text-[10px] text-gray-400 font-medium">{card.description}</p>
                 </div>
-              </div>
+              </Link>
             ))}
           </div>
         )}
       </section>
 
-      {/* Bottom Main Content Panel (Quick Actions & Recent Activity) */}
+      {/* Charts Section */}
+      <section className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+        
+        {/* Line Chart: Admissions */}
+        <div className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-sm font-bold text-gray-800 flex items-center gap-1.5">
+                <FiTrendingUp className="text-blue-500" /> Monthly Admissions
+              </h3>
+              <p className="text-[10px] text-gray-400">Newly enrolled players (last 6 months)</p>
+            </div>
+          </div>
+          {loading ? (
+            <div className="h-32 bg-gray-50 rounded-xl animate-pulse" />
+          ) : linePoints.length === 0 ? (
+            <div className="h-32 flex items-center justify-center text-xs text-gray-400">No enrollment history</div>
+          ) : (
+            <div className="w-full">
+              <svg viewBox="0 0 340 120" className="w-full h-32">
+                {/* Gradient area */}
+                <defs>
+                  <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.2" />
+                    <stop offset="100%" stopColor="#3b82f6" stopOpacity="0" />
+                  </linearGradient>
+                </defs>
+
+                {/* Filled Area */}
+                <path
+                  d={`M ${linePoints[0].x} 100 ` + linePoints.map(p => `L ${p.x} ${p.y}`).join(" ") + ` L ${linePoints[linePoints.length - 1].x} 100 Z`}
+                  fill="url(#areaGrad)"
+                />
+
+                {/* Line Path */}
+                <path
+                  d={linePoints.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(" ")}
+                  fill="none"
+                  stroke="#3b82f6"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+
+                {/* Dots & Tooltips */}
+                {linePoints.map((p, i) => (
+                  <g key={i}>
+                    <circle cx={p.x} cy={p.y} r="4" fill="#3b82f6" stroke="#fff" strokeWidth="2" />
+                    <text x={p.x} y={p.y - 8} textAnchor="middle" fontSize="9" fontWeight="bold" fill="#1e3a8a">{p.val}</text>
+                    <text x={p.x} y="112" textAnchor="middle" fontSize="8" fill="#9ca3af">{p.label}</text>
+                  </g>
+                ))}
+              </svg>
+            </div>
+          )}
+        </div>
+
+        {/* Donut Chart: Players by Sport */}
+        <div className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-sm font-bold text-gray-800 flex items-center gap-1.5">
+                <FiPieChart className="text-purple-500" /> Players by Sport
+              </h3>
+              <p className="text-[10px] text-gray-400">Popular sports chosen by players</p>
+            </div>
+          </div>
+          {loading ? (
+            <div className="h-32 bg-gray-50 rounded-xl animate-pulse" />
+          ) : donutData.length === 0 ? (
+            <div className="h-32 flex items-center justify-center text-xs text-gray-400">No players registered yet</div>
+          ) : (
+            <div className="flex items-center justify-between gap-4">
+              <svg viewBox="0 0 100 100" className="w-24 h-24">
+                <circle cx="50" cy="50" r="40" fill="transparent" stroke="#f3f4f6" strokeWidth="12" />
+                {donutData.map((d, i) => (
+                  <circle
+                    key={i}
+                    cx="50"
+                    cy="50"
+                    r="40"
+                    fill="transparent"
+                    stroke={d.color}
+                    strokeWidth="12"
+                    strokeDasharray="251.2"
+                    strokeDashoffset={d.strokeDashoffset}
+                    transform="rotate(-90 50 50)"
+                  />
+                ))}
+              </svg>
+              <div className="flex-1 space-y-1.5">
+                {donutData.map((d, i) => (
+                  <div key={i} className="flex items-center justify-between text-xs">
+                    <div className="flex items-center gap-1.5 truncate max-w-[100px]">
+                      <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: d.color }} />
+                      <span className="text-gray-600 truncate">{d.name}</span>
+                    </div>
+                    <span className="font-bold text-gray-800">{d.pct}%</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Double Bar Chart: Revenue vs Pending */}
+        <div className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-sm font-bold text-gray-800 flex items-center gap-1.5">
+                <FiBarChart className="text-emerald-500" /> Revenue Breakdown
+              </h3>
+              <p className="text-[10px] text-gray-400">Received revenue vs outstanding balance</p>
+            </div>
+          </div>
+          {loading ? (
+            <div className="h-32 bg-gray-50 rounded-xl animate-pulse" />
+          ) : (
+            <div className="space-y-4 pt-1">
+              {/* Revenue Progress */}
+              <div className="space-y-1">
+                <div className="flex justify-between text-xs font-semibold">
+                  <span className="text-emerald-600">Collected (Revenue)</span>
+                  <span className="text-gray-700">₹{stats.totalRevenue.toLocaleString()}</span>
+                </div>
+                <div className="w-full bg-gray-100 h-2.5 rounded-full overflow-hidden">
+                  <div 
+                    className="bg-emerald-500 h-full rounded-full" 
+                    style={{ width: `${(stats.totalRevenue / (stats.totalRevenue + stats.pendingFees || 1)) * 100}%` }}
+                  />
+                </div>
+              </div>
+
+              {/* Pending Progress */}
+              <div className="space-y-1">
+                <div className="flex justify-between text-xs font-semibold">
+                  <span className="text-red-500">Outstanding (Pending)</span>
+                  <span className="text-gray-700">₹{stats.pendingFees.toLocaleString()}</span>
+                </div>
+                <div className="w-full bg-gray-100 h-2.5 rounded-full overflow-hidden">
+                  <div 
+                    className="bg-red-500 h-full rounded-full" 
+                    style={{ width: `${(stats.pendingFees / (stats.totalRevenue + stats.pendingFees || 1)) * 100}%` }}
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
+      </section>
+
+      {/* Bottom Main Content Panel (Quick Actions & Recent Enrollments) */}
       <div className="grid lg:grid-cols-12 gap-8">
         
         {/* Left Side: Quick Actions */}
@@ -223,7 +462,7 @@ export default function Home() {
             </Link>
 
             <Link
-              to="/reportplayers"
+              to="/payment"
               className="flex items-center justify-between p-4 bg-white border border-gray-100 rounded-2xl shadow-sm hover:shadow-md hover:border-rose-200 group transition-all"
             >
               <div className="flex items-center gap-3">
@@ -231,8 +470,8 @@ export default function Home() {
                   <FaRupeeSign className="text-lg" />
                 </span>
                 <div className="leading-tight">
-                  <h4 className="text-sm font-bold text-gray-700">Fees Registry</h4>
-                  <span className="text-[10px] text-gray-400">Track balance</span>
+                  <h4 className="text-sm font-bold text-gray-700">Payments Hub</h4>
+                  <span className="text-[10px] text-gray-400">Add/View Payments</span>
                 </div>
               </div>
               <FiArrowRight className="text-gray-400 group-hover:text-rose-600 transition-transform group-hover:translate-x-1" />
@@ -287,6 +526,53 @@ export default function Home() {
         </section>
 
       </div>
+
+      {/* Latest Activity Panel */}
+      <section className="space-y-4">
+        <div className="flex items-end justify-between gap-4">
+          <div>
+            <h2 className="text-lg font-bold font-display text-gray-800">Latest Activity</h2>
+            <p className="text-xs text-gray-500">Recent audit entries from the system</p>
+          </div>
+          <Link to="/audit" className="text-xs font-bold text-blue-600 hover:underline whitespace-nowrap">
+            View all
+          </Link>
+        </div>
+
+        <div className="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden p-5 space-y-4">
+          {loading ? (
+            <div className="space-y-4">
+              {[...Array(3)].map((_, i) => (
+                <div key={i} className="h-12 bg-gray-50 rounded-xl animate-pulse" />
+              ))}
+            </div>
+          ) : recentActivity.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-10 text-center text-gray-400">
+              <span className="text-3xl mb-2"><FiActivity /></span>
+              <p className="text-xs">No recent activity found.</p>
+            </div>
+          ) : (
+            <div className="divide-y divide-gray-100">
+              {recentActivity.map((item) => (
+                <div key={item._id} className="flex items-center justify-between py-3.5 first:pt-0 last:pb-0 gap-3">
+                  <div className="min-w-0">
+                    <h4 className="text-sm font-bold text-gray-700 capitalize">{item.action} {item.collectionName}</h4>
+                    <span className="text-[10px] text-gray-400 truncate block">
+                      {item.actor?.name || 'System'} • {item.message || 'Activity recorded'}
+                    </span>
+                  </div>
+                  <div className="text-right flex flex-col items-end shrink-0">
+                    <span className="text-xs font-semibold text-gray-600 capitalize">{item.actor?.role || 'admin'}</span>
+                    <span className="inline-flex items-center gap-1 text-[9px] font-bold tracking-wider text-gray-400 uppercase mt-0.5">
+                      <FiClock /> {new Date(item.createdAt).toLocaleDateString()}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </section>
 
     </div>
   );

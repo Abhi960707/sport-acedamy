@@ -3,3 +3,5 @@
 
 allowBuilds:
   bcrypt: false
+minimumReleaseAgeExclude:
+  - node-cron@4.5.0
