@@ -34,6 +34,19 @@ router.get('/games/next-id', auth, async (req, res) => {
 
 router.post('/games/add', auth, auth.allowRoles('superadmin', 'admin'), async(req, res)=>{
     try{
+        if (req.body.gameName) {
+            const existingGame = await Games.findOne({
+                gameName: { $regex: new RegExp(`^${req.body.gameName.trim()}$`, 'i') },
+                owner: req.currentEmp._id
+            });
+            if (existingGame) {
+                return res.status(400).json({
+                    success: false,
+                    message: "A game with this name already exists."
+                });
+            }
+        }
+
         const gameAdd = new Games({
             gameId: req.body.gameId,
             gameName: req.body.gameName,
@@ -103,6 +116,26 @@ router.delete('/games/delete/:id', auth, auth.allowRoles('superadmin', 'admin'),
 router.put('/games/update/:id', auth, auth.allowRoles('superadmin', 'admin'), async (req, res) => {
     try {
         const filter = req.userRole === 'superadmin' ? { _id: req.params.id } : { _id: req.params.id, owner: req.currentEmp._id };
+
+        const gameToUpdate = await Games.findOne(filter);
+        if (!gameToUpdate) {
+            return res.status(404).json({ success: false, message: "Game not found or unauthorized" });
+        }
+
+        if (req.body.gameName) {
+            const existingGame = await Games.findOne({
+                gameName: { $regex: new RegExp(`^${req.body.gameName.trim()}$`, 'i') },
+                owner: gameToUpdate.owner,
+                _id: { $ne: req.params.id }
+            });
+            if (existingGame) {
+                return res.status(400).json({
+                    success: false,
+                    message: "A game with this name already exists."
+                });
+            }
+        }
+
         const updatedGame = await Games.findOneAndUpdate(
             filter,
             {

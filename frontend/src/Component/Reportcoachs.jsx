@@ -470,7 +470,20 @@ export default function CoachReport({ searchQuery }) {
                 {/* Sport Specialization */}
                 <div className="space-y-1">
                   <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Sport Specialization</label>
-                  <input type="text" className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:outline-none" value={editCoach.sportSpecialization} onChange={(e) => setEditCoach({...editCoach, sportSpecialization: e.target.value})} required />
+                  <select className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:outline-none cursor-pointer" value={editCoach.sportSpecialization} onChange={(e) => setEditCoach({...editCoach, sportSpecialization: e.target.value})} required>
+                    <option value="">Select Sport</option>
+                    <option value="Cricket">Cricket</option>
+                    <option value="Football">Football</option>
+                    <option value="Kabaddi">Kabaddi</option>
+                    <option value="Kho Kho">Kho Kho</option>
+                    <option value="Volleyball">Volleyball</option>
+                    <option value="Badminton">Badminton</option>
+                    <option value="Basketball">Basketball</option>
+                    <option value="Tennis">Tennis</option>
+                    <option value="Athletics">Athletics</option>
+                    <option value="Swimming">Swimming</option>
+                    <option value="Carrom">Carrom</option>
+                  </select>
                 </div>
 
                 {/* Contact */}

@@ -703,9 +703,17 @@ export default function PlayerReport({ searchQuery }) {
                     <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Sport Chosen</label>
                     <select name="sportChosen" className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:outline-none cursor-pointer" value={editPlayer.sportChosen} onChange={handleModalChange} required>
                       <option value="">Select Sport</option>
-                      {gamesList.map((g) => (
-                        <option key={g._id} value={g.gameName}>{g.gameName}</option>
-                      ))}
+                      <option value="Cricket">Cricket</option>
+                      <option value="Football">Football</option>
+                      <option value="Kabaddi">Kabaddi</option>
+                      <option value="Kho Kho">Kho Kho</option>
+                      <option value="Volleyball">Volleyball</option>
+                      <option value="Badminton">Badminton</option>
+                      <option value="Basketball">Basketball</option>
+                      <option value="Tennis">Tennis</option>
+                      <option value="Athletics">Athletics</option>
+                      <option value="Swimming">Swimming</option>
+                      <option value="Carrom">Carrom</option>
                     </select>
                   </div>
 
@@ -714,7 +722,11 @@ export default function PlayerReport({ searchQuery }) {
                     <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Coach Assigned</label>
                     <select name="coachAssigned" className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:outline-none cursor-pointer" value={editPlayer.coachAssigned} onChange={handleModalChange} required>
                       <option value="">Select Coach</option>
-                      {coachesList.map((c) => (
+                      {(() => {
+                        if (!editPlayer.sportChosen) return coachesList;
+                        const specialized = coachesList.filter(c => c.sportSpecialization === editPlayer.sportChosen);
+                        return specialized.length > 0 ? specialized : coachesList;
+                      })().map((c) => (
                         <option key={c._id} value={c.name}>{c.name} ({c.sportSpecialization})</option>
                       ))}
                     </select>

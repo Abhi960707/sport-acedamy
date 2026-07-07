@@ -510,9 +510,17 @@ function PlayerAdd() {
                   disabled={loading}
                 >
                   <option value="">Select Sport</option>
-                  {gamesList.map((g) => (
-                    <option key={g._id} value={g.gameName}>{g.gameName}</option>
-                  ))}
+                  <option value="Cricket">Cricket</option>
+                  <option value="Football">Football</option>
+                  <option value="Kabaddi">Kabaddi</option>
+                  <option value="Kho Kho">Kho Kho</option>
+                  <option value="Volleyball">Volleyball</option>
+                  <option value="Badminton">Badminton</option>
+                  <option value="Basketball">Basketball</option>
+                  <option value="Tennis">Tennis</option>
+                  <option value="Athletics">Athletics</option>
+                  <option value="Swimming">Swimming</option>
+                  <option value="Carrom">Carrom</option>
                 </select>
                 {errors.sportChosen && <p className="text-[11px] font-semibold text-red-500">{errors.sportChosen}</p>}
               </div>
@@ -531,7 +539,11 @@ function PlayerAdd() {
                   disabled={loading}
                 >
                   <option value="">Select Coach</option>
-                  {coachesList.map((c) => (
+                  {(() => {
+                    if (!addPlayers.sportChosen) return coachesList;
+                    const specialized = coachesList.filter(c => c.sportSpecialization === addPlayers.sportChosen);
+                    return specialized.length > 0 ? specialized : coachesList;
+                  })().map((c) => (
                     <option key={c._id} value={c.name}>{c.name} ({c.sportSpecialization})</option>
                   ))}
                 </select>

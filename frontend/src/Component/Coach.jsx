@@ -258,21 +258,29 @@ function CoachAdd() {
             {/* Sport Specialization */}
             <div className="space-y-1">
               <label className="text-xs font-bold text-gray-600 uppercase tracking-wider" htmlFor="coach-sport">Sport Specialization</label>
-              <div className="relative flex items-center">
-                <span className="absolute left-3 text-gray-400 text-sm"><FiActivity /></span>
-                <input
-                  id="coach-sport"
-                  className={`w-full pl-9 pr-4 py-2.5 text-sm bg-white border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all ${
-                    errors.sportSpecialization ? 'border-red-400' : 'border-gray-200'
-                  }`}
-                  type="text"
-                  name="sportSpecialization"
-                  placeholder="e.g. Cricket, Football, Tennis"
-                  value={addCoach.sportSpecialization}
-                  onChange={handleCoach}
-                  disabled={loading}
-                />
-              </div>
+              <select
+                id="coach-sport"
+                className={`w-full px-4 py-2.5 text-sm bg-white border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all cursor-pointer ${
+                  errors.sportSpecialization ? 'border-red-400' : 'border-gray-200'
+                }`}
+                name="sportSpecialization"
+                value={addCoach.sportSpecialization}
+                onChange={handleCoach}
+                disabled={loading}
+              >
+                <option value="">Select Sport</option>
+                <option value="Cricket">Cricket</option>
+                <option value="Football">Football</option>
+                <option value="Kabaddi">Kabaddi</option>
+                <option value="Kho Kho">Kho Kho</option>
+                <option value="Volleyball">Volleyball</option>
+                <option value="Badminton">Badminton</option>
+                <option value="Basketball">Basketball</option>
+                <option value="Tennis">Tennis</option>
+                <option value="Athletics">Athletics</option>
+                <option value="Swimming">Swimming</option>
+                <option value="Carrom">Carrom</option>
+              </select>
               {errors.sportSpecialization && <p className="text-[11px] font-semibold text-red-500">{errors.sportSpecialization}</p>}
             </div>
 

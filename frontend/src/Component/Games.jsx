@@ -219,18 +219,29 @@ function GameAdd() {
             {/* Game Name */}
             <div className="space-y-1">
               <label className="text-xs font-bold text-gray-600 uppercase tracking-wider" htmlFor="game-name">Game Name</label>
-              <input
+              <select
                 id="game-name"
-                className={`w-full px-4 py-2.5 text-sm bg-white border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all ${
+                className={`w-full px-4 py-2.5 text-sm bg-white border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all cursor-pointer ${
                   errors.gameName ? 'border-red-400' : 'border-gray-200'
                 }`}
-                type="text"
                 name="gameName"
-                placeholder="e.g. Cricket, Football"
                 value={addGame.gameName}
                 onChange={handleGame}
                 disabled={loading}
-              />
+              >
+                <option value="">Select Game</option>
+                <option value="Cricket">Cricket</option>
+                <option value="Football">Football</option>
+                <option value="Kabaddi">Kabaddi</option>
+                <option value="Kho Kho">Kho Kho</option>
+                <option value="Volleyball">Volleyball</option>
+                <option value="Badminton">Badminton</option>
+                <option value="Basketball">Basketball</option>
+                <option value="Tennis">Tennis</option>
+                <option value="Athletics">Athletics</option>
+                <option value="Swimming">Swimming</option>
+                <option value="Carrom">Carrom</option>
+              </select>
               {errors.gameName && <p className="text-[11px] font-semibold text-red-500">{errors.gameName}</p>}
             </div>
 

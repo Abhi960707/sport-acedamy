@@ -8,3 +8,4 @@ coverage/
 backend/uploads/
 frontend/.env
 backend/.env
+.env*.local
