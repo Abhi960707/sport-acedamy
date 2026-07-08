@@ -22,6 +22,10 @@ const attendanceSchema = mongoose.Schema({
         type: String,
         default: '',
     },
+    markedBy: {
+        type: String,
+        default: '',
+    },
     owner: {
         type: mongoose.Schema.Types.ObjectId,
         required: true,

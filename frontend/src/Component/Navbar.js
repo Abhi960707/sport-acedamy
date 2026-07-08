@@ -20,6 +20,7 @@ const REPORT_LINKS = [
   { to: '/reportgame', label: 'Game Reports', icon: <FiBarChart2 /> },
   { to: '/reportcoachs', label: 'Coach Reports', icon: <FiFolder /> },
   { to: '/reportplayers', label: 'Player Reports', icon: <FiBarChart2 /> },
+  { to: '/transaction-report', label: 'Transaction Report', icon: <FiFolder /> },
   { to: '/audit', label: 'Audit Log', icon: <FiActivity /> },
 ];
 
@@ -53,6 +54,26 @@ export default function Navbar({ searchQuery = '', setSearchQuery = () => {} }) 
   const userRole = String(currentUser?.role || 'admin').toLowerCase();
   const canViewAudit = ['admin', 'superadmin', 'accountant'].includes(userRole);
   const canManageSettings = ['admin', 'superadmin'].includes(userRole);
+  const isCoach = userRole === 'coach';
+
+  const filteredNavLinks = NAV_LINKS.filter(link => {
+    if (isCoach) {
+      return ['/home', '/player', '/attendance', '/payment'].includes(link.to);
+    }
+    return true;
+  }).map(link => {
+    if (isCoach && link.to === '/player') {
+      return { ...link, to: '/reportplayers' };
+    }
+    return link;
+  });
+
+  const filteredReportLinks = REPORT_LINKS.filter(link => {
+    if (isCoach) {
+      return ['/reportgame', '/transaction-report'].includes(link.to);
+    }
+    return link.to !== '/audit' || canViewAudit;
+  });
 
   useEffect(() => {
     setMobileMenuOpen(false);
@@ -210,7 +231,7 @@ export default function Navbar({ searchQuery = '', setSearchQuery = () => {} }) 
 
           {/* Desktop Nav Links */}
           <div className="hidden xl:flex items-center gap-1 flex-1 justify-center">
-            {NAV_LINKS.map(({ to, label, icon }) => (
+            {filteredNavLinks.map(({ to, label, icon }) => (
               <NavLink
                 key={to}
                 to={to}
@@ -240,7 +261,7 @@ export default function Navbar({ searchQuery = '', setSearchQuery = () => {} }) 
               </button>
 
               <div className={`absolute left-0 mt-1 w-48 bg-white border border-gray-100 rounded-2xl shadow-xl py-2 z-50 ${reportMenuOpen ? 'block' : 'hidden'}`}>
-                {REPORT_LINKS.filter(({ to }) => to !== '/audit' || canViewAudit).map(({ to, label, icon }) => (
+                {filteredReportLinks.map(({ to, label, icon }) => (
                   <NavLink
                     key={to}
                     to={to}
@@ -445,7 +466,7 @@ export default function Navbar({ searchQuery = '', setSearchQuery = () => {} }) 
           )}
 
           <ul className="flex flex-col gap-1">
-            {NAV_LINKS.map(({ to, label, icon }) => (
+            {filteredNavLinks.map(({ to, label, icon }) => (
               <li key={to}>
                 <NavLink
                   to={to}
@@ -464,7 +485,7 @@ export default function Navbar({ searchQuery = '', setSearchQuery = () => {} }) 
             ))}
 
             <li className="pt-3 pb-1 px-4 text-xs font-bold text-gray-400 uppercase tracking-widest">Reports</li>
-            {REPORT_LINKS.filter(({ to }) => to !== '/audit' || canViewAudit).map(({ to, label, icon }) => (
+            {filteredReportLinks.map(({ to, label, icon }) => (
               <li key={to}>
                 <NavLink
                   to={to}

@@ -4,8 +4,15 @@ import axios from 'axios';
 import { FiAward, FiUsers, FiUserCheck, FiArrowRight, FiClock, FiActivity, FiTrendingUp, FiPieChart, FiBarChart } from 'react-icons/fi';
 import { FaRupeeSign } from 'react-icons/fa';
 import { useToast } from './Toast';
-
+import CoachDashboard from './CoachDashboard';
+import { getStoredRole } from './access';
 export default function Home() {
+  const userRole = getStoredRole();
+
+  if (userRole === 'coach') {
+    return <CoachDashboard />;
+  }
+
   const toast = useToast();
   const [stats, setStats] = useState({
     playersCount: 0,
@@ -190,7 +197,7 @@ export default function Home() {
       color: 'from-rose-500 to-red-600',
       shadow: 'shadow-rose-500/10',
       description: 'Awaiting collection',
-      link: '/payment'
+      link: '/reportplayers?query=pending'
     },
   ];
 

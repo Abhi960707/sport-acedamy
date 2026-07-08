@@ -35,8 +35,8 @@ function Login() {
     }
     if (!login.password) {
       tempErrors.password = 'Password is required';
-    } else if (login.password.length < 6) {
-      tempErrors.password = 'Password must be at least 6 characters';
+    } else if (login.password.length < 4) {
+      tempErrors.password = 'Password must be at least 4 characters';
     }
     setErrors(tempErrors);
     return Object.keys(tempErrors).length === 0;

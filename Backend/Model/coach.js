@@ -10,7 +10,11 @@ const coachSchema = mongoose.Schema({
     name:{
         type:String,
         required:true
-
+    },
+    email:{
+        type:String,
+        required:true,
+        unique:true
     },
     sportSpecialization:{
         type:String,

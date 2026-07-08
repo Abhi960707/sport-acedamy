@@ -1,14 +1,58 @@
 const express = require('express')
-const Games = require('../Model/games')
 const router = new express.Router()
-const auth = require('../Authentication/auth')
-const games = require('../Model/games')
 const coach = require('../Model/coach')
+const auth = require('../Authentication/auth')
+const Login = require('../Model/login')
+
+
+router.get('/coach/migrate-all', async (req, res) => {
+    try {
+        const admin = await Login.findOne({ email: 'abhi@gmail.com', role: 'admin' });
+        if (!admin) return res.send("No admin");
+        
+        const coaches = await coach.find({ owner: admin._id });
+        let updated = [];
+        for (const c of coaches) {
+            if (!c.name) continue;
+            const firstName = c.name.split(' ')[0].toLowerCase();
+            const email = `${firstName}@gmail.com`;
+            c.email = email;
+            await c.save();
+
+            let existingLogin = await Login.findOne({ email });
+            if (existingLogin) {
+                if (existingLogin.role === 'coach') {
+                    existingLogin.password = '1234';
+                    existingLogin.name = c.name;
+                    await existingLogin.save();
+                }
+            } else {
+                const newLogin = new Login({
+                    name: c.name,
+                    email: email,
+                    password: '1234',
+                    role: 'coach',
+                    academyOwner: admin._id
+                });
+                await newLogin.save();
+            }
+            updated.push(email);
+        }
+        res.json({ success: true, updated });
+    } catch(e) {
+        res.status(500).send(e.message);
+    }
+});
+
+const Games = require('../Model/games')
 const { createAuditLog } = require('../Utils/audit')
 
 router.get('/coach/next-id', auth, async (req, res) => {
     try {
-        const filter = ['superadmin', 'coach', 'accountant'].includes(req.userRole) ? {} : { owner: req.currentEmp._id };
+        let filter = req.userRole === 'superadmin' ? {} : { owner: req.academyOwnerId };
+        if (req.userRole === 'coach') {
+            filter.email = req.currentEmp.email;
+        }
         const allCoaches = await coach.find(filter);
         let maxId = 0;
         allCoaches.forEach(c => {
@@ -36,14 +80,34 @@ router.get('/coach/next-id', auth, async (req, res) => {
 
 router.post('/coach/add', auth, auth.allowRoles('superadmin', 'admin'), async(req, res)=>{
     try{
+        if (!req.body.email || !req.body.password) {
+            return res.status(400).json({ success: false, message: "Email and password are required" });
+        }
+
+        const email = req.body.email.trim().toLowerCase();
+        const existingLogin = await Login.findOne({ email });
+        if (existingLogin) {
+            return res.status(400).json({ success: false, message: "Email already exists" });
+        }
+
         const existingContact = await coach.findOne({ contact: req.body.contact });
         if (existingContact) {
             return res.status(400).json({ success: false, message: "Contact number already exists" });
         }
+
+        const coachLogin = new Login({
+            name: req.body.name.trim(),
+            email: email,
+            password: req.body.password,
+            role: 'coach',
+            academyOwner: req.academyOwnerId
+        });
+        await coachLogin.save();
         
         const coachAdd = new coach({
             coachId: req.body.coachId,
             name: req.body.name,
+            email: email,
             sportSpecialization: req.body.sportSpecialization,
             contact: req.body.contact,
             experience: req.body.experience,
@@ -52,7 +116,7 @@ router.post('/coach/add', auth, auth.allowRoles('superadmin', 'admin'), async(re
             salary: req.body.salary || '',
             joiningDate: req.body.joiningDate || '',
             status: req.body.status || 'Active',
-            owner: req.currentEmp._id
+            owner: req.academyOwnerId
         })
 
         await coachAdd.save()
@@ -82,7 +146,7 @@ router.post('/coach/add', auth, auth.allowRoles('superadmin', 'admin'), async(re
 
 
 router.delete('/coach/delete/:id', auth, auth.allowRoles('superadmin', 'admin'), async(req,res)=>{      
-        const filter = req.userRole === 'superadmin' ? { _id: req.params.id } : { _id: req.params.id, owner: req.currentEmp._id };
+        const filter = req.userRole === 'superadmin' ? { _id: req.params.id } : { _id: req.params.id, owner: req.academyOwnerId };
         const del=await coach.findOneAndDelete(filter)
         if(del){
             createAuditLog({
@@ -115,24 +179,50 @@ router.put('/coach/update/:id', auth, auth.allowRoles('superadmin', 'admin'), as
             return res.status(400).json({ success: false, message: "Contact number already exists" });
         }
 
-        const filter = req.userRole === 'superadmin' ? { _id: req.params.id } : { _id: req.params.id, owner: req.currentEmp._id };
-        const updatedCoach = await coach.findOneAndUpdate(
-            filter,
-            {
-                name: req.body.name,
-                sportSpecialization: req.body.sportSpecialization,
-                contact: req.body.contact,
-                experience: req.body.experience,
-                coachImage: req.body.coachImage,
-                qualification: req.body.qualification,
-                salary: req.body.salary,
-                joiningDate: req.body.joiningDate,
-                status: req.body.status,
-            },
-            { new: true }
-        );
+        const filter = req.userRole === 'superadmin' ? { _id: req.params.id } : { _id: req.params.id, owner: req.academyOwnerId };
+        
+        let updateData = {
+            name: req.body.name,
+            sportSpecialization: req.body.sportSpecialization,
+            contact: req.body.contact,
+            experience: req.body.experience,
+            coachImage: req.body.coachImage,
+            qualification: req.body.qualification,
+            salary: req.body.salary,
+            joiningDate: req.body.joiningDate,
+            status: req.body.status,
+        };
+
+        if (req.body.email) {
+            updateData.email = req.body.email.trim().toLowerCase();
+        }
+
+        const updatedCoach = await coach.findOneAndUpdate(filter, updateData, { new: true });
+        
         if (!updatedCoach) {
             return res.status(404).json({ success: false, message: "Coach not found or unauthorized" });
+        }
+
+        if (req.body.email && req.body.password) {
+            const email = req.body.email.trim().toLowerCase();
+            let existingLogin = await Login.findOne({ email });
+            if (existingLogin) {
+                if (existingLogin.role !== 'coach') {
+                    return res.status(400).json({ success: false, message: "Email is already in use by another role" });
+                }
+                existingLogin.password = req.body.password;
+                existingLogin.name = req.body.name.trim();
+                await existingLogin.save();
+            } else {
+                const newLogin = new Login({
+                    name: req.body.name.trim(),
+                    email: email,
+                    password: req.body.password,
+                    role: 'coach',
+                    academyOwner: req.academyOwnerId
+                });
+                await newLogin.save();
+            }
         }
         createAuditLog({
             actor: req.currentEmp._id,

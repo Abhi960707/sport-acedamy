@@ -7,7 +7,7 @@ const { createAuditLog } = require('../Utils/audit')
 
 router.get('/players/next-id', auth, async (req, res) => {
     try {
-        const filter = ['superadmin', 'coach', 'accountant'].includes(req.userRole) ? {} : { owner: req.currentEmp._id };
+        const filter = req.userRole === 'superadmin' ? {} : { owner: req.academyOwnerId };
         const allPlayers = await players.find(filter);
         let maxId = 0;
         allPlayers.forEach(p => {
@@ -70,7 +70,7 @@ router.post('/players/add', auth, auth.allowRoles('superadmin', 'admin'), async(
             pendingFee: req.body.pendingFee,
             playerImage: req.body.playerImage || '',
             emergencyContact: req.body.emergencyContact || '',
-            owner: req.currentEmp._id
+            owner: req.academyOwnerId
         })
 
         await playersAdd.save()
@@ -100,7 +100,7 @@ router.post('/players/add', auth, auth.allowRoles('superadmin', 'admin'), async(
 
 
 router.delete('/players/delete/:id', auth, auth.allowRoles('superadmin', 'admin'), async(req,res)=>{
-    const filter = req.userRole === 'superadmin' ? { _id: req.params.id } : { _id: req.params.id, owner: req.currentEmp._id };
+    const filter = req.userRole === 'superadmin' ? { _id: req.params.id } : { _id: req.params.id, owner: req.academyOwnerId };
     const remove=await players.findOneAndDelete(filter)
 
     if(remove){
@@ -125,9 +125,15 @@ router.delete('/players/delete/:id', auth, auth.allowRoles('superadmin', 'admin'
      }
 })
 
-router.get('/players', async (req, res) => {
+router.get('/players', auth, async (req, res) => {
     try {
-        const allPlayers = await players.find()
+        let filter = req.userRole === 'superadmin' ? {} : { owner: req.academyOwnerId };
+        if (req.userRole === 'coach' && req.coachProfile) {
+            filter.coachAssigned = req.coachProfile.name;
+        } else if (req.userRole === 'coach') {
+            return res.status(403).json({ success: false, message: "Coach profile not found" });
+        }
+        const allPlayers = await players.find(filter)
         res.status(200).json({
             success: true,
             data: allPlayers
@@ -157,7 +163,7 @@ router.put('/players/update/:id', auth, auth.allowRoles('superadmin', 'admin'), 
         if (existingContact) {
             return res.status(400).json({ success: false, message: "Contact number already exists" });
         }
-        const filter = req.userRole === 'superadmin' ? { _id: req.params.id } : { _id: req.params.id, owner: req.currentEmp._id };
+        const filter = req.userRole === 'superadmin' ? { _id: req.params.id } : { _id: req.params.id, owner: req.academyOwnerId };
         const updatedPlayer = await players.findOneAndUpdate(
             filter,
             {

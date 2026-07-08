@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import axios from 'axios';
 import { useToast } from './Toast';
-import { FiTrash2, FiEdit2, FiChevronLeft, FiChevronRight, FiChevronUp, FiChevronDown, FiPhone, FiMail, FiCalendar, FiMapPin } from 'react-icons/fi';
+import { FiTrash2, FiEdit2, FiChevronLeft, FiChevronRight, FiChevronUp, FiChevronDown, FiPhone, FiMail, FiCalendar, FiMapPin, FiBell } from 'react-icons/fi';
 import { FaRupeeSign } from 'react-icons/fa';
 import { canManageAcademyRecords } from './access';
 import ExportDropdown from './ExportDropdown';
@@ -21,6 +21,7 @@ export default function PlayerReport({ searchQuery }) {
   // Edit State
   const [editPlayer, setEditPlayer] = useState(null);
   const [updateLoading, setUpdateLoading] = useState(false);
+  const [notifying, setNotifying] = useState(false);
 
   // Sorting and Pagination State
   const [sortConfig, setSortConfig] = useState({ key: 'playerId', direction: 'asc' });
@@ -234,7 +235,8 @@ export default function PlayerReport({ searchQuery }) {
       (s.address && s.address.toLowerCase().includes(query)) ||
       (s.totalFee && s.totalFee.toString().includes(query)) ||
       (s.payingFee && s.payingFee.toString().includes(query)) ||
-      (s.pendingFee && s.pendingFee.toString().includes(query))
+      (s.pendingFee && s.pendingFee.toString().includes(query)) ||
+      (query === 'pending' && Number(s.pendingFee) > 0)
     );
   }, [sortedTasks, searchQuery]);
 
@@ -300,6 +302,47 @@ export default function PlayerReport({ searchQuery }) {
     toast('Player report exported as PDF', 'success');
   };
 
+  const handleNotifyCoaches = async () => {
+    const pendingPlayers = filteredTasks.filter(p => Number(p.pendingFee) > 0);
+    if (pendingPlayers.length === 0) {
+      toast('No players with pending fees to notify', 'warning');
+      return;
+    }
+
+    // Group by coach
+    const byCoach = {};
+    pendingPlayers.forEach(p => {
+      const coach = p.coachAssigned || 'Unassigned';
+      if (!byCoach[coach]) byCoach[coach] = [];
+      byCoach[coach].push(p);
+    });
+
+    const notifications = Object.keys(byCoach).map(coachName => {
+      const playersList = byCoach[coachName];
+      const playerDetails = playersList.map(p => `${p.fullName} (₹${p.pendingFee})`).join(', ');
+      return {
+        coachName,
+        message: `The following players have pending fees: ${playerDetails}`
+      };
+    });
+
+    setNotifying(true);
+    try {
+      const res = await axios.post('http://localhost:4005/notifications/notify-coaches', { notifications }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.data.success) {
+        toast('Coaches notified successfully', 'success');
+      } else {
+        toast(res.data.message || 'Failed to notify coaches', 'error');
+      }
+    } catch (err) {
+      toast('Server error during notification', 'error');
+    } finally {
+      setNotifying(false);
+    }
+  };
+
   const handlePrint = () => {
     window.print();
   };
@@ -323,12 +366,24 @@ export default function PlayerReport({ searchQuery }) {
           </div>
         </div>
 
-        <ExportDropdown
-          onExportCsv={handleExportCsv}
-          onExportPdf={handleExportPdf}
-          onPrint={handlePrint}
-          showPrint={true}
-        />
+        <div className="flex items-center gap-3">
+          {canManageRecords && filteredTasks.some(p => Number(p.pendingFee) > 0) && (
+            <button
+              onClick={handleNotifyCoaches}
+              disabled={notifying}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-rose-50 text-rose-600 border border-rose-100 rounded-xl text-sm font-bold hover:bg-rose-600 hover:text-white transition-all disabled:opacity-50"
+            >
+              {notifying ? <span className="animate-spin inline-block w-4 h-4 border-2 border-current border-t-transparent rounded-full" /> : <FiBell />}
+              Notify Coaches
+            </button>
+          )}
+          <ExportDropdown
+            onExportCsv={handleExportCsv}
+            onExportPdf={handleExportPdf}
+            onPrint={handlePrint}
+            showPrint={true}
+          />
+        </div>
       </div>
 
       {/* Main Table Card */}

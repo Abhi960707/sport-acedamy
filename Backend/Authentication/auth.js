@@ -20,6 +20,20 @@ const auth = async function(req, res, next) {
     req.currentEmp = tempEmp;
     req.userRole = tempEmp.role || 'admin';
     req.token = loginToken;
+
+    if (req.userRole === 'admin') {
+      req.academyOwnerId = tempEmp._id;
+    } else if (req.userRole === 'coach') {
+      req.academyOwnerId = tempEmp.academyOwner;
+      const CoachModel = require('../Model/coach');
+      const coachProfile = await CoachModel.findOne({ email: tempEmp.email, owner: tempEmp.academyOwner });
+      if (coachProfile) {
+        req.coachProfile = coachProfile;
+      }
+    } else {
+      req.academyOwnerId = tempEmp._id;
+    }
+
     next();
 
   } catch (e) {

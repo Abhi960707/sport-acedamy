@@ -7,7 +7,12 @@ const games = require('../Model/games')
 router.get('/games/report',auth,async(req,res)=>{
     console.log("report")
     try{
-        const filter = ['superadmin', 'coach', 'accountant'].includes(req.userRole) ? {} : {owner:req.currentEmp._id};
+        const filter = req.userRole === 'superadmin' ? {} : { owner: req.academyOwnerId };
+        if (req.userRole === 'coach' && req.coachProfile) {
+            filter.gameName = req.coachProfile.sportSpecialization;
+        } else if (req.userRole === 'coach') {
+            return res.status(403).json({ success: false, message: "Coach profile not found" });
+        }
         const gamereport = await games.find(filter)
         res.status(200).json({
             success:true,

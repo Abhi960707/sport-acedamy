@@ -7,7 +7,11 @@ const { createAuditLog } = require('../Utils/audit')
 
 router.get('/games/next-id', auth, async (req, res) => {
     try {
-        const filter = ['superadmin', 'coach', 'accountant'].includes(req.userRole) ? {} : { owner: req.currentEmp._id };
+        let filter = req.userRole === 'superadmin' ? {} : { owner: req.academyOwnerId };
+        if (req.userRole === 'coach') {
+            const coachDoc = await require('../Model/coach').findOne({ email: req.currentEmp.email });
+            if (coachDoc) filter.gameName = coachDoc.sportSpecialization;
+        }
         const allGames = await Games.find(filter);
         let maxId = 0;
         allGames.forEach(g => {
@@ -37,7 +41,7 @@ router.post('/games/add', auth, auth.allowRoles('superadmin', 'admin'), async(re
         if (req.body.gameName) {
             const existingGame = await Games.findOne({
                 gameName: { $regex: new RegExp(`^${req.body.gameName.trim()}$`, 'i') },
-                owner: req.currentEmp._id
+                owner: req.academyOwnerId
             });
             if (existingGame) {
                 return res.status(400).json({
@@ -58,7 +62,7 @@ router.post('/games/add', auth, auth.allowRoles('superadmin', 'admin'), async(re
             maximumCapacity: req.body.maximumCapacity || '',
             description: req.body.description || '',
             status: req.body.status || 'Active',
-            owner: req.currentEmp._id
+            owner: req.academyOwnerId
         })
 
         await gameAdd.save()
@@ -88,7 +92,7 @@ router.post('/games/add', auth, auth.allowRoles('superadmin', 'admin'), async(re
 
 
 router.delete('/games/delete/:id', auth, auth.allowRoles('superadmin', 'admin'), async(req,res)=>{
-    const filter = req.userRole === 'superadmin' ? { _id: req.params.id } : { _id: req.params.id, owner: req.currentEmp._id };
+    const filter = req.userRole === 'superadmin' ? { _id: req.params.id } : { _id: req.params.id, owner: req.academyOwnerId };
     const rem=await games.findOneAndDelete(filter)
     if(rem){
         createAuditLog({
@@ -115,7 +119,7 @@ router.delete('/games/delete/:id', auth, auth.allowRoles('superadmin', 'admin'),
 
 router.put('/games/update/:id', auth, auth.allowRoles('superadmin', 'admin'), async (req, res) => {
     try {
-        const filter = req.userRole === 'superadmin' ? { _id: req.params.id } : { _id: req.params.id, owner: req.currentEmp._id };
+        const filter = req.userRole === 'superadmin' ? { _id: req.params.id } : { _id: req.params.id, owner: req.academyOwnerId };
 
         const gameToUpdate = await Games.findOne(filter);
         if (!gameToUpdate) {

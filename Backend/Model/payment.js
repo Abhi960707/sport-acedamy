@@ -30,6 +30,15 @@ const paymentSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         required: true,
         ref: 'Login',
+    },
+    receivedById: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Login',
+        default: null
+    },
+    receivedByRole: {
+        type: String,
+        default: ''
     }
 }, { timestamps: true })
 

@@ -12,6 +12,7 @@ import Reportplayers from './Component/Reportplayers';
 import AuditLog from './Component/AuditLog';
 import Attendance from './Component/Attendance';
 import Payment from './Component/Payment';
+import TransactionReport from './Component/TransactionReport';
 import Navbar from './Component/Navbar';
 import ProtectedRoute from './Component/ProtectedRoute';
 import { ToastProvider } from './Component/Toast';
@@ -25,13 +26,17 @@ function AppLayout() {
   const authRoutes = ['/login', '/signup', '/forgot-password'];
   const showNavbar = !authRoutes.includes(location.pathname);
 
-  // Clear search query when changing pages
+  // Clear search query when changing pages or parse from URL
   React.useEffect(() => {
     const isReport = ['/reportgame', '/reportcoachs', '/reportplayers'].includes(location.pathname);
-    if (!isReport) {
+    const params = new URLSearchParams(location.search);
+    const query = params.get('query');
+    if (query) {
+      setSearchQuery(query);
+    } else if (!isReport) {
       setSearchQuery('');
     }
-  }, [location.pathname]);
+  }, [location.pathname, location.search]);
 
   return (
     <div className="flex flex-col min-h-screen bg-gray-50 text-slate-800">
@@ -51,6 +56,7 @@ function AppLayout() {
           <Route path='/reportgame' element={<ProtectedRoute><Reportgame searchQuery={searchQuery} /></ProtectedRoute>} />
           <Route path='/reportcoachs' element={<ProtectedRoute><Reportcoachs searchQuery={searchQuery} /></ProtectedRoute>} />
           <Route path='/reportplayers' element={<ProtectedRoute><Reportplayers searchQuery={searchQuery} /></ProtectedRoute>} />
+          <Route path='/transaction-report' element={<ProtectedRoute><TransactionReport /></ProtectedRoute>} />
           <Route path='/audit' element={<ProtectedRoute><AuditLog /></ProtectedRoute>} />
           <Route path='/attendance' element={<ProtectedRoute><Attendance /></ProtectedRoute>} />
           <Route path='/payment' element={<ProtectedRoute><Payment /></ProtectedRoute>} />

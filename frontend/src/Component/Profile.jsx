@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useToast } from './Toast';
-import { FiUser, FiMail, FiLock, FiTrash2, FiCamera } from 'react-icons/fi';
+import { FiUser, FiMail, FiLock, FiTrash2, FiCamera, FiHash, FiActivity, FiAward, FiPhone, FiCalendar } from 'react-icons/fi';
 
 export default function Profile() {
     const toast = useToast();
@@ -15,6 +15,7 @@ export default function Profile() {
     });
     const [loading, setLoading] = useState(true);
     const [updating, setUpdating] = useState(false);
+    const [isEditing, setIsEditing] = useState(false);
 
     // Password fields
     const [passwordData, setPasswordData] = useState({
@@ -31,7 +32,20 @@ export default function Profile() {
                     headers: { Authorization: `Bearer ${token}` }
                 });
                 if (res.data.success) {
-                    setUser(res.data.user);
+                    let fetchedUser = res.data.user;
+                    
+                    if (fetchedUser.role === 'coach') {
+                        try {
+                            const coachRes = await axios.get('http://localhost:4005/coach/report', {
+                                headers: { Authorization: `Bearer ${token}` }
+                            });
+                            if (coachRes.data.success && coachRes.data.data.length > 0) {
+                                fetchedUser.coachDetails = coachRes.data.data[0];
+                            }
+                        } catch(e) {}
+                    }
+                    
+                    setUser(fetchedUser);
                 }
             } catch (err) {
                 toast('Failed to load profile details', 'error');
@@ -57,6 +71,7 @@ export default function Profile() {
                 toast('Profile updated successfully', 'success');
                 setUser(res.data.user);
                 localStorage.setItem('authUser', JSON.stringify(res.data.user));
+                setIsEditing(false);
             } else {
                 toast(res.data.message || 'Failed to update profile', 'error');
             }
@@ -136,7 +151,7 @@ export default function Profile() {
     }
 
     return (
-        <div className="max-w-4xl mx-auto w-full px-4 sm:px-6 py-8 space-y-8 animate-fade-in-up">
+        <div className="max-w-5xl mx-auto w-full px-4 sm:px-6 py-8 space-y-8 animate-fade-in-up">
             <div>
                 <h2 className="text-2xl font-bold font-display text-gray-800">My Profile</h2>
                 <p className="text-sm text-gray-500">Update account credentials and settings</p>
@@ -181,17 +196,18 @@ export default function Profile() {
                     <div className="bg-white border border-gray-100 rounded-3xl shadow-lg p-6 space-y-4">
                         <h4 className="text-base font-bold text-gray-800">General Information</h4>
                         <form onSubmit={handleProfileSubmit} className="space-y-4">
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                                 <div className="space-y-1">
                                     <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Full Name</label>
                                     <div className="relative flex items-center">
                                         <span className="absolute left-3 text-gray-400"><FiUser /></span>
                                         <input
                                             type="text"
-                                            className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:outline-none"
+                                            className={`w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:outline-none ${!isEditing ? 'bg-gray-50 text-gray-500 cursor-not-allowed' : 'bg-white'}`}
                                             value={user.name}
                                             onChange={(e) => setUser({ ...user, name: e.target.value })}
                                             required
+                                            disabled={!isEditing}
                                         />
                                     </div>
                                 </div>
@@ -201,22 +217,115 @@ export default function Profile() {
                                         <span className="absolute left-3 text-gray-400"><FiMail /></span>
                                         <input
                                             type="email"
-                                            className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:outline-none"
+                                            className={`w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:outline-none ${!isEditing ? 'bg-gray-50 text-gray-500 cursor-not-allowed' : 'bg-white'}`}
                                             value={user.email}
                                             onChange={(e) => setUser({ ...user, email: e.target.value })}
                                             required
+                                            disabled={!isEditing}
                                         />
                                     </div>
                                 </div>
+
+                            {user.role === 'coach' && user.coachDetails && (
+                                <>
+                                    <div className="space-y-1">
+                                        <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Coach ID</label>
+                                        <div className="relative flex items-center">
+                                            <span className="absolute left-3 text-gray-400"><FiHash /></span>
+                                            <input
+                                                type="text"
+                                                className="w-full pl-9 pr-3 py-2 text-sm bg-gray-50 border border-gray-200 rounded-xl text-gray-500 font-semibold cursor-not-allowed"
+                                                value={user.coachDetails.coachId}
+                                                disabled
+                                            />
+                                        </div>
+                                    </div>
+                                    
+                                    <div className="space-y-1">
+                                        <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Sport Specialization</label>
+                                        <div className="relative flex items-center">
+                                            <span className="absolute left-3 text-gray-400"><FiActivity /></span>
+                                            <select 
+                                                className={`w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:outline-none appearance-none ${!isEditing ? 'bg-gray-50 text-gray-500 cursor-not-allowed' : 'bg-white cursor-pointer'}`} 
+                                                value={user.coachDetails.sportSpecialization} 
+                                                onChange={(e) => setUser({ ...user, coachDetails: { ...user.coachDetails, sportSpecialization: e.target.value } })}
+                                                required
+                                                disabled={!isEditing}
+                                            >
+                                                <option value="">Select Sport</option>
+                                                <option value="Cricket">Cricket</option>
+                                                <option value="Football">Football</option>
+                                                <option value="Kabaddi">Kabaddi</option>
+                                                <option value="Kho Kho">Kho Kho</option>
+                                                <option value="Volleyball">Volleyball</option>
+                                                <option value="Badminton">Badminton</option>
+                                                <option value="Basketball">Basketball</option>
+                                                <option value="Tennis">Tennis</option>
+                                                <option value="Athletics">Athletics</option>
+                                                <option value="Swimming">Swimming</option>
+                                                <option value="Carrom">Carrom</option>
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-1">
+                                        <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Experience</label>
+                                        <div className="relative flex items-center">
+                                            <span className="absolute left-3 text-gray-400"><FiAward /></span>
+                                            <input
+                                                type="text"
+                                                className={`w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:outline-none ${!isEditing ? 'bg-gray-50 text-gray-500 cursor-not-allowed' : 'bg-white'}`}
+                                                value={user.coachDetails.experience}
+                                                onChange={(e) => setUser({ ...user, coachDetails: { ...user.coachDetails, experience: e.target.value } })}
+                                                required
+                                                disabled={!isEditing}
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-1">
+                                        <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Contact Number</label>
+                                        <div className="relative flex items-center">
+                                            <span className="absolute left-3 text-gray-400"><FiPhone /></span>
+                                            <input
+                                                type="text"
+                                                className={`w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:outline-none ${!isEditing ? 'bg-gray-50 text-gray-500 cursor-not-allowed' : 'bg-white'}`}
+                                                value={user.coachDetails.contact}
+                                                onChange={(e) => setUser({ ...user, coachDetails: { ...user.coachDetails, contact: e.target.value } })}
+                                                required
+                                                disabled={!isEditing}
+                                            />
+                                        </div>
+                                    </div>
+
+                                    {user.coachDetails.joiningDate !== undefined && (
+                                        <div className="space-y-1">
+                                            <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Joining Date</label>
+                                            <div className="relative flex items-center">
+                                                <span className="absolute left-3 text-gray-400 z-10"><FiCalendar /></span>
+                                                <input
+                                                    type="date"
+                                                    className={`w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:outline-none ${!isEditing ? 'bg-gray-50 text-gray-500 cursor-not-allowed' : 'bg-white'}`}
+                                                    value={user.coachDetails.joiningDate}
+                                                    onChange={(e) => setUser({ ...user, coachDetails: { ...user.coachDetails, joiningDate: e.target.value } })}
+                                                    disabled={!isEditing}
+                                                />
+                                            </div>
+                                        </div>
+                                    )}
+                                </>
+                            )}
                             </div>
-                            <div className="flex justify-end pt-2">
+
+                            <div className="flex justify-end pt-2 border-t border-gray-50 mt-4">
                                 <button
-                                    type="submit"
+                                    type={isEditing ? "submit" : "button"}
                                     disabled={updating}
+                                    onClick={!isEditing ? (e) => { e.preventDefault(); setIsEditing(true); } : undefined}
                                     className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold rounded-xl transition flex items-center gap-1.5 cursor-pointer min-h-11"
                                 >
                                     {updating && <span className="animate-spin inline-block w-3.5 h-3.5 border-2 border-white/20 border-t-white rounded-full" />}
-                                    Update Details
+                                    {isEditing ? 'Save Details' : 'Update Details'}
                                 </button>
                             </div>
                         </form>

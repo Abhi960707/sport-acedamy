@@ -7,7 +7,12 @@ const { createAuditLog } = require('../Utils/audit')
 
 router.get('/attendance/report', auth, async (req, res) => {
     try {
-        const filter = ['superadmin', 'coach', 'accountant'].includes(req.userRole) ? {} : { owner: req.currentEmp._id };
+        let filter = req.userRole === 'superadmin' ? {} : { owner: req.academyOwnerId };
+        if (req.userRole === 'coach') {
+            if (!req.coachProfile) return res.status(403).json({ success: false, message: 'Coach profile not found' });
+            const myPlayers = await require('../Model/players').find({ owner: req.academyOwnerId, coachAssigned: req.coachProfile.name }, '_id');
+            filter.playerId = { $in: myPlayers.map(p => p._id.toString()) };
+        }
         const records = await attendance.find(filter).sort({ attendanceDate: -1, createdAt: -1 })
         res.status(200).json({
             success: true,
@@ -25,7 +30,11 @@ router.get('/attendance/report', auth, async (req, res) => {
 
 router.get('/attendance/players', auth, async (req, res) => {
     try {
-        const filter = ['superadmin', 'coach', 'accountant'].includes(req.userRole) ? {} : { owner: req.currentEmp._id };
+        let filter = req.userRole === 'superadmin' ? {} : { owner: req.academyOwnerId };
+        if (req.userRole === 'coach') {
+            if (!req.coachProfile) return res.status(403).json({ success: false, message: 'Coach profile not found' });
+            filter.coachAssigned = req.coachProfile.name;
+        }
         const playerList = await players.find(filter).sort({ fullName: 1 })
         res.status(200).json({
             success: true,
@@ -55,7 +64,11 @@ router.post('/attendance/mark', auth, auth.allowRoles('superadmin', 'admin', 'co
             })
         }
 
-        const filter = ['superadmin', 'coach', 'accountant'].includes(req.userRole) ? { _id: playerId } : { _id: playerId, owner: req.currentEmp._id };
+        const filter = req.userRole === 'superadmin' ? { _id: playerId } : { _id: playerId, owner: req.academyOwnerId };
+        if (req.userRole === 'coach') {
+            if (!req.coachProfile) return res.status(403).json({ success: false, message: 'Coach profile not found' });
+            filter.coachAssigned = req.coachProfile.name;
+        }
         const player = await players.findOne(filter)
         if (!player) {
             return res.status(404).json({
@@ -72,9 +85,12 @@ router.post('/attendance/mark', auth, auth.allowRoles('superadmin', 'admin', 'co
             })
         }
 
-        const recordFilter = ['superadmin', 'coach', 'accountant'].includes(req.userRole) 
+        const recordFilter = req.userRole === 'superadmin' 
             ? { playerId: player._id.toString(), attendanceDate }
-            : { owner: req.currentEmp._id, playerId: player._id.toString(), attendanceDate };
+            : { owner: req.academyOwnerId, playerId: player._id.toString(), attendanceDate };
+
+        const roleTitle = req.currentEmp.role.charAt(0).toUpperCase() + req.currentEmp.role.slice(1);
+        const markedBy = `${roleTitle} (${req.currentEmp.name})`;
 
         const record = await attendance.findOneAndUpdate(
             recordFilter,
@@ -84,7 +100,8 @@ router.post('/attendance/mark', auth, auth.allowRoles('superadmin', 'admin', 'co
                 attendanceDate,
                 status,
                 note,
-                owner: recordFilter.owner || req.currentEmp._id,
+                markedBy,
+                owner: recordFilter.owner || player.owner,
             },
             { new: true, upsert: true, runValidators: true }
         )
@@ -116,7 +133,13 @@ router.delete('/attendance/delete/:id', auth, auth.allowRoles('superadmin', 'adm
     try {
         const filter = ['superadmin', 'coach'].includes(req.userRole) 
             ? { _id: req.params.id }
-            : { _id: req.params.id, owner: req.currentEmp._id };
+            : { _id: req.params.id, owner: req.academyOwnerId };
+
+        if (req.userRole === 'coach') {
+            if (!req.coachProfile) return res.status(403).json({ success: false, message: 'Coach profile not found' });
+            const myPlayers = await require('../Model/players').find({ owner: req.academyOwnerId, coachAssigned: req.coachProfile.name }, '_id');
+            filter.playerId = { $in: myPlayers.map(p => p._id.toString()) };
+        }
 
         const remove = await attendance.findOneAndDelete(filter)
 

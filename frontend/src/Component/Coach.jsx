@@ -5,6 +5,8 @@ import { FiUser, FiActivity, FiPhone, FiAward, FiBook, FiDollarSign, FiCalendar 
 const INITIAL_STATE = {
   coachId: '',
   name: '',
+  email: '',
+  password: '',
   sportSpecialization: '',
   contact: '',
   experience: '',
@@ -88,6 +90,18 @@ function CoachAdd() {
       tempErrors.name = 'Full name is required';
     } else if (addCoach.name.trim().length < 3) {
       tempErrors.name = 'Name must be at least 3 characters';
+    }
+
+    if (!addCoach.email) {
+      tempErrors.email = 'Email is required';
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(addCoach.email)) {
+      tempErrors.email = 'Enter a valid email address';
+    }
+
+    if (!addCoach.password) {
+      tempErrors.password = 'Password is required';
+    } else if (addCoach.password.length < 4) {
+      tempErrors.password = 'Password must be at least 4 characters';
     }
 
     if (!addCoach.sportSpecialization) {
@@ -253,6 +267,42 @@ function CoachAdd() {
                 disabled={loading}
               />
               {errors.name && <p className="text-[11px] font-semibold text-red-500">{errors.name}</p>}
+            </div>
+
+            {/* Email Address */}
+            <div className="space-y-1">
+              <label className="text-xs font-bold text-gray-600 uppercase tracking-wider" htmlFor="coach-email">Email Address</label>
+              <input
+                id="coach-email"
+                className={`w-full px-4 py-2.5 text-sm bg-white border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all ${
+                  errors.email ? 'border-red-400' : 'border-gray-200'
+                }`}
+                type="email"
+                name="email"
+                placeholder="Coach email address"
+                value={addCoach.email}
+                onChange={handleCoach}
+                disabled={loading}
+              />
+              {errors.email && <p className="text-[11px] font-semibold text-red-500">{errors.email}</p>}
+            </div>
+
+            {/* Password */}
+            <div className="space-y-1">
+              <label className="text-xs font-bold text-gray-600 uppercase tracking-wider" htmlFor="coach-password">Password</label>
+              <input
+                id="coach-password"
+                className={`w-full px-4 py-2.5 text-sm bg-white border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all ${
+                  errors.password ? 'border-red-400' : 'border-gray-200'
+                }`}
+                type="password"
+                name="password"
+                placeholder="Coach login password"
+                value={addCoach.password}
+                onChange={handleCoach}
+                disabled={loading}
+              />
+              {errors.password && <p className="text-[11px] font-semibold text-red-500">{errors.password}</p>}
             </div>
 
             {/* Sport Specialization */}

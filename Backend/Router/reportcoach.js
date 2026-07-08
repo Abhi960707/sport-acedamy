@@ -7,7 +7,11 @@ const coach = require('../Model/coach')
 router.get('/coach/report',auth,async(req,res)=>{
     console.log("report")
     try{
-        const filter = ['superadmin', 'coach', 'accountant'].includes(req.userRole) ? {} : {owner:req.currentEmp._id};
+        const filter = req.userRole === 'superadmin' ? {} : { owner: req.academyOwnerId };
+        if (req.userRole === 'coach') {
+            if (!req.coachProfile) return res.status(403).json({ success: false, message: 'Coach profile not found' });
+            filter._id = req.coachProfile._id;
+        }
         const coachreport = await coach.find(filter)
         res.status(200).json({
             success:true,

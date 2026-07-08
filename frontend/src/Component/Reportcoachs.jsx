@@ -467,6 +467,18 @@ export default function CoachReport({ searchQuery }) {
                   <input type="text" className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:outline-none" value={editCoach.name} onChange={(e) => setEditCoach({...editCoach, name: e.target.value})} required />
                 </div>
 
+                {/* Email */}
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Email (Login)</label>
+                  <input type="email" placeholder="Set or update email" className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:outline-none" value={editCoach.email || ''} onChange={(e) => setEditCoach({...editCoach, email: e.target.value})} />
+                </div>
+
+                {/* Password */}
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Password</label>
+                  <input type="password" placeholder="Leave blank to keep unchanged" className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:outline-none" value={editCoach.password || ''} onChange={(e) => setEditCoach({...editCoach, password: e.target.value})} />
+                </div>
+
                 {/* Sport Specialization */}
                 <div className="space-y-1">
                   <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Sport Specialization</label>

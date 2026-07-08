@@ -7,10 +7,10 @@ const Notification = require('../Model/notification');
 
 router.get('/notifications', auth, async (req, res) => {
     try {
-        const filter = ['superadmin', 'coach', 'accountant'].includes(req.userRole) ? {} : { owner: req.currentEmp._id };
+        const filter = req.userRole === 'superadmin' ? {} : { owner: req.academyOwnerId };
 
         // 1. Get manual/saved notifications
-        const savedNotifications = await Notification.find({ owner: req.currentEmp._id }).sort({ createdAt: -1 });
+        const savedNotifications = await Notification.find({ owner: req.academyOwnerId }).sort({ createdAt: -1 });
 
         // Extract dismissed dynamic notifications
         const dismissedDynamicIds = savedNotifications
@@ -75,8 +75,8 @@ router.get('/notifications', auth, async (req, res) => {
             }
         });
 
-        // Combine and sort by date descending (filter out the placeholder dismissed records from display)
-        const displaySaved = savedNotifications.filter(n => !(n.title.startsWith('fee-') || n.title.startsWith('reg-') || n.title.startsWith('coach-')));
+        // Combine and sort by date descending (filter out the placeholder dismissed records and read notifications from display)
+        const displaySaved = savedNotifications.filter(n => !n.isRead && !(n.title.startsWith('fee-') || n.title.startsWith('reg-') || n.title.startsWith('coach-')));
         const allAlerts = [...displaySaved, ...dynamicAlerts].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
         res.status(200).json({
@@ -88,27 +88,68 @@ router.get('/notifications', auth, async (req, res) => {
     }
 });
 
+// Notify coaches about pending fees
+router.post('/notifications/notify-coaches', auth, async (req, res) => {
+    try {
+        const { notifications } = req.body;
+        if (!notifications || !Array.isArray(notifications)) {
+            return res.status(400).json({ success: false, message: 'Invalid data format' });
+        }
+
+        const todayStart = new Date();
+        todayStart.setHours(0, 0, 0, 0);
+        const todayEnd = new Date();
+        todayEnd.setHours(23, 59, 59, 999);
+
+        const createdAlerts = [];
+        for (const notif of notifications) {
+            const title = `Fee Reminder: ${notif.coachName}`;
+            // Check if one was already created today
+            const existing = await Notification.findOne({
+                title,
+                owner: req.academyOwnerId,
+                createdAt: { $gte: todayStart, $lte: todayEnd }
+            });
+
+            if (!existing) {
+                const newNotif = await Notification.create({
+                    title,
+                    message: notif.message,
+                    type: 'fee_reminder',
+                    isRead: false,
+                    owner: req.academyOwnerId
+                });
+                createdAlerts.push(newNotif);
+            }
+        }
+
+        res.status(200).json({ success: true, message: 'Coaches notified successfully', data: createdAlerts });
+    } catch (e) {
+        res.status(500).json({ success: false, message: 'Failed to notify coaches', error: e.message });
+    }
+});
+
 // Mark as read (saved notifications only)
 router.post('/notifications/read/:id', auth, async (req, res) => {
     try {
         const { id } = req.params;
         if (id.startsWith('fee-') || id.startsWith('reg-') || id.startsWith('coach-')) {
             // Save a placeholder notification to remember it was dismissed
-            const exists = await Notification.findOne({ title: id, owner: req.currentEmp._id });
+            const exists = await Notification.findOne({ title: id, owner: req.academyOwnerId });
             if (!exists) {
                 await Notification.create({
                     title: id,
                     message: 'Dismissed',
                     type: 'other',
                     isRead: true,
-                    owner: req.currentEmp._id
+                    owner: req.academyOwnerId
                 });
             }
             return res.status(200).json({ success: true, message: 'Dynamic notification read' });
         }
 
         const notif = await Notification.findOneAndUpdate(
-            { _id: id, owner: req.currentEmp._id },
+            { _id: id, owner: req.academyOwnerId },
             { isRead: true },
             { new: true }
         );

@@ -1,5 +1,7 @@
 const express = require('express')
 const Login = require('../Model/login')
+const Settings = require('../Model/settings')
+const Coach = require('../Model/coach')
 const router = new express.Router()
 const auth = require('../Authentication/auth')
 const rateLimit = require('express-rate-limit')
@@ -162,6 +164,19 @@ router.post('/login/logout',auth, async(req,res)=>{
     }
 })
 
+router.get('/auth/check-academy', auth, async (req, res) => {
+    try {
+        if (req.currentEmp.role === 'superadmin' || req.currentEmp.role === 'coach') {
+            return res.status(200).json({ success: true, hasAcademy: true });
+        }
+        
+        const academy = await Settings.findOne({ owner: req.currentEmp._id });
+        res.status(200).json({ success: true, hasAcademy: !!academy });
+    } catch (e) {
+        res.status(500).json({ success: false, message: 'Failed to check academy status' });
+    }
+});
+
 // Profile endpoints
 router.get('/auth/profile', auth, async (req, res) => {
     try {
@@ -182,8 +197,9 @@ router.get('/auth/profile', auth, async (req, res) => {
 
 router.put('/auth/profile/update', auth, async (req, res) => {
     try {
-        const { name, email, profileImage } = req.body;
+        const { name, email, profileImage, coachDetails } = req.body;
         
+        let newEmail = null;
         if (name) req.currentEmp.name = name;
         if (email) {
             if (!validator.isEmail(email)) {
@@ -194,13 +210,28 @@ router.put('/auth/profile/update', auth, async (req, res) => {
             if (existing) {
                 return res.status(409).json({ success: false, message: 'Email already exists' });
             }
-            req.currentEmp.email = email.trim().toLowerCase();
+            newEmail = email.trim().toLowerCase();
+            req.currentEmp.email = newEmail;
         }
         if (profileImage !== undefined) {
             req.currentEmp.profileImage = profileImage;
         }
 
         await req.currentEmp.save();
+
+        if (req.currentEmp.role === 'coach' && req.coachProfile) {
+            if (newEmail) req.coachProfile.email = newEmail;
+            if (name) req.coachProfile.name = name;
+            if (profileImage !== undefined) req.coachProfile.coachImage = profileImage;
+            
+            if (coachDetails) {
+                if (coachDetails.sportSpecialization !== undefined) req.coachProfile.sportSpecialization = coachDetails.sportSpecialization;
+                if (coachDetails.experience !== undefined) req.coachProfile.experience = coachDetails.experience;
+                if (coachDetails.contact !== undefined) req.coachProfile.contact = coachDetails.contact;
+                if (coachDetails.joiningDate !== undefined) req.coachProfile.joiningDate = coachDetails.joiningDate;
+            }
+            await req.coachProfile.save();
+        }
 
         createAuditLog({
             actor: req.currentEmp._id,
@@ -218,7 +249,8 @@ router.put('/auth/profile/update', auth, async (req, res) => {
                 name: req.currentEmp.name,
                 email: req.currentEmp.email,
                 role: req.currentEmp.role,
-                profileImage: req.currentEmp.profileImage || ''
+                profileImage: req.currentEmp.profileImage || '',
+                coachDetails: req.coachProfile ? req.coachProfile : undefined
             }
         });
     } catch (e) {

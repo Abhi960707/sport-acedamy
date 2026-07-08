@@ -6,9 +6,9 @@ const Settings = require('../Model/settings');
 // 1. Get Settings
 router.get('/settings', auth, async (req, res) => {
     try {
-        let currentSettings = await Settings.findOne({ owner: req.currentEmp._id });
+        let currentSettings = await Settings.findOne({ owner: req.academyOwnerId });
         if (!currentSettings) {
-            currentSettings = new Settings({ owner: req.currentEmp._id });
+            currentSettings = new Settings({ owner: req.academyOwnerId });
             await currentSettings.save();
         }
         res.status(200).json({ success: true, data: currentSettings });
@@ -21,10 +21,10 @@ router.get('/settings', auth, async (req, res) => {
 router.put('/settings', auth, auth.allowRoles('superadmin', 'admin'), async (req, res) => {
     try {
         const { academyName, logo, currency, timeZone, session } = req.body;
-        let currentSettings = await Settings.findOne({ owner: req.currentEmp._id });
+        let currentSettings = await Settings.findOne({ owner: req.academyOwnerId });
 
         if (!currentSettings) {
-            currentSettings = new Settings({ owner: req.currentEmp._id });
+            currentSettings = new Settings({ owner: req.academyOwnerId });
         }
 
         if (academyName !== undefined) currentSettings.academyName = academyName;

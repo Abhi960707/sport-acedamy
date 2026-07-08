@@ -7,7 +7,7 @@ const { createAuditLog } = require('../Utils/audit');
 const { sendPaymentSuccessEmail } = require('../Utils/email');
 
 // 1. Add Payment
-router.post('/payments/add', auth, auth.allowRoles('superadmin', 'admin', 'accountant'), async (req, res) => {
+router.post('/payments/add', auth, auth.allowRoles('superadmin', 'admin', 'accountant', 'coach'), async (req, res) => {
     try {
         const { playerId, amount, paymentMethod, transactionId, paymentDate } = req.body;
 
@@ -21,7 +21,7 @@ router.post('/payments/add', auth, auth.allowRoles('superadmin', 'admin', 'accou
         }
 
         // Find the player
-        const filter = req.userRole === 'superadmin' ? { playerId } : { playerId, owner: req.currentEmp._id };
+        const filter = req.userRole === 'superadmin' ? { playerId } : { playerId, owner: req.academyOwnerId };
         const playerDoc = await players.findOne(filter);
         if (!playerDoc) {
             return res.status(404).json({ success: false, message: 'Player not found' });
@@ -53,7 +53,9 @@ router.post('/payments/add', auth, auth.allowRoles('superadmin', 'admin', 'accou
             amount: String(payAmount),
             paymentMethod,
             transactionId: transactionId || '',
-            owner: req.currentEmp._id
+            owner: req.academyOwnerId,
+            receivedById: req.currentEmp._id,
+            receivedByRole: req.userRole
         });
         await paymentRecord.save();
 
@@ -85,8 +87,15 @@ router.post('/payments/add', auth, auth.allowRoles('superadmin', 'admin', 'accou
 // 2. Fetch payments report
 router.get('/payments/report', auth, async (req, res) => {
     try {
-        const filter = ['superadmin', 'coach', 'accountant'].includes(req.userRole) ? {} : { owner: req.currentEmp._id };
-        const paymentsList = await Payment.find(filter).sort({ createdAt: -1 });
+        let filter = req.userRole === 'superadmin' ? {} : { owner: req.academyOwnerId };
+        if (req.userRole === 'coach') {
+            if (!req.coachProfile) return res.status(403).json({ success: false, message: 'Coach profile not found' });
+            const myPlayers = await require('../Model/players').find({ owner: req.academyOwnerId, coachAssigned: req.coachProfile.name }, 'playerId');
+            filter.playerId = { $in: myPlayers.map(p => p.playerId) };
+        }
+        const paymentsList = await Payment.find(filter)
+            .populate('receivedById', 'name email role')
+            .sort({ createdAt: -1 });
         res.status(200).json({
             success: true,
             message: 'Payments fetched successfully',

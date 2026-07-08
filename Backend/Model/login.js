@@ -41,6 +41,11 @@ const loginSchema = mongoose.Schema({
         type: String,
         default: ''
     },
+    academyOwner: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Login',
+        default: null
+    },
     tokens: [{
         token: {
             type: String,
