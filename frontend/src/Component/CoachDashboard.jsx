@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import axios from 'axios';
-import { FiUsers, FiAward, FiCheckCircle, FiXCircle, FiClock, FiActivity } from 'react-icons/fi';
+import api from '../api';
+import { FiUsers, FiAward, FiCheckCircle, FiXCircle, FiActivity } from 'react-icons/fi';
 import { FaRupeeSign } from 'react-icons/fa';
 import { useToast } from './Toast';
 
@@ -20,14 +20,17 @@ export default function CoachDashboard() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    const controller = new AbortController();
+
     const fetchDashboardData = async () => {
-      const token = localStorage.getItem('token');
       try {
         const [playersRes, gamesRes, attendanceRes] = await Promise.all([
-          axios.get('http://localhost:4005/players/report', { headers: { Authorization: `Bearer ${token}` } }),
-          axios.get('http://localhost:4005/games/report', { headers: { Authorization: `Bearer ${token}` } }),
-          axios.get('http://localhost:4005/attendance/report', { headers: { Authorization: `Bearer ${token}` } }),
+          api.get('/players/report'),
+          api.get('/games/report'),
+          api.get('/attendance/report'),
         ]);
+
+        if (controller.signal.aborted) return;
 
         let playersList = playersRes.data.data || [];
         const gamesList = gamesRes.data.data || [];
@@ -77,14 +80,15 @@ export default function CoachDashboard() {
         setRecentAttendance(sortedAttendance);
 
       } catch (err) {
-        console.error('Error fetching dashboard statistics:', err);
+        if (controller.signal.aborted) return;
         toast('Failed to load dashboard metrics', 'error');
       } finally {
-        setLoading(false);
+        if (!controller.signal.aborted) setLoading(false);
       }
     };
 
     fetchDashboardData();
+    return () => controller.abort();
   }, [toast]);
 
   const cards = [

@@ -1,5 +1,7 @@
 import { Navigate, useLocation } from 'react-router-dom';
 import { useState, useEffect } from 'react';
+import { API_BASE } from '../api';
+
 
 const getStoredUser = () => {
   try {
@@ -18,7 +20,7 @@ export default function ProtectedRoute({ children, allowedRoles }) {
     if (!token) return;
     const checkAcademy = async () => {
       try {
-        const res = await fetch('http://localhost:4005/auth/check-academy', {
+        const res = await fetch(`${API_BASE}/auth/check-academy`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         const data = await res.json();

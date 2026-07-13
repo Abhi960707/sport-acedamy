@@ -3,47 +3,6 @@ const router = new express.Router()
 const coach = require('../Model/coach')
 const auth = require('../Authentication/auth')
 const Login = require('../Model/login')
-
-
-router.get('/coach/migrate-all', async (req, res) => {
-    try {
-        const admin = await Login.findOne({ email: 'abhi@gmail.com', role: 'admin' });
-        if (!admin) return res.send("No admin");
-        
-        const coaches = await coach.find({ owner: admin._id });
-        let updated = [];
-        for (const c of coaches) {
-            if (!c.name) continue;
-            const firstName = c.name.split(' ')[0].toLowerCase();
-            const email = `${firstName}@gmail.com`;
-            c.email = email;
-            await c.save();
-
-            let existingLogin = await Login.findOne({ email });
-            if (existingLogin) {
-                if (existingLogin.role === 'coach') {
-                    existingLogin.password = '1234';
-                    existingLogin.name = c.name;
-                    await existingLogin.save();
-                }
-            } else {
-                const newLogin = new Login({
-                    name: c.name,
-                    email: email,
-                    password: '1234',
-                    role: 'coach',
-                    academyOwner: admin._id
-                });
-                await newLogin.save();
-            }
-            updated.push(email);
-        }
-        res.json({ success: true, updated });
-    } catch(e) {
-        res.status(500).send(e.message);
-    }
-});
-
 const Games = require('../Model/games')
 const { createAuditLog } = require('../Utils/audit')
 
@@ -72,7 +31,7 @@ router.get('/coach/next-id', auth, async (req, res) => {
         res.status(400).json({
             success: false,
             message: "Failed to get next coach ID",
-            error: e.message
+            error: process.env.NODE_ENV === 'production' ? 'Internal server error' : e.message
         });
     }
 });
@@ -138,17 +97,22 @@ router.post('/coach/add', auth, auth.allowRoles('superadmin', 'admin'), async(re
         res.status(400).json({
             success:false,
             message:"coach not add",
-            error:e.message
+            error: process.env.NODE_ENV === 'production' ? 'Internal server error' : e.message
             
         })
     }
 })
 
 
-router.delete('/coach/delete/:id', auth, auth.allowRoles('superadmin', 'admin'), async(req,res)=>{      
+router.delete('/coach/delete/:id', auth, auth.allowRoles('superadmin', 'admin'), async(req,res)=>{
+    try {
         const filter = req.userRole === 'superadmin' ? { _id: req.params.id } : { _id: req.params.id, owner: req.academyOwnerId };
-        const del=await coach.findOneAndDelete(filter)
-        if(del){
+        const del = await coach.findOneAndDelete(filter);
+        if (del) {
+            // Also remove associated Login record
+            if (del.email) {
+                await Login.deleteOne({ email: del.email, role: 'coach' });
+            }
             createAuditLog({
                 actor: req.currentEmp._id,
                 action: 'delete',
@@ -156,21 +120,22 @@ router.delete('/coach/delete/:id', auth, auth.allowRoles('superadmin', 'admin'),
                 recordId: del._id.toString(),
                 message: 'Coach deleted',
                 metadata: { coachId: del.coachId, name: del.name },
-            })
+            });
             res.status(200).json({
-                success:true,
-                message: "coach is delete",
-            })
-        
-        }
-        else{
+                success: true,
+                message: 'Coach deleted successfully',
+            });
+        } else {
             res.status(404).json({
-                success:false,
-                message:"coach is not delete"
-            })
+                success: false,
+                message: 'Coach not found or unauthorized'
+            });
         }
-        
-})
+    } catch (e) {
+        res.status(500).json({ success: false, message: 'Failed to delete coach', error: process.env.NODE_ENV === 'production' ? 'Internal server error' : e.message });
+    }
+});
+
 
 router.put('/coach/update/:id', auth, auth.allowRoles('superadmin', 'admin'), async (req, res) => {
     try {
@@ -234,7 +199,7 @@ router.put('/coach/update/:id', auth, auth.allowRoles('superadmin', 'admin'), as
         })
         res.status(200).json({ success: true, message: "Coach updated successfully", data: updatedCoach });
     } catch (e) {
-        res.status(400).json({ success: false, message: "Failed to update coach", error: e.message });
+        res.status(400).json({ success: false, message: "Failed to update coach", error: process.env.NODE_ENV === 'production' ? 'Internal server error' : e.message });
     }
 });
 

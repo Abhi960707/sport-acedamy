@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../api';
 import { useToast } from './Toast';
 import { FiUser, FiMail, FiLock, FiTrash2, FiCamera, FiHash, FiActivity, FiAward, FiPhone, FiCalendar } from 'react-icons/fi';
 
@@ -28,17 +28,13 @@ export default function Profile() {
     useEffect(() => {
         const fetchProfile = async () => {
             try {
-                const res = await axios.get('http://localhost:4005/auth/profile', {
-                    headers: { Authorization: `Bearer ${token}` }
-                });
+                const res = await api.get('/auth/profile');
                 if (res.data.success) {
                     let fetchedUser = res.data.user;
                     
                     if (fetchedUser.role === 'coach') {
                         try {
-                            const coachRes = await axios.get('http://localhost:4005/coach/report', {
-                                headers: { Authorization: `Bearer ${token}` }
-                            });
+                            const coachRes = await api.get('/coach/report');
                             if (coachRes.data.success && coachRes.data.data.length > 0) {
                                 fetchedUser.coachDetails = coachRes.data.data[0];
                             }
@@ -64,9 +60,7 @@ export default function Profile() {
         }
         setUpdating(true);
         try {
-            const res = await axios.put('http://localhost:4005/auth/profile/update', user, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
+            const res = await api.put('/auth/profile/update', user);
             if (res.data.success) {
                 toast('Profile updated successfully', 'success');
                 setUser(res.data.user);
@@ -100,11 +94,9 @@ export default function Profile() {
 
         setPwdLoading(true);
         try {
-            const res = await axios.put('http://localhost:4005/auth/profile/change-password', {
+            const res = await api.put('/auth/profile/change-password', {
                 oldPassword,
                 newPassword
-            }, {
-                headers: { Authorization: `Bearer ${token}` }
             });
             if (res.data.success) {
                 toast('Password changed successfully', 'success');
@@ -127,9 +119,7 @@ export default function Profile() {
         reader.onloadend = async () => {
             const base64Data = reader.result;
             try {
-                const res = await axios.post('http://localhost:4005/api/upload', { image: base64Data }, {
-                    headers: { Authorization: `Bearer ${token}` }
-                });
+                const res = await api.post('/api/upload', { image: base64Data });
                 if (res.data.success) {
                     setUser(prev => ({ ...prev, profileImage: res.data.url }));
                     toast('Image preview updated. Save details to persist.', 'success');

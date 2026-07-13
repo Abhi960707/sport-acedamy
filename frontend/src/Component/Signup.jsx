@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useToast } from './Toast';
 import { FiUser, FiMail, FiLock, FiEye, FiEyeOff } from 'react-icons/fi';
+import { API_BASE } from '../api';
 
 function Signup() {
   const navigate = useNavigate();
@@ -53,7 +54,7 @@ function Signup() {
 
     setLoading(true);
     try {
-      const response = await fetch('http://localhost:4005/login/signup', {
+      const response = await fetch(`${API_BASE}/login/signup`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(signupInfo),

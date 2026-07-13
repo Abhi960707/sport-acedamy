@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useToast } from './Toast';
 import { FiAward, FiClock, FiUsers, FiFileText } from 'react-icons/fi';
 import { FaRupeeSign } from 'react-icons/fa';
+import api from '../api';
+
 
 const INITIAL_STATE = {
   gameId: '',
@@ -34,12 +36,9 @@ function GameAdd() {
   const [errors, setErrors] = useState({});
 
   const fetchNextId = async () => {
-    const token = localStorage.getItem('token');
     try {
-      const res = await fetch('http://localhost:4005/games/next-id', {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const result = await res.json();
+      const res = await api.get('/games/next-id');
+      const result = res.data;
       if (result.success) {
         setAddGame(prev => ({ ...prev, gameId: result.nextId }));
       }
@@ -59,17 +58,9 @@ function GameAdd() {
     const reader = new FileReader();
     reader.onloadend = async () => {
       const base64Data = reader.result;
-      const token = localStorage.getItem('token');
       try {
-        const res = await fetch('http://localhost:4005/api/upload', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`
-          },
-          body: JSON.stringify({ image: base64Data })
-        });
-        const data = await res.json();
+        const res = await api.post('/api/upload', { image: base64Data });
+        const data = res.data;
         if (data.success) {
           setAddGame(prev => ({ ...prev, gameImage: data.url }));
           toast('Image uploaded successfully', 'success');
@@ -126,18 +117,9 @@ function GameAdd() {
     }
 
     setLoading(true);
-    const token = localStorage.getItem('token');
     try {
-      const res = await fetch('http://localhost:4005/games/add', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(addGame),
-      });
-
-      const result = await res.json();
+      const res = await api.post('/games/add', addGame);
+      const result = res.data;
       if (result.success) {
         toast('Game added successfully!', 'success');
         setAddGame(INITIAL_STATE);
@@ -147,7 +129,11 @@ function GameAdd() {
         toast(result.message || 'Failed to add game', 'error');
       }
     } catch (error) {
-      toast('Server error. Please try again.', 'error');
+      if (error.response && error.response.data && error.response.data.message) {
+        toast(error.response.data.message, 'error');
+      } else {
+        toast('Server error. Please try again.', 'error');
+      }
     } finally {
       setLoading(false);
     }

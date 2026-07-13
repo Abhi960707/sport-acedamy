@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import axios from 'axios';
+import api from '../api';
 import { useToast } from './Toast';
 import { FiMail, FiLock, FiKey } from 'react-icons/fi';
+
 
 export default function Forgot() {
   const navigate = useNavigate();
@@ -23,7 +24,7 @@ export default function Forgot() {
     }
     setLoading(true);
     try {
-      const res = await axios.post('http://localhost:4005/auth/forgot-password', { email });
+      const res = await api.post('/auth/forgot-password', { email });
       if (res.data.success) {
         toast(res.data.message || 'OTP sent successfully', 'success');
         setStep(2);
@@ -45,7 +46,7 @@ export default function Forgot() {
     }
     setLoading(true);
     try {
-      const res = await axios.post('http://localhost:4005/auth/verify-otp', { email, otp });
+      const res = await api.post('/auth/verify-otp', { email, otp });
       if (res.data.success) {
         toast(res.data.message || 'OTP verified successfully', 'success');
         setStep(3);
@@ -75,7 +76,7 @@ export default function Forgot() {
     }
     setLoading(true);
     try {
-      const res = await axios.post('http://localhost:4005/auth/reset-password', { email, password });
+      const res = await api.post('/auth/reset-password', { email, password });
       if (res.data.success) {
         toast(res.data.message || 'Password reset successfully', 'success');
         navigate('/login');

@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useLocation } from 'react-router-dom';
-import axios from 'axios';
+import api from '../api';
 import { useToast } from './Toast';
 import { FiCalendar, FiCheckCircle, FiClock, FiSearch, FiTrash2, FiUserCheck, FiXCircle, FiUsers } from 'react-icons/fi';
 import { canMarkAttendanceAndPayments, getStoredRole } from './access';
@@ -71,8 +71,8 @@ export default function Attendance() {
       setLoading(true);
       try {
         const [playersRes, recordsRes] = await Promise.all([
-          axios.get('http://localhost:4005/attendance/players', { headers: { Authorization: `Bearer ${token}` } }),
-          axios.get('http://localhost:4005/attendance/report', { headers: { Authorization: `Bearer ${token}` } }),
+          api.get('/attendance/players'),
+          api.get('/attendance/report'),
         ]);
 
         setPlayers(playersRes.data.data || []);
@@ -117,12 +117,7 @@ export default function Attendance() {
 
     setSaving(true);
     try {
-      const response = await axios.post('http://localhost:4005/attendance/mark', form, {
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const response = await api.post('/attendance/mark', form);
 
       if (response.data.success) {
         setRecords((prev) => {
@@ -151,17 +146,13 @@ export default function Attendance() {
 
     setDeletingId(id);
     try {
-      const response = await fetch(`http://localhost:4005/attendance/delete/${id}`, {
-        method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const result = await response.json();
+      const response = await api.delete(`/attendance/delete/${id}`);
 
-      if (result.success) {
+      if (response.data.success) {
         setRecords((prev) => prev.filter((item) => item._id !== id));
         toast('Attendance deleted successfully', 'success');
       } else {
-        toast(result.message || 'Failed to delete attendance', 'error');
+        toast(response.data.message || 'Failed to delete attendance', 'error');
       }
     } catch (error) {
       toast('Server error during deletion', 'error');

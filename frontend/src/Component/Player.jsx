@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useToast } from './Toast';
 import { FiUser, FiPhone, FiMail, FiMapPin, FiCalendar } from 'react-icons/fi';
 import { FaRupeeSign } from 'react-icons/fa';
+import api from '../api';
+
 
 const INITIAL_STATE = {
   playerId: '',
@@ -12,6 +14,8 @@ const INITIAL_STATE = {
   email: '',
   address: '',
   sportChosen: '',
+  gameCategory: '',
+  gameType: '',
   coachAssigned: '',
   joiningDate: '',
   totalFee: '',
@@ -47,17 +51,9 @@ function PlayerAdd() {
     const reader = new FileReader();
     reader.onloadend = async () => {
       const base64Data = reader.result;
-      const token = localStorage.getItem('token');
       try {
-        const res = await fetch('http://localhost:4005/api/upload', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`
-          },
-          body: JSON.stringify({ image: base64Data })
-        });
-        const data = await res.json();
+        const res = await api.post('/api/upload', { image: base64Data });
+        const data = res.data;
         if (data.success) {
           setAddPlayers(prev => ({ ...prev, playerImage: data.url }));
           toast('Image uploaded successfully', 'success');
@@ -87,12 +83,9 @@ function PlayerAdd() {
   }, [addPlayers.dateOfBirth]);
 
   const fetchNextId = async () => {
-    const token = localStorage.getItem('token');
     try {
-      const res = await fetch('http://localhost:4005/players/next-id', {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const result = await res.json();
+      const res = await api.get('/players/next-id');
+      const result = res.data;
       if (result.success) {
         setAddPlayers(prev => ({ ...prev, playerId: result.nextId }));
       }
@@ -101,15 +94,15 @@ function PlayerAdd() {
     }
   };
 
-  const fetchOptionsData = async () => {
-    const token = localStorage.getItem('token');
+  const fetchOptionsData = async (signal) => {
     try {
       const [gamesRes, coachesRes] = await Promise.all([
-        fetch('http://localhost:4005/games/report', { headers: { Authorization: `Bearer ${token}` } }),
-        fetch('http://localhost:4005/coach/report', { headers: { Authorization: `Bearer ${token}` } }),
+        api.get('/games/report'),
+        api.get('/coach/report'),
       ]);
-      const gamesData = await gamesRes.json();
-      const coachesData = await coachesRes.json();
+      if (signal && signal.aborted) return;
+      const gamesData = gamesRes.data;
+      const coachesData = coachesRes.data;
 
       if (gamesData.success) {
         setGamesList(gamesData.data || []);
@@ -123,8 +116,10 @@ function PlayerAdd() {
   };
 
   useEffect(() => {
+    const controller = new AbortController();
     fetchNextId();
-    fetchOptionsData();
+    fetchOptionsData(controller.signal);
+    return () => controller.abort();
   }, []);
 
   const validate = () => {
@@ -154,6 +149,8 @@ function PlayerAdd() {
 
     if (!addPlayers.address || addPlayers.address.trim().length < 5) tempErrors.address = 'Full address is required';
     if (!addPlayers.sportChosen) tempErrors.sportChosen = 'Sport selection is required';
+    if (addPlayers.sportChosen && !addPlayers.gameCategory) tempErrors.gameCategory = 'Category is required';
+    if (addPlayers.sportChosen && addPlayers.gameCategory && !addPlayers.gameType) tempErrors.gameType = 'Game type is required';
     if (!addPlayers.coachAssigned) tempErrors.coachAssigned = 'Coach assignment is required';
     if (!addPlayers.joiningDate) tempErrors.joiningDate = 'Joining date is required';
     if (addPlayers.joiningDate && new Date(addPlayers.joiningDate) > new Date()) tempErrors.joiningDate = 'Joining date cannot be in the future';
@@ -182,16 +179,32 @@ function PlayerAdd() {
     setAddPlayers(prev => {
       const updated = { ...prev, [name]: value };
       
-      // Auto-set Total Fee when sportChosen changes
       if (name === 'sportChosen') {
-        const game = gamesList.find(g => g.gameName === value);
-        const gameFee = game ? game.gameFee : '';
-        updated.totalFee = gameFee;
-        
-        // Recalculate pending fee
-        const tf = parseFloat(gameFee) || 0;
-        const pf = parseFloat(updated.payingFee) || 0;
-        updated.pendingFee = (tf - pf >= 0 ? tf - pf : 0).toString();
+        updated.gameCategory = '';
+        updated.gameType = '';
+        updated.totalFee = '';
+        updated.payingFee = '';
+        updated.pendingFee = '';
+      }
+      
+      if (name === 'gameCategory') {
+        updated.gameType = '';
+        updated.totalFee = '';
+        updated.payingFee = '';
+        updated.pendingFee = '';
+      }
+
+      // Auto-set Total Fee when all three are selected
+      if (name === 'sportChosen' || name === 'gameCategory' || name === 'gameType') {
+        if (updated.sportChosen && updated.gameCategory && updated.gameType) {
+          const game = gamesList.find(g => g.gameName === updated.sportChosen && g.category === updated.gameCategory && g.gameType === updated.gameType);
+          const gameFee = game ? game.gameFee : '';
+          updated.totalFee = gameFee;
+          
+          const tf = parseFloat(gameFee) || 0;
+          const pf = parseFloat(updated.payingFee) || 0;
+          updated.pendingFee = (tf - pf >= 0 ? tf - pf : 0).toString();
+        }
       }
 
       // Recalculate Pending Fee when payingFee changes
@@ -221,24 +234,29 @@ function PlayerAdd() {
       return;
     }
 
-    if (addPlayers.sportChosen && !addPlayers.totalFee) {
-      toast('Selected sport does not have a configured fee', 'warning');
+    if (addPlayers.sportChosen && (!addPlayers.gameCategory || !addPlayers.gameType)) {
+      toast('Please select a game category and type', 'warning');
       return;
     }
 
-    setLoading(true);
-    const token = localStorage.getItem('token');
-    try {
-      const res = await fetch('http://localhost:4005/players/add', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(addPlayers),
-      });
+    if (addPlayers.sportChosen && !addPlayers.totalFee) {
+      toast('Selected sport configuration does not have a configured fee', 'warning');
+      return;
+    }
 
-      const result = await res.json();
+    const submitPayload = {
+      ...addPlayers,
+      sportChosen: `${addPlayers.sportChosen} (${addPlayers.gameCategory} - ${addPlayers.gameType})`
+    };
+    
+    // Remove temp fields before sending to backend
+    delete submitPayload.gameCategory;
+    delete submitPayload.gameType;
+
+    setLoading(true);
+    try {
+      const res = await api.post('/players/add', submitPayload);
+      const result = res.data;
       if (result.success) {
         toast('Player added successfully!', 'success');
         setAddPlayers(INITIAL_STATE);
@@ -510,20 +528,58 @@ function PlayerAdd() {
                   disabled={loading}
                 >
                   <option value="">Select Sport</option>
-                  <option value="Cricket">Cricket</option>
-                  <option value="Football">Football</option>
-                  <option value="Kabaddi">Kabaddi</option>
-                  <option value="Kho Kho">Kho Kho</option>
-                  <option value="Volleyball">Volleyball</option>
-                  <option value="Badminton">Badminton</option>
-                  <option value="Basketball">Basketball</option>
-                  <option value="Tennis">Tennis</option>
-                  <option value="Athletics">Athletics</option>
-                  <option value="Swimming">Swimming</option>
-                  <option value="Carrom">Carrom</option>
+                  {[...new Set(gamesList.map((g) => g.gameName))].map((gameName, idx) => (
+                    <option key={idx} value={gameName}>{gameName}</option>
+                  ))}
                 </select>
                 {errors.sportChosen && <p className="text-[11px] font-semibold text-red-500">{errors.sportChosen}</p>}
               </div>
+
+              {/* Game Category */}
+              {addPlayers.sportChosen && (
+              <div className="space-y-1 animate-fade-in-up">
+                <label className="text-xs font-bold text-gray-600 uppercase tracking-wider" htmlFor="player-category">Category</label>
+                <select
+                  id="player-category"
+                  className={`w-full px-4 py-2.5 text-sm bg-white border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all cursor-pointer ${
+                    errors.gameCategory ? 'border-red-400' : 'border-gray-200'
+                  }`}
+                  name="gameCategory"
+                  value={addPlayers.gameCategory}
+                  onChange={handlePlayers}
+                  disabled={loading}
+                >
+                  <option value="">Select Category</option>
+                  {[...new Set(gamesList.filter(g => g.gameName === addPlayers.sportChosen).map(g => g.category))].map((cat, idx) => (
+                    <option key={idx} value={cat}>{cat}</option>
+                  ))}
+                </select>
+                {errors.gameCategory && <p className="text-[11px] font-semibold text-red-500">{errors.gameCategory}</p>}
+              </div>
+              )}
+
+              {/* Game Type */}
+              {addPlayers.gameCategory && (
+              <div className="space-y-1 animate-fade-in-up">
+                <label className="text-xs font-bold text-gray-600 uppercase tracking-wider" htmlFor="player-type">Game Type</label>
+                <select
+                  id="player-type"
+                  className={`w-full px-4 py-2.5 text-sm bg-white border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all cursor-pointer ${
+                    errors.gameType ? 'border-red-400' : 'border-gray-200'
+                  }`}
+                  name="gameType"
+                  value={addPlayers.gameType}
+                  onChange={handlePlayers}
+                  disabled={loading}
+                >
+                  <option value="">Select Type</option>
+                  {[...new Set(gamesList.filter(g => g.gameName === addPlayers.sportChosen && g.category === addPlayers.gameCategory).map(g => g.gameType))].map((type, idx) => (
+                    <option key={idx} value={type}>{type}</option>
+                  ))}
+                </select>
+                {errors.gameType && <p className="text-[11px] font-semibold text-red-500">{errors.gameType}</p>}
+              </div>
+              )}
 
               {/* Coach Assigned */}
               <div className="space-y-1">
@@ -541,8 +597,10 @@ function PlayerAdd() {
                   <option value="">Select Coach</option>
                   {(() => {
                     if (!addPlayers.sportChosen) return coachesList;
-                    const specialized = coachesList.filter(c => c.sportSpecialization === addPlayers.sportChosen);
-                    return specialized.length > 0 ? specialized : coachesList;
+                    const baseSport = addPlayers.sportChosen;
+                    const specialized = coachesList.filter(c => c.sportSpecialization === baseSport);
+                    const others = coachesList.filter(c => c.sportSpecialization !== baseSport);
+                    return [...specialized, ...others];
                   })().map((c) => (
                     <option key={c._id} value={c.name}>{c.name} ({c.sportSpecialization})</option>
                   ))}

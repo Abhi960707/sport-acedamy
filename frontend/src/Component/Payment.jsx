@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import axios from 'axios';
+import api from '../api';
 import { useToast } from './Toast';
 import { FiDollarSign, FiSearch, FiCheckCircle, FiClock, FiCreditCard, FiPrinter } from 'react-icons/fi';
 import { canMarkAttendanceAndPayments } from './access';
@@ -43,8 +43,8 @@ export default function Payment() {
       setLoading(true);
       try {
         const [playersRes, recordsRes] = await Promise.all([
-          axios.get('http://localhost:4005/players/report', { headers: { Authorization: `Bearer ${token}` } }),
-          axios.get('http://localhost:4005/payments/report', { headers: { Authorization: `Bearer ${token}` } }),
+          api.get('/players/report'),
+          api.get('/payments/report'),
         ]);
 
         setPlayers(playersRes.data.data || []);
@@ -80,12 +80,7 @@ export default function Payment() {
 
     setSaving(true);
     try {
-      const response = await axios.post('http://localhost:4005/payments/add', form, {
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const response = await api.post('/payments/add', form);
 
       if (response.data.success) {
         setRecords((prev) => {
@@ -95,7 +90,7 @@ export default function Payment() {
         toast('Payment recorded successfully', 'success');
         
         // Refresh players to get updated balances
-        const playersRes = await axios.get('http://localhost:4005/players/report', { headers: { Authorization: `Bearer ${token}` } });
+        const playersRes = await api.get('/players/report');
         setPlayers(playersRes.data.data || []);
 
       } else {

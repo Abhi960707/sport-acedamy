@@ -85,7 +85,7 @@ router.post('/login/signup', loginLimiter, async(req,res)=>{
         res.status(statusCode).send({
             success:false,
             message: statusCode === 409 ? 'Email already exists' : 'some error',
-            error: e.message
+            error: process.env.NODE_ENV === 'production' ? 'Internal server error' : e.message
         })
     }
 })
@@ -135,7 +135,7 @@ router.post('/login/login', loginLimiter, async(req,res)=>{
         const statusCode = e.message.includes('User not found') || e.message.includes('Incorrect password') ? 401 : 500;
         res.status(statusCode).json({
             success:false,
-            message: statusCode === 401 ? 'Invalid email or password' : 'login failed',error:e.message
+            message: statusCode === 401 ? 'Invalid email or password' : 'login failed',error: process.env.NODE_ENV === 'production' ? 'Internal server error' : e.message
         })
     }
 })
@@ -159,7 +159,7 @@ router.post('/login/logout',auth, async(req,res)=>{
     }
     catch(e){
         res.status(500).json({
-        message:"Failed To log out...",error:e.message
+        message:"Failed To log out...",error: process.env.NODE_ENV === 'production' ? 'Internal server error' : e.message
         })
     }
 })
@@ -191,7 +191,7 @@ router.get('/auth/profile', auth, async (req, res) => {
             }
         });
     } catch (e) {
-        res.status(500).json({ success: false, message: 'Failed to fetch profile', error: e.message });
+        res.status(500).json({ success: false, message: 'Failed to fetch profile', error: process.env.NODE_ENV === 'production' ? 'Internal server error' : e.message });
     }
 });
 
@@ -254,7 +254,7 @@ router.put('/auth/profile/update', auth, async (req, res) => {
             }
         });
     } catch (e) {
-        res.status(500).json({ success: false, message: 'Failed to update profile', error: e.message });
+        res.status(500).json({ success: false, message: 'Failed to update profile', error: process.env.NODE_ENV === 'production' ? 'Internal server error' : e.message });
     }
 });
 
@@ -286,7 +286,7 @@ router.put('/auth/profile/change-password', auth, async (req, res) => {
 
         res.status(200).json({ success: true, message: 'Password changed successfully' });
     } catch (e) {
-        res.status(500).json({ success: false, message: 'Failed to change password', error: e.message });
+        res.status(500).json({ success: false, message: 'Failed to change password', error: process.env.NODE_ENV === 'production' ? 'Internal server error' : e.message });
     }
 });
 

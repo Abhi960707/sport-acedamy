@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useToast } from './Toast';
-import { FiUser, FiActivity, FiPhone, FiAward, FiBook, FiDollarSign, FiCalendar } from 'react-icons/fi';
+import { FiUser, FiPhone, FiAward, FiBook, FiDollarSign, FiCalendar } from 'react-icons/fi';
+import api from '../api';
+
 
 const INITIAL_STATE = {
   coachId: '',
@@ -35,12 +37,9 @@ function CoachAdd() {
   const [errors, setErrors] = useState({});
 
   const fetchNextId = async () => {
-    const token = localStorage.getItem('token');
     try {
-      const res = await fetch('http://localhost:4005/coach/next-id', {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const result = await res.json();
+      const res = await api.get('/coach/next-id');
+      const result = res.data;
       if (result.success) {
         setAddCoach(prev => ({ ...prev, coachId: result.nextId }));
       }
@@ -60,17 +59,9 @@ function CoachAdd() {
     const reader = new FileReader();
     reader.onloadend = async () => {
       const base64Data = reader.result;
-      const token = localStorage.getItem('token');
       try {
-        const res = await fetch('http://localhost:4005/api/upload', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`
-          },
-          body: JSON.stringify({ image: base64Data })
-        });
-        const data = await res.json();
+        const res = await api.post('/api/upload', { image: base64Data });
+        const data = res.data;
         if (data.success) {
           setAddCoach(prev => ({ ...prev, coachImage: data.url }));
           toast('Image uploaded successfully', 'success');
@@ -155,18 +146,9 @@ function CoachAdd() {
     }
 
     setLoading(true);
-    const token = localStorage.getItem('token');
     try {
-      const res = await fetch('http://localhost:4005/coach/add', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(addCoach),
-      });
-
-      const result = await res.json();
+      const res = await api.post('/coach/add', addCoach);
+      const result = res.data;
       if (result.success) {
         toast('Coach added successfully!', 'success');
         setAddCoach(INITIAL_STATE);

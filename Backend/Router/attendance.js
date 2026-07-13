@@ -23,7 +23,7 @@ router.get('/attendance/report', auth, async (req, res) => {
         res.status(400).json({
             success: false,
             message: 'Failed to fetch attendance report',
-            error: e.message
+            error: process.env.NODE_ENV === 'production' ? 'Internal server error' : e.message
         })
     }
 })
@@ -45,7 +45,7 @@ router.get('/attendance/players', auth, async (req, res) => {
         res.status(400).json({
             success: false,
             message: 'Failed to fetch attendance players',
-            error: e.message
+            error: process.env.NODE_ENV === 'production' ? 'Internal server error' : e.message
         })
     }
 })
@@ -124,7 +124,7 @@ router.post('/attendance/mark', auth, auth.allowRoles('superadmin', 'admin', 'co
         res.status(400).json({
             success: false,
             message: 'Failed to save attendance',
-            error: e.message
+            error: process.env.NODE_ENV === 'production' ? 'Internal server error' : e.message
         })
     }
 })
@@ -166,7 +166,7 @@ router.delete('/attendance/delete/:id', auth, auth.allowRoles('superadmin', 'adm
         res.status(400).json({
             success: false,
             message: 'Failed to delete attendance',
-            error: e.message
+            error: process.env.NODE_ENV === 'production' ? 'Internal server error' : e.message
         })
     }
 })

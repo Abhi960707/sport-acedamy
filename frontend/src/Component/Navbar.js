@@ -6,6 +6,17 @@ import {
   FiUsers, FiX, FiBell, FiSettings, FiUser
 } from 'react-icons/fi';
 import { FaRupeeSign } from 'react-icons/fa';
+import { API_BASE } from '../api';
+
+// Debounce hook
+function useDebounce(value, delay) {
+  const [debouncedValue, setDebouncedValue] = useState(value);
+  useEffect(() => {
+    const handler = setTimeout(() => setDebouncedValue(value), delay);
+    return () => clearTimeout(handler);
+  }, [value, delay]);
+  return debouncedValue;
+}
 
 const NAV_LINKS = [
   { to: '/home', label: 'Dashboard', icon: <FiHome /> },
@@ -114,6 +125,8 @@ export default function Navbar({ searchQuery = '', setSearchQuery = () => {} }) 
 
   // Fetch Lookup Data
   useEffect(() => {
+    const controller = new AbortController();
+
     const fetchSearchData = async () => {
       if (dataLoaded) return;
       const token = localStorage.getItem('token');
@@ -121,12 +134,12 @@ export default function Navbar({ searchQuery = '', setSearchQuery = () => {} }) 
 
       try {
         const [gRes, cRes, pRes, payRes, attRes, notifRes] = await Promise.all([
-          fetch('http://localhost:4005/games/report', { headers: { Authorization: `Bearer ${token}` } }),
-          fetch('http://localhost:4005/coach/report', { headers: { Authorization: `Bearer ${token}` } }),
-          fetch('http://localhost:4005/players/report', { headers: { Authorization: `Bearer ${token}` } }),
-          fetch('http://localhost:4005/payments/report', { headers: { Authorization: `Bearer ${token}` } }),
-          fetch('http://localhost:4005/attendance/report', { headers: { Authorization: `Bearer ${token}` } }),
-          fetch('http://localhost:4005/notifications', { headers: { Authorization: `Bearer ${token}` } }),
+          fetch(`${API_BASE}/games/report`, { headers: { Authorization: `Bearer ${token}` }, signal: controller.signal }),
+          fetch(`${API_BASE}/coach/report`, { headers: { Authorization: `Bearer ${token}` }, signal: controller.signal }),
+          fetch(`${API_BASE}/players/report`, { headers: { Authorization: `Bearer ${token}` }, signal: controller.signal }),
+          fetch(`${API_BASE}/payments/report`, { headers: { Authorization: `Bearer ${token}` }, signal: controller.signal }),
+          fetch(`${API_BASE}/attendance/report`, { headers: { Authorization: `Bearer ${token}` }, signal: controller.signal }),
+          fetch(`${API_BASE}/notifications`, { headers: { Authorization: `Bearer ${token}` }, signal: controller.signal }),
         ]);
 
         const gJson = await gRes.json();
@@ -135,6 +148,8 @@ export default function Navbar({ searchQuery = '', setSearchQuery = () => {} }) 
         const payJson = await payRes.json();
         const attJson = await attRes.json();
         const notifJson = await notifRes.json();
+
+        if (controller.signal.aborted) return;
 
         if (gJson.success) setGamesData(gJson.data || []);
         if (cJson.success) setCoachesData(cJson.data || []);
@@ -145,11 +160,13 @@ export default function Navbar({ searchQuery = '', setSearchQuery = () => {} }) 
         
         setDataLoaded(true);
       } catch (error) {
+        if (controller.signal.aborted) return;
         console.error('Error fetching navbar metadata:', error);
       }
     };
 
     fetchSearchData();
+    return () => controller.abort();
   }, [dataLoaded, location.pathname]);
 
   const handleLogout = () => {
@@ -161,7 +178,7 @@ export default function Navbar({ searchQuery = '', setSearchQuery = () => {} }) 
   const handleMarkNotifRead = async (id) => {
     const token = localStorage.getItem('token');
     try {
-      await fetch(`http://localhost:4005/notifications/read/${id}`, {
+      await fetch(`${API_BASE}/notifications/read/${id}`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -171,9 +188,12 @@ export default function Navbar({ searchQuery = '', setSearchQuery = () => {} }) 
     }
   };
 
+  const unreadCount = notifications.filter(n => !n.isRead).length;
+  const debouncedSearch = useDebounce(searchQuery, 300);
+
   // Search filter matches
   const searchResults = useMemo(() => {
-    const query = normalize(searchQuery);
+    const query = normalize(debouncedSearch);
     if (!query || !dataLoaded) return [];
 
     const mapMatches = (items, route, labelKey, fields, typeLabel) => {
@@ -194,7 +214,7 @@ export default function Navbar({ searchQuery = '', setSearchQuery = () => {} }) 
       ...mapMatches(paymentsData, '/reportplayers', 'playerName', ['playerName', 'playerId', 'paymentMethod', 'transactionId'], 'Payment'),
       ...mapMatches(attendanceData, '/attendance', 'playerName', ['playerName', 'playerId', 'status', 'attendanceDate'], 'Attendance'),
     ].slice(0, 8);
-  }, [searchQuery, dataLoaded, gamesData, coachesData, playersData, paymentsData, attendanceData]);
+  }, [debouncedSearch, dataLoaded, gamesData, coachesData, playersData, paymentsData, attendanceData]);
 
   const navigateToResult = (route, value) => {
     setSearchQuery(value);
@@ -209,7 +229,7 @@ export default function Navbar({ searchQuery = '', setSearchQuery = () => {} }) 
     setSearchQuery(value);
   };
 
-  const unreadCount = notifications.filter(n => !n.isRead).length;
+
 
   return (
     <nav className="sticky top-0 z-50 w-full bg-white/90 backdrop-blur-md border-b border-gray-100 shadow-sm" role="navigation" aria-label="Main navigation">

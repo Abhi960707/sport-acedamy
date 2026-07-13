@@ -63,15 +63,11 @@ loginSchema.pre("save", async function (next) {
 })
 
 loginSchema.statics.loginCheck = async function (email, password) {
-    console.log("ok")
     const temp = await this.findOne({ email })
     if (!temp) {
         throw new Error("User not found. Please check your email.")
     }
     const isMatch = await bcrypt.compare(password, temp.password)
-    if (isMatch) {
-        console.log("ok1")
-    }
     if (!isMatch) {
         throw new Error("Incorrect password")
     }

@@ -30,7 +30,7 @@ router.get('/games/next-id', auth, async (req, res) => {
         res.status(400).json({
             success: false,
             message: "Failed to get next game ID",
-            error: e.message
+            error: process.env.NODE_ENV === 'production' ? 'Internal server error' : e.message
         });
     }
 });
@@ -41,12 +41,14 @@ router.post('/games/add', auth, auth.allowRoles('superadmin', 'admin'), async(re
         if (req.body.gameName) {
             const existingGame = await Games.findOne({
                 gameName: { $regex: new RegExp(`^${req.body.gameName.trim()}$`, 'i') },
+                category: req.body.category,
+                gameType: req.body.gameType,
                 owner: req.academyOwnerId
             });
             if (existingGame) {
                 return res.status(400).json({
                     success: false,
-                    message: "A game with this name already exists."
+                    message: "A game with this name, category, and type already exists."
                 });
             }
         }
@@ -84,8 +86,7 @@ router.post('/games/add', auth, auth.allowRoles('superadmin', 'admin'), async(re
         res.status(400).json({
             success:false,
             message:"game not add",
-            error:e.message
-            
+            error: process.env.NODE_ENV === 'production' ? 'Internal server error' : e.message
         })
     }
 })
@@ -129,35 +130,25 @@ router.put('/games/update/:id', auth, auth.allowRoles('superadmin', 'admin'), as
         if (req.body.gameName) {
             const existingGame = await Games.findOne({
                 gameName: { $regex: new RegExp(`^${req.body.gameName.trim()}$`, 'i') },
+                category: req.body.category,
+                gameType: req.body.gameType,
                 owner: gameToUpdate.owner,
                 _id: { $ne: req.params.id }
             });
             if (existingGame) {
                 return res.status(400).json({
                     success: false,
-                    message: "A game with this name already exists."
+                    message: "A game with this name, category, and type already exists."
                 });
             }
         }
 
         const updatedGame = await Games.findOneAndUpdate(
             filter,
-            {
-                gameName: req.body.gameName,
-                category: req.body.category,
-                gameType: req.body.gameType,
-                duration: req.body.duration,
-                gameFee: req.body.gameFee,
-                gameImage: req.body.gameImage,
-                maximumCapacity: req.body.maximumCapacity,
-                description: req.body.description,
-                status: req.body.status,
-            },
-            { new: true }
+            { ...req.body },
+            { new: true, runValidators: true }
         );
-        if (!updatedGame) {
-            return res.status(404).json({ success: false, message: "Game not found or unauthorized" });
-        }
+
         createAuditLog({
             actor: req.currentEmp._id,
             action: 'update',
@@ -166,10 +157,47 @@ router.put('/games/update/:id', auth, auth.allowRoles('superadmin', 'admin'), as
             message: 'Game updated',
             metadata: { gameId: updatedGame.gameId, gameName: updatedGame.gameName },
         })
-        res.status(200).json({ success: true, message: "Game updated successfully", data: updatedGame });
+
+        res.status(200).json({
+            success: true,
+            message: "Game Updated Successfully",
+            data: updatedGame
+        });
     } catch (e) {
-        res.status(400).json({ success: false, message: "Failed to update game", error: e.message });
+        res.status(400).json({
+            success: false,
+            message: "Game update failed",
+            error: process.env.NODE_ENV === 'production' ? 'Internal server error' : e.message
+        });
     }
 });
 
-module.exports = router;
+
+router.get('/games/report', auth, async(req,res)=>{
+    try{
+        let filter = req.userRole === 'superadmin' ? {} : { owner: req.academyOwnerId };
+        
+        if (req.userRole === 'coach') {
+            const coachDoc = await require('../Model/coach').findOne({ email: req.currentEmp.email });
+            if (coachDoc) {
+                filter.gameName = coachDoc.sportSpecialization;
+            }
+        }
+
+        const data = await Games.find(filter)
+        res.status(200).json({
+            success:true,
+            data:data
+        })
+
+    }
+    catch(e){
+        res.status(400).json({
+            success:false,
+            error: process.env.NODE_ENV === 'production' ? 'Internal server error' : e.message
+        })
+    }
+})
+
+
+module.exports = router

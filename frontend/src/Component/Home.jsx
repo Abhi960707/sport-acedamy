@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import axios from 'axios';
+import api from '../api';
 import { FiAward, FiUsers, FiUserCheck, FiArrowRight, FiClock, FiActivity, FiTrendingUp, FiPieChart, FiBarChart } from 'react-icons/fi';
 import { FaRupeeSign } from 'react-icons/fa';
 import { useToast } from './Toast';
@@ -9,10 +9,7 @@ import { getStoredRole } from './access';
 export default function Home() {
   const userRole = getStoredRole();
 
-  if (userRole === 'coach') {
-    return <CoachDashboard />;
-  }
-
+  // ─── ALL HOOKS must be called unconditionally BEFORE any early return ───
   const toast = useToast();
   const [stats, setStats] = useState({
     playersCount: 0,
@@ -27,15 +24,21 @@ export default function Home() {
   const [playersData, setPlayersData] = useState([]);
 
   useEffect(() => {
+    // Skip data fetching entirely for coaches – CoachDashboard handles its own data
+    if (userRole === 'coach') return;
+
+    const controller = new AbortController();
+
     const fetchDashboardData = async () => {
-      const token = localStorage.getItem('token');
       try {
         const [playersRes, coachesRes, gamesRes, auditRes] = await Promise.all([
-          axios.get('http://localhost:4005/players/report', { headers: { Authorization: `Bearer ${token}` } }),
-          axios.get('http://localhost:4005/coach/report', { headers: { Authorization: `Bearer ${token}` } }),
-          axios.get('http://localhost:4005/games/report', { headers: { Authorization: `Bearer ${token}` } }),
-          axios.get('http://localhost:4005/audit/report', { headers: { Authorization: `Bearer ${token}` } }),
+          api.get('/players/report'),
+          api.get('/coach/report'),
+          api.get('/games/report'),
+          api.get('/audit/report'),
         ]);
+
+        if (controller.signal.aborted) return;
 
         const playersList = playersRes.data.data || [];
         const coachesList = coachesRes.data.data || [];
@@ -71,15 +74,16 @@ export default function Home() {
         );
 
       } catch (err) {
-        console.error('Error fetching dashboard statistics:', err);
+        if (controller.signal.aborted) return;
         toast('Failed to load dashboard metrics', 'error');
       } finally {
-        setLoading(false);
+        if (!controller.signal.aborted) setLoading(false);
       }
     };
 
     fetchDashboardData();
-  }, [toast]);
+    return () => controller.abort();
+  }, [toast, userRole]);
 
   // Chart 1: Admissions by Month (Line Chart)
   const lineChartData = useMemo(() => {
@@ -152,6 +156,12 @@ export default function Home() {
       };
     });
   }, [playersData]);
+
+  // ─── Coach early return AFTER all hooks ───
+  if (userRole === 'coach') {
+    return <CoachDashboard />;
+  }
+
 
   const cards = [
     {

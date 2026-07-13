@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import axios from 'axios';
+import api from '../api';
 import { useToast } from './Toast';
 import { FiAward, FiTrash2, FiEdit2, FiChevronLeft, FiChevronRight, FiChevronUp, FiChevronDown, FiClock } from 'react-icons/fi';
 import { FaRupeeSign } from 'react-icons/fa';
@@ -21,7 +21,7 @@ export default function GameReport({ searchQuery }) {
   // Sorting and Pagination State
   const [sortConfig, setSortConfig] = useState({ key: 'gameId', direction: 'asc' });
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 6;
+  const itemsPerPage = 4;
   const canManageRecords = canManageAcademyRecords();
 
   // Reset pagination to page 1 when search query changes
@@ -33,9 +33,7 @@ export default function GameReport({ searchQuery }) {
     const fetchTasks = async () => {
       setLoading(true);
       try {
-        const res = await axios.get('http://localhost:4005/games/report', {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        const res = await api.get('/games/report');
         setTasks(res.data.data || []);
       } catch (err) {
         toast('Failed to fetch games report', 'error');
@@ -54,12 +52,8 @@ export default function GameReport({ searchQuery }) {
     if (!window.confirm('Are you sure you want to delete this game?')) return;
     setDeletingId(id);
     try {
-      const rem = await fetch(`http://localhost:4005/games/delete/${id}`, {
-        method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const emp = await rem.json();
-      if (emp.success) {
+      const res = await api.delete(`/games/delete/${id}`);
+      if (res.data.success) {
         setTasks(prev => prev.filter(t => t._id !== id));
         toast('Game deleted successfully', 'success');
         if (paginatedTasks.length === 1 && currentPage > 1) {
@@ -100,12 +94,7 @@ export default function GameReport({ searchQuery }) {
 
     setUpdateLoading(true);
     try {
-      const res = await axios.put(`http://localhost:4005/games/update/${editGame._id}`, editGame, {
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const res = await api.put(`/games/update/${editGame._id}`, editGame);
 
       if (res.data.success) {
         toast('Game details updated successfully', 'success');
@@ -261,39 +250,39 @@ export default function GameReport({ searchQuery }) {
           </div>
         ) : (
           <div className="flex flex-col">
-            <div className="md:hidden space-y-3 p-4">
+            <div className="md:hidden print:grid print:grid-cols-2 print:gap-4 space-y-2 print:space-y-0 p-3 print:p-0">
               {paginatedTasks.map((game, index) => (
                 <article
                   key={game._id}
-                  className={`rounded-2xl border border-gray-100 bg-white shadow-sm p-4 space-y-4 ${deletingId === game._id ? 'opacity-40' : ''} ${isSearchActive ? 'ring-1 ring-blue-100 bg-blue-50/20' : ''}`}
+                  className={`rounded-xl border border-gray-100 bg-white shadow-sm p-3 space-y-3 ${deletingId === game._id ? 'opacity-40' : ''} ${isSearchActive ? 'ring-1 ring-blue-100 bg-blue-50/20' : ''}`}
                 >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="space-y-1 min-w-0">
-                      <div className="text-[11px] font-bold uppercase tracking-wider text-gray-400">Game #{(currentPage - 1) * itemsPerPage + index + 1}</div>
-                      <h3 className="text-base font-bold text-gray-800 truncate">{game.gameName}</h3>
-                      <div className="inline-flex px-2.5 py-1 bg-blue-50 border border-blue-100 rounded-md text-blue-600 text-xs font-bold font-mono w-fit">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="space-y-0.5 min-w-0">
+                      <div className="text-[10px] font-bold uppercase tracking-wider text-gray-400">Game #{(currentPage - 1) * itemsPerPage + index + 1}</div>
+                      <h3 className="text-sm font-bold text-gray-800 truncate">{game.gameName}</h3>
+                      <div className="inline-flex px-2 py-0.5 bg-blue-50 border border-blue-100 rounded-md text-blue-600 text-[11px] font-bold font-mono w-fit mt-1">
                         {game.gameId}
                       </div>
                     </div>
-                    <span className="inline-flex px-2 py-1 rounded-full text-[11px] font-bold bg-blue-50 text-blue-700 border border-blue-100">
+                    <span className="inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-100">
                       ₹{game.gameFee}
                     </span>
                   </div>
 
-                  <div className="grid grid-cols-1 gap-2 text-sm">
-                    <div className="flex items-center justify-between gap-4">
+                  <div className="grid grid-cols-1 gap-1.5 text-xs">
+                    <div className="flex items-center justify-between gap-3">
                       <span className="text-gray-400 font-semibold">Category</span>
-                      <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-bold ${game.category === 'single' ? 'bg-cyan-50 text-cyan-700 border border-cyan-100' : game.category === 'double' ? 'bg-indigo-50 text-indigo-700 border border-indigo-100' : 'bg-purple-50 text-purple-700 border border-purple-100'}`}>
+                      <span className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold ${game.category === 'single' ? 'bg-cyan-50 text-cyan-700 border border-cyan-100' : game.category === 'double' ? 'bg-indigo-50 text-indigo-700 border border-indigo-100' : 'bg-purple-50 text-purple-700 border border-purple-100'}`}>
                         {game.category}
                       </span>
                     </div>
-                    <div className="flex items-center justify-between gap-4">
+                    <div className="flex items-center justify-between gap-3">
                       <span className="text-gray-400 font-semibold">Type</span>
-                      <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-bold ${game.gameType === 'indoor' ? 'bg-teal-50 text-teal-700 border border-teal-100' : 'bg-amber-50 text-amber-700 border border-amber-100'}`}>
+                      <span className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold ${game.gameType === 'indoor' ? 'bg-teal-50 text-teal-700 border border-teal-100' : 'bg-amber-50 text-amber-700 border border-amber-100'}`}>
                         {game.gameType}
                       </span>
                     </div>
-                    <div className="flex items-center justify-between gap-4">
+                    <div className="flex items-center justify-between gap-3">
                       <span className="text-gray-400 font-semibold">Duration</span>
                       <span className="text-gray-700 font-medium text-right">{game.duration}</span>
                     </div>

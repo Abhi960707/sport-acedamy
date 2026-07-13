@@ -4,9 +4,9 @@ const router = new express.Router()
 const auth = require('../Authentication/auth')
 const games = require('../Model/games')
 
-router.get('/games/report',auth,async(req,res)=>{
-    console.log("report")
+router.get('/games/report', auth, async(req,res)=>{
     try{
+
         const filter = req.userRole === 'superadmin' ? {} : { owner: req.academyOwnerId };
         if (req.userRole === 'coach' && req.coachProfile) {
             filter.gameName = req.coachProfile.sportSpecialization;
@@ -24,7 +24,7 @@ router.get('/games/report',auth,async(req,res)=>{
         res.status(400).json({
             success:false,
             message:"Not Show",
-            error:e.message
+            error: process.env.NODE_ENV === 'production' ? 'Internal server error' : e.message
         })
     }
 })

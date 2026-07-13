@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import axios from 'axios';
+import api from '../api';
 import { useToast } from './Toast';
 import { FiTrash2, FiEdit2, FiChevronLeft, FiChevronRight, FiChevronUp, FiChevronDown, FiPhone, FiMail, FiCalendar, FiMapPin, FiBell } from 'react-icons/fi';
 import { FaRupeeSign } from 'react-icons/fa';
@@ -26,7 +26,7 @@ export default function PlayerReport({ searchQuery }) {
   // Sorting and Pagination State
   const [sortConfig, setSortConfig] = useState({ key: 'playerId', direction: 'asc' });
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 6;
+  const itemsPerPage = 4;
   const canManageRecords = canManageAcademyRecords();
 
   // Reset pagination to page 1 on search
@@ -38,9 +38,7 @@ export default function PlayerReport({ searchQuery }) {
     const fetchTasks = async () => {
       setLoading(true);
       try {
-        const res = await axios.get('http://localhost:4005/players/report', {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        const res = await api.get('/players/report');
         setTasks(res.data.data || []);
       } catch (err) {
         toast('Failed to fetch players report', 'error');
@@ -56,14 +54,11 @@ export default function PlayerReport({ searchQuery }) {
     const fetchOptionsData = async () => {
       try {
         const [gamesRes, coachesRes] = await Promise.all([
-          fetch('http://localhost:4005/games/report', { headers: { Authorization: `Bearer ${token}` } }),
-          fetch('http://localhost:4005/coach/report', { headers: { Authorization: `Bearer ${token}` } }),
+          api.get('/games/report'),
+          api.get('/coach/report'),
         ]);
-        const gamesData = await gamesRes.json();
-        const coachesData = await coachesRes.json();
-
-        if (gamesData.success) setGamesList(gamesData.data || []);
-        if (coachesData.success) setCoachesList(coachesData.data || []);
+        if (gamesRes.data.success) setGamesList(gamesRes.data.data || []);
+        if (coachesRes.data.success) setCoachesList(coachesRes.data.data || []);
       } catch (err) {
         console.error('Error fetching edit modal option list:', err);
       }
@@ -81,19 +76,15 @@ export default function PlayerReport({ searchQuery }) {
     if (!window.confirm('Are you sure you want to delete this player?')) return;
     setDeletingId(id);
     try {
-      const rem = await fetch(`http://localhost:4005/players/delete/${id}`, {
-        method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const emp = await rem.json();
-      if (emp.success) {
+      const rem = await api.delete(`/players/delete/${id}`);
+      if (rem.data.success) {
         setTasks(prev => prev.filter(t => t._id !== id));
         toast('Player deleted successfully', 'success');
         if (paginatedTasks.length === 1 && currentPage > 1) {
           setCurrentPage(prev => prev - 1);
         }
       } else {
-        toast('Failed to delete player', 'error');
+        toast(rem.data.message || 'Failed to delete player', 'error');
       }
     } catch {
       toast('Server error during deletion', 'error');
@@ -177,12 +168,7 @@ export default function PlayerReport({ searchQuery }) {
 
     setUpdateLoading(true);
     try {
-      const res = await axios.put(`http://localhost:4005/players/update/${editPlayer._id}`, editPlayer, {
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const res = await api.put(`/players/update/${editPlayer._id}`, editPlayer);
 
       if (res.data.success) {
         toast('Player registration updated successfully', 'success');
@@ -328,9 +314,7 @@ export default function PlayerReport({ searchQuery }) {
 
     setNotifying(true);
     try {
-      const res = await axios.post('http://localhost:4005/notifications/notify-coaches', { notifications }, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const res = await api.post('/notifications/notify-coaches', { notifications });
       if (res.data.success) {
         toast('Coaches notified successfully', 'success');
       } else {
@@ -402,65 +386,65 @@ export default function PlayerReport({ searchQuery }) {
           </div>
         ) : (
           <div className="flex flex-col">
-            <div className="md:hidden space-y-3 p-4">
+            <div className="md:hidden print:grid print:grid-cols-2 print:gap-4 space-y-2 print:space-y-0 p-3 print:p-0">
               {paginatedTasks.map((player, index) => (
                 <article
                   key={player._id}
-                  className={`rounded-2xl border border-gray-100 bg-white shadow-sm p-4 space-y-4 ${deletingId === player._id ? 'opacity-40' : ''} ${isSearchActive ? 'ring-1 ring-blue-100 bg-blue-50/20' : ''}`}
+                  className={`rounded-xl border border-gray-100 bg-white shadow-sm p-3 space-y-3 ${deletingId === player._id ? 'opacity-40' : ''} ${isSearchActive ? 'ring-1 ring-blue-100 bg-blue-50/20' : ''}`}
                 >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="space-y-1 min-w-0">
-                      <div className="text-[11px] font-bold uppercase tracking-wider text-gray-400">Player #{(currentPage - 1) * itemsPerPage + index + 1}</div>
-                      <h3 className="text-base font-bold text-gray-800 truncate">{player.fullName}</h3>
-                      <div className="inline-flex px-2.5 py-1 bg-blue-50 border border-blue-100 rounded-md text-blue-600 text-xs font-bold font-mono w-fit">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="space-y-0.5 min-w-0">
+                      <div className="text-[10px] font-bold uppercase tracking-wider text-gray-400">Player #{(currentPage - 1) * itemsPerPage + index + 1}</div>
+                      <h3 className="text-sm font-bold text-gray-800 truncate">{player.fullName}</h3>
+                      <div className="inline-flex px-2 py-0.5 bg-blue-50 border border-blue-100 rounded-md text-blue-600 text-[11px] font-bold font-mono w-fit mt-1">
                         {player.playerId}
                       </div>
                     </div>
-                    <span className={`inline-flex px-2 py-1 rounded-full text-[11px] font-bold border ${
+                    <span className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold border ${
                       Number(player.pendingFee) > 0 ? 'bg-red-50 text-red-700 border-red-100' : 'bg-emerald-50 text-emerald-700 border-emerald-100'
                     }`}>
                       ₹{player.pendingFee}
                     </span>
                   </div>
 
-                  <div className="grid grid-cols-1 gap-2 text-sm">
-                    <div className="flex items-center justify-between gap-4">
+                  <div className="grid grid-cols-1 gap-1.5 text-xs">
+                    <div className="flex items-center justify-between gap-3">
                       <span className="text-gray-400 font-semibold">DOB</span>
                       <span className="text-gray-700 font-medium">{player.dateOfBirth}</span>
                     </div>
-                    <div className="flex items-center justify-between gap-4">
+                    <div className="flex items-center justify-between gap-3">
                       <span className="text-gray-400 font-semibold">Gender</span>
-                      <span className={`inline-flex px-2 py-0.5 rounded-full text-[11px] font-bold ${player.gender === 'male' ? 'bg-blue-50 text-blue-700 border border-blue-100' : 'bg-pink-50 text-pink-700 border border-pink-100'}`}>
+                      <span className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold ${player.gender === 'male' ? 'bg-blue-50 text-blue-700 border border-blue-100' : 'bg-pink-50 text-pink-700 border border-pink-100'}`}>
                         {player.gender}
                       </span>
                     </div>
-                    <div className="flex items-center justify-between gap-4">
+                    <div className="flex items-center justify-between gap-3">
                       <span className="text-gray-400 font-semibold">Contact</span>
                       <span className="text-gray-700 font-medium text-right">{player.contactNumber}</span>
                     </div>
-                    <div className="flex items-center justify-between gap-4">
+                    <div className="flex items-center justify-between gap-3">
                       <span className="text-gray-400 font-semibold">Email</span>
                       <span className="text-gray-700 font-medium text-right break-all">{player.email}</span>
                     </div>
-                    <div className="flex items-center justify-between gap-4">
+                    <div className="flex items-center justify-between gap-3">
                       <span className="text-gray-400 font-semibold">Sport</span>
-                      <span className="inline-flex px-2.5 py-0.5 bg-indigo-50 border border-indigo-100 text-indigo-700 rounded-full text-xs font-bold">{player.sportChosen}</span>
+                      <span className="inline-flex px-2 py-0.5 bg-indigo-50 border border-indigo-100 text-indigo-700 rounded-full text-[10px] font-bold">{player.sportChosen}</span>
                     </div>
-                    <div className="flex items-center justify-between gap-4">
+                    <div className="flex items-center justify-between gap-3">
                       <span className="text-gray-400 font-semibold">Coach</span>
                       <span className="text-gray-700 font-medium text-right">{player.coachAssigned}</span>
                     </div>
-                    <div className="flex items-center justify-between gap-4">
+                    <div className="flex items-center justify-between gap-3">
                       <span className="text-gray-400 font-semibold">Joining</span>
                       <span className="text-gray-700 font-medium text-right">{player.joiningDate}</span>
                     </div>
-                    <div className="flex items-center justify-between gap-4">
+                    <div className="flex items-center justify-between gap-3">
                       <span className="text-gray-400 font-semibold">Total / Paid</span>
                       <span className="text-gray-700 font-medium text-right">₹{player.totalFee} / ₹{player.payingFee}</span>
                     </div>
-                    <div className="text-gray-700 font-medium">
+                    <div className="text-gray-700 font-medium leading-tight">
                       <span className="text-gray-400 font-semibold mr-2">Address</span>
-                      <span className="block mt-1 break-words">{player.address}</span>
+                      <span className="block mt-0.5 break-words">{player.address}</span>
                     </div>
                   </div>
 

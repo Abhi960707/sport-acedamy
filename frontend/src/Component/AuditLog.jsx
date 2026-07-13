@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import axios from 'axios';
+import api from '../api';
 import { FiActivity, FiClock, FiFilter, FiSearch, FiChevronLeft, FiChevronRight } from 'react-icons/fi';
 import { useToast } from './Toast';
 import ExportDropdown from './ExportDropdown';
@@ -19,9 +19,7 @@ export default function AuditLog() {
   useEffect(() => {
     const fetchLogs = async () => {
       try {
-        const res = await axios.get('http://localhost:4005/audit/report', {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        const res = await api.get('/audit/report');
         setLogs(res.data.data || []);
       } catch (error) {
         toast('Failed to load audit log', 'error');

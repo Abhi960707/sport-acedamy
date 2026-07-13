@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import axios from 'axios';
+import api from '../api';
 import { useToast } from './Toast';
 import { FiSearch, FiFileText, FiDollarSign, FiChevronDown, FiChevronUp } from 'react-icons/fi';
 import ExportDropdown from './ExportDropdown';
@@ -25,8 +25,8 @@ export default function TransactionReport() {
       setLoading(true);
       try {
         const [playersRes, paymentsRes] = await Promise.all([
-          axios.get('http://localhost:4005/players/report', { headers: { Authorization: `Bearer ${token}` } }),
-          axios.get('http://localhost:4005/payments/report', { headers: { Authorization: `Bearer ${token}` } }),
+          api.get('/players/report'),
+          api.get('/payments/report'),
         ]);
 
         setPlayers(playersRes.data.data || []);

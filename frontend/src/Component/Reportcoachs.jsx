@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import axios from 'axios';
+import api from '../api';
 import { useToast } from './Toast';
 import { FiUsers, FiTrash2, FiEdit2, FiChevronLeft, FiChevronRight, FiChevronUp, FiChevronDown, FiPhone, FiAward } from 'react-icons/fi';
 import { canManageAcademyRecords } from './access';
@@ -20,7 +20,7 @@ export default function CoachReport({ searchQuery }) {
   // Sorting and Pagination State
   const [sortConfig, setSortConfig] = useState({ key: 'coachId', direction: 'asc' });
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 6;
+  const itemsPerPage = 4;
   const canManageRecords = canManageAcademyRecords();
 
   // Reset pagination on search query change
@@ -32,9 +32,7 @@ export default function CoachReport({ searchQuery }) {
     const fetchTasks = async () => {
       setLoading(true);
       try {
-        const res = await axios.get('http://localhost:4005/coach/report', {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        const res = await api.get('/coach/report');
         setTasks(res.data.data || []);
       } catch (err) {
         toast('Failed to fetch coach report', 'error');
@@ -53,12 +51,8 @@ export default function CoachReport({ searchQuery }) {
     if (!window.confirm('Are you sure you want to delete this coach?')) return;
     setDeletingId(id);
     try {
-      const rem = await fetch(`http://localhost:4005/coach/delete/${id}`, {
-        method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const emp = await rem.json();
-      if (emp.success) {
+      const res = await api.delete(`/coach/delete/${id}`);
+      if (res.data.success) {
         setTasks(prev => prev.filter(t => t._id !== id));
         toast('Coach deleted successfully', 'success');
         if (paginatedTasks.length === 1 && currentPage > 1) {
@@ -99,12 +93,7 @@ export default function CoachReport({ searchQuery }) {
 
     setUpdateLoading(true);
     try {
-      const res = await axios.put(`http://localhost:4005/coach/update/${editCoach._id}`, editCoach, {
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const res = await api.put(`/coach/update/${editCoach._id}`, editCoach);
 
       if (res.data.success) {
         toast('Coach details updated successfully', 'success');
@@ -258,7 +247,7 @@ export default function CoachReport({ searchQuery }) {
           </div>
         ) : (
           <div className="flex flex-col">
-            <div className="md:hidden space-y-3 p-4">
+            <div className="md:hidden print:hidden space-y-3 p-4">
               {paginatedTasks.map((coach, index) => (
                 <article
                   key={coach._id}

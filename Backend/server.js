@@ -76,7 +76,7 @@ server.use((err, req, res, next) => {
     logError(err, 'Global Error Handler');
     res.status(500).json({
         success: false,
-        message: 'Internal server error'
+        message: 'An unexpected error occurred. Please try again later.'
     });
 });
 

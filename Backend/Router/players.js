@@ -32,7 +32,7 @@ router.get('/players/next-id', auth, async (req, res) => {
         res.status(400).json({
             success: false,
             message: "Failed to get next player ID",
-            error: e.message
+            error: process.env.NODE_ENV === 'production' ? 'Internal server error' : e.message
         });
     }
 });
@@ -92,7 +92,7 @@ router.post('/players/add', auth, auth.allowRoles('superadmin', 'admin'), async(
         res.status(400).json({
             success:false,
             message:"player not add",
-            error:e.message
+            error: process.env.NODE_ENV === 'production' ? 'Internal server error' : e.message
             
         })
     }
@@ -197,7 +197,7 @@ router.put('/players/update/:id', auth, auth.allowRoles('superadmin', 'admin'), 
         })
         res.status(200).json({ success: true, message: "Player updated successfully", data: updatedPlayer });
     } catch (e) {
-        res.status(400).json({ success: false, message: "Failed to update player", error: e.message });
+        res.status(400).json({ success: false, message: "Failed to update player", error: process.env.NODE_ENV === 'production' ? 'Internal server error' : e.message });
     }
 });
 

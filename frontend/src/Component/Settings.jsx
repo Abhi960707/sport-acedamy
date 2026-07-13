@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../api';
 import { useToast } from './Toast';
 import { FiHome, FiGlobe, FiClock, FiUpload, FiTrash2 } from 'react-icons/fi';
 import { FaRupeeSign } from 'react-icons/fa';
@@ -21,9 +21,7 @@ export default function Settings() {
     useEffect(() => {
         const fetchSettings = async () => {
             try {
-                const res = await axios.get('http://localhost:4005/settings', {
-                    headers: { Authorization: `Bearer ${token}` }
-                });
+                const res = await api.get('/settings');
                 if (res.data.success) {
                     setSettings(res.data.data);
                 }
@@ -40,14 +38,12 @@ export default function Settings() {
         e.preventDefault();
         setUpdating(true);
         try {
-            const res = await axios.put('http://localhost:4005/settings', settings, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
+            const res = await api.put('/settings', settings);
             if (res.data.success) {
-                toast('Academy settings updated successfully', 'success');
+                toast('Academy Settings Updated Successfully', 'success');
                 setSettings(res.data.data);
             } else {
-                toast(res.data.message || 'Failed to update settings', 'error');
+                toast(res.data.message || 'Failed to Update Settings', 'error');
             }
         } catch (err) {
             toast(err.response?.data?.message || 'Server error during update', 'error');
@@ -64,9 +60,7 @@ export default function Settings() {
         reader.onloadend = async () => {
             const base64Data = reader.result;
             try {
-                const res = await axios.post('http://localhost:4005/api/upload', { image: base64Data }, {
-                    headers: { Authorization: `Bearer ${token}` }
-                });
+                const res = await api.post('/api/upload', { image: base64Data });
                 if (res.data.success) {
                     setSettings(prev => ({ ...prev, logo: res.data.url }));
                     toast('Logo image updated. Click Save to persist.', 'success');

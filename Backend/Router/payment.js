@@ -80,7 +80,7 @@ router.post('/payments/add', auth, auth.allowRoles('superadmin', 'admin', 'accou
             data: paymentRecord
         });
     } catch (e) {
-        res.status(500).json({ success: false, message: 'Failed to record payment', error: e.message });
+        res.status(500).json({ success: false, message: 'Failed to record payment', error: process.env.NODE_ENV === 'production' ? 'Internal server error' : e.message });
     }
 });
 
@@ -102,7 +102,7 @@ router.get('/payments/report', auth, async (req, res) => {
             data: paymentsList
         });
     } catch (e) {
-        res.status(500).json({ success: false, message: 'Failed to fetch payments', error: e.message });
+        res.status(500).json({ success: false, message: 'Failed to fetch payments', error: process.env.NODE_ENV === 'production' ? 'Internal server error' : e.message });
     }
 });
 

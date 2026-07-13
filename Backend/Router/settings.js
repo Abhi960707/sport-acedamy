@@ -13,7 +13,7 @@ router.get('/settings', auth, async (req, res) => {
         }
         res.status(200).json({ success: true, data: currentSettings });
     } catch (e) {
-        res.status(500).json({ success: false, message: 'Failed to retrieve settings', error: e.message });
+        res.status(500).json({ success: false, message: 'Failed to retrieve settings', error: process.env.NODE_ENV === 'production' ? 'Internal server error' : e.message });
     }
 });
 
@@ -36,7 +36,7 @@ router.put('/settings', auth, auth.allowRoles('superadmin', 'admin'), async (req
         await currentSettings.save();
         res.status(200).json({ success: true, message: 'Settings updated successfully', data: currentSettings });
     } catch (e) {
-        res.status(500).json({ success: false, message: 'Failed to update settings', error: e.message });
+        res.status(500).json({ success: false, message: 'Failed to update settings', error: process.env.NODE_ENV === 'production' ? 'Internal server error' : e.message });
     }
 });
 
