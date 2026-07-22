@@ -1,5 +1,12 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import api from '../../api';
+import { useToast } from '../../common/Toast';
+import { useNavigate } from 'react-router-dom';
+import { FiAward, FiTrash2, FiEdit2, FiChevronLeft, FiChevronRight, FiChevronUp, FiChevronDown, FiClock } from 'react-icons/fi';
+import { FaRupeeSign } from 'react-icons/fa';
+import { canManageAcademyRecords } from '../../common/access';
+import ExportDropdown from './ExportDropdown';
+import { downloadCsv, downloadPdf } from '../../common/reportExport';
 
 const PREDEFINED_GAMES = [
   'Cricket',
@@ -15,13 +22,6 @@ const PREDEFINED_GAMES = [
   'Carrom'
 ];
 
-import { useToast } from '../../common/Toast';
-import { useNavigate } from 'react-router-dom';
-import { FiAward, FiTrash2, FiEdit2, FiChevronLeft, FiChevronRight, FiChevronUp, FiChevronDown, FiClock } from 'react-icons/fi';
-import { FaRupeeSign } from 'react-icons/fa';
-import { canManageAcademyRecords } from '../../common/access';
-import ExportDropdown from './ExportDropdown';
-import { downloadCsv, downloadPdf } from '../../common/reportExport';
 
 export default function GameReport({ searchQuery }) {
   const toast = useToast();
@@ -90,7 +90,7 @@ export default function GameReport({ searchQuery }) {
       } else {
         toast('Failed to delete game', 'error');
       }
-    } catch {
+    } catch (err) {
       toast(err.response?.data?.message || 'Server error during deletion', 'error');
     } finally {
       setDeletingId(null);

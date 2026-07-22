@@ -1,5 +1,11 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import api from '../../api';
+import { useToast } from '../../common/Toast';
+import { useNavigate } from 'react-router-dom';
+import { FiUsers, FiTrash2, FiEdit2, FiChevronLeft, FiChevronRight, FiChevronUp, FiChevronDown, FiPhone, FiAward } from 'react-icons/fi';
+import { canManageAcademyRecords } from '../../common/access';
+import ExportDropdown from './ExportDropdown';
+import { downloadCsv, downloadPdf } from '../../common/reportExport';
 
 const PREDEFINED_SPORTS = [
   'Cricket',
@@ -15,12 +21,6 @@ const PREDEFINED_SPORTS = [
   'Carrom'
 ];
 
-import { useToast } from '../../common/Toast';
-import { useNavigate } from 'react-router-dom';
-import { FiUsers, FiTrash2, FiEdit2, FiChevronLeft, FiChevronRight, FiChevronUp, FiChevronDown, FiPhone, FiAward } from 'react-icons/fi';
-import { canManageAcademyRecords } from '../../common/access';
-import ExportDropdown from './ExportDropdown';
-import { downloadCsv, downloadPdf } from '../../common/reportExport';
 
 export default function CoachReport({ searchQuery }) {
   const toast = useToast();
@@ -89,7 +89,7 @@ export default function CoachReport({ searchQuery }) {
       } else {
         toast('Failed to delete coach', 'error');
       }
-    } catch {
+    } catch (err) {
       toast(err.response?.data?.message || 'Server error during deletion', 'error');
     } finally {
       setDeletingId(null);

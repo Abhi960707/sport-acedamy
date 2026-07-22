@@ -99,7 +99,7 @@ export default function PlayerReport({ searchQuery }) {
       } else {
         toast(rem.data.message || 'Failed to delete player', 'error');
       }
-    } catch {
+    } catch (err) {
       toast(err.response?.data?.message || 'Server error during deletion', 'error');
     } finally {
       setDeletingId(null);
