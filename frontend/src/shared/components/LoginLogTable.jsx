@@ -70,7 +70,7 @@ export default function LoginLogTable() {
             <FiActivity />
           </span>
           <div>
-            <h2 className="text-xl sm:text-2xl font-bold font-display text-gray-800">Login Log Report</h2>
+            <h2 className="text-xl sm:text-2xl font-bold font-display text-gray-800">Login Log Reports</h2>
             <p className="text-xs sm:text-sm text-gray-500 font-medium">
               Monitor active administrators, credentials, and coaching rosters
             </p>

@@ -37,8 +37,8 @@ router.get('/coach/next-id', auth, async (req, res) => {
 });
 
 
-router.post('/coach/add', auth, auth.allowRoles('superadmin', 'admin'), async(req, res)=>{
-    try{
+router.post('/coach/add', auth, auth.allowRoles('superadmin', 'admin'), async (req, res) => {
+    try {
         if (!req.body.email || !req.body.password) {
             return res.status(400).json({ success: false, message: "Email and password are required" });
         }
@@ -63,7 +63,7 @@ router.post('/coach/add', auth, auth.allowRoles('superadmin', 'admin'), async(re
             academyOwner: req.academyOwnerId
         });
         await coachLogin.save();
-        
+
         const coachAdd = new coach({
             coachId: req.body.coachId,
             name: req.body.name,
@@ -89,23 +89,23 @@ router.post('/coach/add', auth, auth.allowRoles('superadmin', 'admin'), async(re
             metadata: { coachId: coachAdd.coachId, name: coachAdd.name },
         })
         res.status(200).json({
-            success:true,
-            message:"Coach Add Successfully...",
-            data:coachAdd
+            success: true,
+            message: "Coach Add Successfully...",
+            data: coachAdd
         })
     }
-    catch(e){
+    catch (e) {
         res.status(400).json({
-            success:false,
-            message:"coach not add",
+            success: false,
+            message: "coach not add",
             error: process.env.NODE_ENV === 'production' ? 'Internal server error' : e.message
-            
+
         })
     }
 })
 
 
-router.delete('/coach/delete/:id', auth, auth.allowRoles('superadmin', 'admin'), async(req,res)=>{
+router.delete('/coach/delete/:id', auth, auth.allowRoles('superadmin', 'admin'), async (req, res) => {
     try {
         const filter = req.userRole === 'superadmin' ? { _id: req.params.id } : { _id: req.params.id, owner: req.academyOwnerId };
         const del = await coach.findOneAndDelete(filter);
@@ -146,7 +146,7 @@ router.put('/coach/update/:id', auth, auth.allowRoles('superadmin', 'admin'), as
         }
 
         const filter = req.userRole === 'superadmin' ? { _id: req.params.id } : { _id: req.params.id, owner: req.academyOwnerId };
-        
+
         let updateData = {
             name: req.body.name,
             sportSpecialization: req.body.sportSpecialization,
@@ -164,7 +164,7 @@ router.put('/coach/update/:id', auth, auth.allowRoles('superadmin', 'admin'), as
         }
 
         const updatedCoach = await coach.findOneAndUpdate(filter, updateData, { new: true });
-        
+
         if (!updatedCoach) {
             return res.status(404).json({ success: false, message: "Coach not found or unauthorized" });
         }

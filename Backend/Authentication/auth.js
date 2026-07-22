@@ -1,7 +1,7 @@
 const jwt = require('jsonwebtoken')
 const Login = require('../Model/login')
 
-const auth = async function(req, res, next) {
+const auth = async function (req, res, next) {
   const authHeader = req.header('Authorization');
   const loginToken = authHeader ? authHeader.replace('Bearer ', '') : null;
 
