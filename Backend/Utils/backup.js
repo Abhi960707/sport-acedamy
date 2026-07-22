@@ -3,7 +3,7 @@
 // Example tools: 'mongodump' via child_process or external services.
 
 const initBackupJobs = () => {
-    console.log('Backend are Connected Successfully !');
+    console.log('Backend are Connected a Successfully !');
     
     // Example: cron.schedule('0 2 * * *', () => { ... perform backup ... });
 };

@@ -152,7 +152,7 @@ export default function CoachDashboard() {
             Your Coaching Hub
           </h1>
           <p className="text-sm sm:text-base text-blue-100/90 leading-relaxed">
-            Manage your assigned players, mark attendance, track fee payments, and view your sports schedule instantly.
+            Manage your assigned players, mark attendance, track fee payments, and view your sports schedules instantly.
           </p>
         </div>
       </section>
