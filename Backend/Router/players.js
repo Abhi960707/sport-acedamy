@@ -8,7 +8,7 @@ const { createAuditLog } = require('../Utils/audit')
 router.get('/players/next-id', auth, async (req, res) => {
     try {
         const filter = req.userRole === 'superadmin' ? {} : { owner: req.academyOwnerId };
-        const allPlayers = await players.find(filter);
+        const allPlayers = await players.find(filter).lean();
         let maxId = 0;
         allPlayers.forEach(p => {
             const match = p.playerId ? p.playerId.match(/\d+/) : null;
@@ -133,7 +133,7 @@ router.get('/players', auth, async (req, res) => {
         } else if (req.userRole === 'coach') {
             return res.status(403).json({ success: false, message: "Coach profile not found" });
         }
-        const allPlayers = await players.find(filter)
+        const allPlayers = await players.find(filter).lean()
         res.status(200).json({
             success: true,
             data: allPlayers

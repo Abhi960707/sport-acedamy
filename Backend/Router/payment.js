@@ -90,10 +90,10 @@ router.get('/payments/report', auth, async (req, res) => {
         let filter = req.userRole === 'superadmin' ? {} : { owner: req.academyOwnerId };
         if (req.userRole === 'coach') {
             if (!req.coachProfile) return res.status(403).json({ success: false, message: 'Coach profile not found' });
-            const myPlayers = await require('../Model/players').find({ owner: req.academyOwnerId, coachAssigned: req.coachProfile.name }, 'playerId');
+            const myPlayers = await require('../Model/players').find({ owner: req.academyOwnerId, coachAssigned: req.coachProfile.name }, 'playerId').lean();
             filter.playerId = { $in: myPlayers.map(p => p.playerId) };
         }
-        const paymentsList = await Payment.find(filter)
+        const paymentsList = await Payment.find(filter).lean()
             .populate('receivedById', 'name email role')
             .sort({ createdAt: -1 });
         res.status(200).json({

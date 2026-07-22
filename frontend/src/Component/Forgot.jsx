@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import api from '../api';
-import { useToast } from './Toast';
+import { useToast } from '../common/Toast';
 import { FiMail, FiLock, FiKey } from 'react-icons/fi';
 
 
@@ -67,7 +67,7 @@ export default function Forgot() {
       return;
     }
     if (password.length < 4) {
-      toast('Password must be greater than 4 characters', 'warning');
+      toast('Password must be at least 4 characters', 'warning');
       return;
     }
     if (password !== confirmPassword) {

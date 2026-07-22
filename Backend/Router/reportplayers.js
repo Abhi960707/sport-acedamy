@@ -13,7 +13,7 @@ router.get('/players/report', auth, async(req,res)=>{
         } else if (req.userRole === 'coach') {
             return res.status(403).json({ success: false, message: "Coach profile not found" });
         }
-        const playersreport = await players.find(filter)
+        const playersreport = await players.find(filter).lean()
         res.status(200).json({
             success:true,
             message:"players Report  Successfully...",

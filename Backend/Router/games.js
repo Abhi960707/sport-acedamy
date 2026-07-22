@@ -12,7 +12,7 @@ router.get('/games/next-id', auth, async (req, res) => {
             const coachDoc = await require('../Model/coach').findOne({ email: req.currentEmp.email });
             if (coachDoc) filter.gameName = coachDoc.sportSpecialization;
         }
-        const allGames = await Games.find(filter);
+        const allGames = await Games.find(filter).lean();
         let maxId = 0;
         allGames.forEach(g => {
             const match = g.gameId ? g.gameId.match(/\d+/) : null;
@@ -184,7 +184,7 @@ router.get('/games/report', auth, async(req,res)=>{
             }
         }
 
-        const data = await Games.find(filter)
+        const data = await Games.find(filter).lean()
         res.status(200).json({
             success:true,
             data:data

@@ -39,8 +39,22 @@ const paymentSchema = new mongoose.Schema({
     receivedByRole: {
         type: String,
         default: ''
+    },
+    receiptNumber: {
+        type: String,
+        default: ''
+    },
+    paymentStatus: {
+        type: String,
+        default: ''
+    },
+    remarks: {
+        type: String,
+        default: ''
     }
-}, { timestamps: true })
+}, { timestamps: true });
+
+paymentSchema.index({ owner: 1, playerId: 1, paymentDate: -1 });
 
 paymentSchema.index({ playerId: 1 });
 paymentSchema.index({ transactionId: 1 });

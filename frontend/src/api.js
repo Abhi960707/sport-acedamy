@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { getStoredToken } from './common/access';
 
 const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:4005';
 
@@ -9,10 +10,19 @@ const api = axios.create({
 // Attach token to every request automatically
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('token');
-    console.log("token", token)  // In Console Checking Token
+    const token = getStoredToken();
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
+    }
+    // Prevent browser caching for all GET requests to avoid stale 401s
+    if (config.method && config.method.toLowerCase() === 'get') {
+      config.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate';
+      config.headers['Pragma'] = 'no-cache';
+      config.headers['Expires'] = '0';
+      config.params = {
+        ...config.params,
+        _t: Date.now()
+      };
     }
     return config;
   },
@@ -24,9 +34,13 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response && error.response.status === 401) {
-      localStorage.removeItem('token');
-      localStorage.removeItem('authUser');
-      window.location.href = '/login';
+      const token = getStoredToken();
+      // Only auto-redirect if we had a token (means it expired)
+      if (token) {
+        localStorage.removeItem('token');
+        localStorage.removeItem('authUser');
+        window.location.href = '/login';
+      }
     }
     return Promise.reject(error);
   }

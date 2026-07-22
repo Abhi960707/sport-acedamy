@@ -25,8 +25,14 @@ const settingsSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         required: true,
         ref: 'Login',
-        unique: true,
-    }
+        unique: true
+    },
+    academyCode: { type: String, default: '' },
+    address: { type: String, default: '' },
+    email: { type: String, default: '' },
+    phone: { type: String, default: '' },
+    website: { type: String, default: '' },
+    status: { type: String, default: 'Active' }
 }, { timestamps: true });
 
 const Settings = mongoose.model('Settings', settingsSchema);

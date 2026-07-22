@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { useToast } from './Toast';
+import { useToast } from '../common/Toast';
 import { FiMail, FiLock, FiEye, FiEyeOff } from 'react-icons/fi';
 import { API_BASE } from '../api';
+
+import { getStoredToken } from '../common/access';
 
 function Login() {
   const navigate = useNavigate();
@@ -14,7 +16,7 @@ function Login() {
   const [errors, setErrors] = useState({});
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
+    const token = getStoredToken();
     if (token) {
       navigate('/home', { replace: true });
       return;
@@ -84,12 +86,14 @@ function Login() {
           localStorage.removeItem('savedEmail');
         }
         toast('Welcome back! Login successful', 'success');
-        setTimeout(() => navigate('/home'), 800);
+        // Navigate immediately — no delay needed
+        navigate('/home', { replace: true });
       } else {
-        toast(message || 'Wrong email or password', 'error');
+        // Show exact backend message (e.g. "Invalid email or password")
+        toast(message || 'Invalid email or password. Please try again.', 'error');
       }
     } catch (error) {
-      toast('Server not responding. Please try again.', 'error');
+      toast('Server not responding. Please check your connection and try again.', 'error');
     } finally {
       setLoading(false);
     }

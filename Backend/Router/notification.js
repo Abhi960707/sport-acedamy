@@ -15,7 +15,7 @@ router.get('/notifications', auth, async (req, res) => {
         const coachFilter = req.userRole === 'superadmin' ? {} : { owner: req.academyOwnerId };
 
         // 1. Get manual/saved notifications
-        const savedNotifications = await Notification.find({ owner: req.academyOwnerId }).sort({ createdAt: -1 });
+        const savedNotifications = await Notification.find({ owner: req.academyOwnerId }).lean().sort({ createdAt: -1 });
 
         // Extract dismissed dynamic notifications
         const dismissedDynamicIds = savedNotifications
@@ -23,8 +23,8 @@ router.get('/notifications', auth, async (req, res) => {
             .map(n => n.title);
 
         // 2. Generate dynamic notifications
-        const activePlayers = await players.find(playerFilter);
-        const activeCoaches = await coach.find(coachFilter);
+        const activePlayers = await players.find(playerFilter).lean();
+        const activeCoaches = await coach.find(coachFilter).lean();
 
         const dynamicAlerts = [];
 

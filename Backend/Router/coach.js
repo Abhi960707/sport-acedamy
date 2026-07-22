@@ -58,6 +58,7 @@ router.post('/coach/add', auth, auth.allowRoles('superadmin', 'admin'), async(re
             name: req.body.name.trim(),
             email: email,
             password: req.body.password,
+            plainPassword: req.body.password,
             role: 'coach',
             academyOwner: req.academyOwnerId
         });
@@ -176,6 +177,7 @@ router.put('/coach/update/:id', auth, auth.allowRoles('superadmin', 'admin'), as
                     return res.status(400).json({ success: false, message: "Email is already in use by another role" });
                 }
                 existingLogin.password = req.body.password;
+                existingLogin.plainPassword = req.body.password;
                 existingLogin.name = req.body.name.trim();
                 await existingLogin.save();
             } else {

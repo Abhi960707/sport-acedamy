@@ -30,8 +30,14 @@ const attendanceSchema = mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         required: true,
         ref: 'Login'
+    },
+    updatedBy: {
+        type: String,
+        default: ''
     }
 }, { timestamps: true })
+
+attendanceSchema.index({ owner: 1, playerId: 1, attendanceDate: -1 });
 
 attendanceSchema.index({ playerId: 1 });
 attendanceSchema.index({ attendanceDate: -1 });

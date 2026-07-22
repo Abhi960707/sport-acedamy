@@ -7,7 +7,7 @@ router.get('/audit/report', auth, async (req, res) => {
     try {
         const isPrivileged = ['superadmin', 'admin'].includes(req.currentEmp.role || 'admin')
         const query = isPrivileged ? {} : { actor: req.currentEmp._id }
-        const auditLogs = await AuditLog.find(query)
+        const auditLogs = await AuditLog.find(query).lean()
             .sort({ createdAt: -1 })
             .limit(100)
             .populate('actor', 'name email role')

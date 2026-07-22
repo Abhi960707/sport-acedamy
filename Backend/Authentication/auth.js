@@ -14,6 +14,7 @@ const auth = async function(req, res, next) {
     const tempEmp = await Login.findOne({ _id: empObj._id, 'tokens.token': loginToken });
 
     if (!tempEmp) {
+      console.log('auth middleware 401: User not found with this token', { id: empObj._id, token: loginToken });
       return res.status(401).json({ success: false, message: 'Invalid token or user not found' });
     }
 
@@ -24,11 +25,13 @@ const auth = async function(req, res, next) {
     if (req.userRole === 'admin') {
       req.academyOwnerId = tempEmp._id;
     } else if (req.userRole === 'coach') {
-      req.academyOwnerId = tempEmp.academyOwner;
       const CoachModel = require('../Model/coach');
-      const coachProfile = await CoachModel.findOne({ email: tempEmp.email, owner: tempEmp.academyOwner });
+      const coachProfile = await CoachModel.findOne({ email: tempEmp.email.toLowerCase() });
       if (coachProfile) {
         req.coachProfile = coachProfile;
+        req.academyOwnerId = coachProfile.owner || tempEmp.academyOwner;
+      } else {
+        req.academyOwnerId = tempEmp.academyOwner;
       }
     } else {
       req.academyOwnerId = tempEmp._id;
@@ -37,6 +40,7 @@ const auth = async function(req, res, next) {
     next();
 
   } catch (e) {
+    console.log('auth middleware 401 error:', e.message);
     return res.status(401).json({ success: false, message: 'Authentication failed' });
   }
 };

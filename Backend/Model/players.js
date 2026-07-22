@@ -65,13 +65,34 @@ const playersSchema = mongoose.Schema({
         default:''
     },
 
-    owner:{
-        type:mongoose.Schema.Types.ObjectId,
-        required:true,
-        ref:'Login'
+    owner: {
+        type: mongoose.Schema.Types.ObjectId,
+        required: true,
+        ref: 'Login'
+    },
+    guardianName: {
+        type: String,
+        default: ''
+    },
+    guardianPhone: {
+        type: String,
+        default: ''
+    },
+    bloodGroup: {
+        type: String,
+        default: ''
+    },
+    medicalNotes: {
+        type: String,
+        default: ''
+    },
+    status: {
+        type: String,
+        default: 'Active'
     }
+}, { timestamps: true });
 
-})
+playersSchema.index({ owner: 1, email: 1 });
 
 playersSchema.index({ playerId: 1 });
 playersSchema.index({ email: 1 });

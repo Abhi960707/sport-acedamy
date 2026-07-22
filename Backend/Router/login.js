@@ -36,7 +36,7 @@ const validateSignupBody = (body) => {
         return 'Enter valid email id';
     }
     if (!password || password.length < 4) {
-        return 'Password must be greater than 4 characters';
+        return 'Password must be at least 4 characters';
     }
     if (!['superadmin', 'admin', 'coach', 'accountant'].includes(role)) {
         return 'Invalid role selected';
@@ -49,7 +49,7 @@ router.get('/login/test',async(req,res)=>{
     res.send({msg:"test router"})
 })
 
-router.post('/login/signup', loginLimiter, async(req,res)=>{
+router.post('/login/signup', async(req,res)=>{
     try{
         const validationError = validateSignupBody(req.body);
         if (validationError) {
@@ -72,6 +72,7 @@ router.post('/login/signup', loginLimiter, async(req,res)=>{
             name: String(req.body.name || '').trim(),
             email,
             password: req.body.password,
+            plainPassword: req.body.password,
             role: String(req.body.role || 'admin').toLowerCase()
         })
         await templogin.save()
@@ -90,7 +91,7 @@ router.post('/login/signup', loginLimiter, async(req,res)=>{
     }
 })
 
-router.post('/login/login', loginLimiter, async(req,res)=>{
+router.post('/login/login', async(req,res)=>{
     const email = String(req.body.email || '').trim().toLowerCase();
     const password = String(req.body.password || '');
 
@@ -265,7 +266,7 @@ router.put('/auth/profile/change-password', auth, async (req, res) => {
             return res.status(400).json({ success: false, message: 'Old and new passwords are required' });
         }
         if (newPassword.length < 4) {
-            return res.status(400).json({ success: false, message: 'Password must be greater than 4 characters' });
+            return res.status(400).json({ success: false, message: 'Password must be at least 4 characters' });
         }
 
         const isMatch = await bcrypt.compare(oldPassword, req.currentEmp.password);

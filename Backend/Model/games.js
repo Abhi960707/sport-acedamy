@@ -45,13 +45,21 @@ const gamesSchema = mongoose.Schema({
         default:'Active'
     },
 
-    owner:{
-        type:mongoose.Schema.Types.ObjectId,
-        required:true,
-        ref:'Login'
+    owner: {
+        type: mongoose.Schema.Types.ObjectId,
+        required: true,
+        ref: 'Login'
+    },
+    minAge: {
+        type: String,
+        default: ''
+    },
+    maxAge: {
+        type: String,
+        default: ''
     }
+}, { timestamps: true })
 
-})
-
+gamesSchema.index({ owner: 1, gameName: 1 });
 const games = mongoose.model('games',gamesSchema)
 module.exports = games

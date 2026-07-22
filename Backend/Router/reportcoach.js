@@ -12,7 +12,7 @@ router.get('/coach/report', auth, async(req,res)=>{
             if (!req.coachProfile) return res.status(403).json({ success: false, message: 'Coach profile not found' });
             filter._id = req.coachProfile._id;
         }
-        const coachreport = await coach.find(filter)
+        const coachreport = await coach.find(filter).lean()
         res.status(200).json({
             success:true,
             message:"coach Report  Successfully...",

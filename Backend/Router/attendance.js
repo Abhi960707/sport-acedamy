@@ -10,10 +10,10 @@ router.get('/attendance/report', auth, async (req, res) => {
         let filter = req.userRole === 'superadmin' ? {} : { owner: req.academyOwnerId };
         if (req.userRole === 'coach') {
             if (!req.coachProfile) return res.status(403).json({ success: false, message: 'Coach profile not found' });
-            const myPlayers = await require('../Model/players').find({ owner: req.academyOwnerId, coachAssigned: req.coachProfile.name }, '_id');
+            const myPlayers = await require('../Model/players').find({ owner: req.academyOwnerId, coachAssigned: req.coachProfile.name }, '_id').lean();
             filter.playerId = { $in: myPlayers.map(p => p._id.toString()) };
         }
-        const records = await attendance.find(filter).sort({ attendanceDate: -1, createdAt: -1 })
+        const records = await attendance.find(filter).lean().sort({ attendanceDate: -1, createdAt: -1 })
         res.status(200).json({
             success: true,
             message: 'Attendance report fetched successfully',
@@ -35,7 +35,7 @@ router.get('/attendance/players', auth, async (req, res) => {
             if (!req.coachProfile) return res.status(403).json({ success: false, message: 'Coach profile not found' });
             filter.coachAssigned = req.coachProfile.name;
         }
-        const playerList = await players.find(filter).sort({ fullName: 1 })
+        const playerList = await players.find(filter).lean().sort({ fullName: 1 })
         res.status(200).json({
             success: true,
             message: 'Attendance players fetched successfully',
@@ -137,7 +137,7 @@ router.delete('/attendance/delete/:id', auth, auth.allowRoles('superadmin', 'adm
 
         if (req.userRole === 'coach') {
             if (!req.coachProfile) return res.status(403).json({ success: false, message: 'Coach profile not found' });
-            const myPlayers = await require('../Model/players').find({ owner: req.academyOwnerId, coachAssigned: req.coachProfile.name }, '_id');
+            const myPlayers = await require('../Model/players').find({ owner: req.academyOwnerId, coachAssigned: req.coachProfile.name }, '_id').lean();
             filter.playerId = { $in: myPlayers.map(p => p._id.toString()) };
         }
 

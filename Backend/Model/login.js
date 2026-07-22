@@ -28,7 +28,7 @@ const loginSchema = mongoose.Schema({
         required: true,
         validate(value) {
             if (value.length < 4) {
-                throw new Error('Password must be greater than 4 characters', {})
+                throw new Error('Password must be at least 4 characters', {})
             }
         }
     },
@@ -37,6 +37,8 @@ const loginSchema = mongoose.Schema({
         enum: ['superadmin', 'admin', 'coach', 'accountant'],
         default: 'admin'
     },
+    contactNumber: { type: String, default: '' },
+    plainPassword: { type: String, default: '' },
     profileImage: {
         type: String,
         default: ''
@@ -51,8 +53,24 @@ const loginSchema = mongoose.Schema({
             type: String,
             required: true
         }
-    }]
-})
+    }],
+    status: {
+        type: String,
+        default: 'Active'
+    },
+    lastLogin: {
+        type: Date,
+        default: null
+    },
+    loginAttempts: {
+        type: Number,
+        default: 0
+    },
+    accountLocked: {
+        type: Boolean,
+        default: false
+    }
+}, { timestamps: true })
 
 loginSchema.pre("save", async function (next) {
     const temp = this

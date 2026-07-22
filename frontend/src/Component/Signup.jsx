@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { useToast } from './Toast';
+import { useToast } from '../common/Toast';
 import { FiUser, FiMail, FiLock, FiEye, FiEyeOff } from 'react-icons/fi';
 import { API_BASE } from '../api';
 
@@ -28,8 +28,8 @@ function Signup() {
 
     if (!signupInfo.password) {
       tempErrors.password = 'Password is required';
-    } else if (signupInfo.password.length < 6) {
-      tempErrors.password = 'Password must be at least 6 characters';
+    } else if (signupInfo.password.length < 4) {
+      tempErrors.password = 'Password must be at least 4 characters';
     }
 
     setErrors(tempErrors);
@@ -48,7 +48,7 @@ function Signup() {
     e.preventDefault();
 
     if (!validate()) {
-      toast('Unable to submit. Please try again.', 'warning');
+      toast('Please fix the highlighted fields before submitting.', 'warning');
       return;
     }
 
@@ -61,22 +61,21 @@ function Signup() {
       });
 
       const result = await response.json();
-      const { success, error } = result;
 
-      if (success) {
+      if (result.success) {
         toast('Account created successfully! Please sign in.', 'success');
         setTimeout(() => navigate('/login'), 900);
-      } else if (error) {
-        toast(typeof error === 'string' ? error : 'Signup failed. Please try again.', 'error');
       } else {
-        toast('Server error. Please try again later.', 'error');
+        // Always show the exact message from backend (e.g. "Email already exists")
+        toast(result.message || 'Signup failed. Please try again.', 'error');
       }
     } catch (err) {
-      toast('Server not responding. Please try again.', 'error');
+      toast('Server not responding. Please check your connection.', 'error');
     } finally {
       setLoading(false);
     }
   };
+
 
   return (
     <div className="relative min-h-[calc(100vh-64px)] flex items-center justify-center p-4 sm:p-6 bg-gradient-to-br from-slate-100 via-teal-50 to-indigo-100 overflow-hidden">

@@ -49,16 +49,22 @@ const coachSchema = mongoose.Schema({
         default:'Active'
     },
     
-    owner:{
-        type:mongoose.Schema.Types.ObjectId,
-        required:true,
-        ref:'Login'
+    owner: {
+        type: mongoose.Schema.Types.ObjectId,
+        required: true,
+        ref: 'Login'
+    },
+    bloodGroup: {
+        type: String,
+        default: ''
+    },
+    emergencyContact: {
+        type: String,
+        default: ''
     }
+}, { timestamps: true });
 
-
-    
-
-})
+coachSchema.index({ owner: 1, email: 1 });
 
 const coach = mongoose.model('coach',coachSchema)
 module.exports = coach

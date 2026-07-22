@@ -27,6 +27,19 @@ const auditLogSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.Mixed,
         default: {},
     },
+    ipAddress: {
+        type: String,
+        default: ''
+    },
+    deviceInfo: {
+        type: String,
+        default: ''
+    },
+    owner: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Login',
+        default: null
+    }
 }, {
     timestamps: true,
 })

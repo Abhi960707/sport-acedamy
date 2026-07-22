@@ -21,7 +21,12 @@ const notificationSchema = new mongoose.Schema({
     owner: {
         type: mongoose.Schema.Types.ObjectId,
         required: true,
-        ref: 'Login',
+        ref: 'Login'
+    },
+    priority: {
+        type: String,
+        enum: ['high', 'normal', 'low'],
+        default: 'normal'
     }
 }, { timestamps: true });
 
