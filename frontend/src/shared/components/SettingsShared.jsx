@@ -3,12 +3,10 @@ import api from '../../api';
 import { useToast } from '../../common/Toast';
 import { FiHome, FiGlobe, FiClock, FiUpload, FiTrash2 } from 'react-icons/fi';
 import { FaRupeeSign } from 'react-icons/fa';
-import { getStoredRole } from '../../common/access';
 
 export default function Settings() {
     const toast = useToast();
     const token = localStorage.getItem('token');
-    const userRole = getStoredRole();
 
     const [settings, setSettings] = useState({
         academyName: '',

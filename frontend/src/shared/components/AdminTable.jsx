@@ -1,8 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { API_BASE } from '../../api';
 import { useToast } from '../../common/Toast';
 import { FiEdit, FiTrash2, FiSearch, FiPlus, FiX } from 'react-icons/fi';
-import { useNavigate } from 'react-router-dom';
 
 export default function AdminTable({ role }) {
   const [admins, setAdmins] = useState([]);
@@ -16,16 +15,7 @@ export default function AdminTable({ role }) {
   const [formData, setFormData] = useState({ id: null, name: '', email: '', password: '', role: 'admin', contactNumber: '', academyName: '' });
   const [submitLoading, setSubmitLoading] = useState(false);
 
-  // Reset pagination on search
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [search]);
-
-  useEffect(() => {
-    fetchAdmins();
-  }, []);
-
-  const fetchAdmins = async () => {
+  const fetchAdmins = useCallback(async () => {
     try {
       setLoading(true);
       const token = localStorage.getItem('token');
@@ -43,7 +33,16 @@ export default function AdminTable({ role }) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [showToast]);
+
+  // Reset pagination on search
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search]);
+
+  useEffect(() => {
+    fetchAdmins();
+  }, [fetchAdmins]);
 
   const handleOpenModal = (admin = null) => {
     if (admin) {
@@ -69,7 +68,6 @@ export default function AdminTable({ role }) {
     const nameVal = (formData.name || '').trim();
     const emailVal = (formData.email || '').trim();
     const contactVal = (formData.contactNumber || '').trim();
-    const academyNameVal = (formData.academyName || '').trim();
     const passwordVal = formData.password;
 
     if (!nameVal) {

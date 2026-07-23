@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { API_BASE } from '../../api';
 import { useToast } from '../../common/Toast';
 import { FiSearch, FiChevronDown, FiChevronUp, FiEye, FiEyeOff, FiActivity, FiUsers, FiUser } from 'react-icons/fi';
@@ -16,11 +16,7 @@ export default function LoginLogTable() {
   // Track global passwords visibility toggle
   const [showAllPasswords, setShowAllPasswords] = useState(false);
 
-  useEffect(() => {
-    fetchLogs();
-  }, []);
-
-  const fetchLogs = async () => {
+  const fetchLogs = useCallback(async () => {
     try {
       setLoading(true);
       const token = localStorage.getItem('token');
@@ -38,7 +34,11 @@ export default function LoginLogTable() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [toast]);
+
+  useEffect(() => {
+    fetchLogs();
+  }, [fetchLogs]);
 
   const toggleRow = (id) => {
     setExpandedRows(prev => ({

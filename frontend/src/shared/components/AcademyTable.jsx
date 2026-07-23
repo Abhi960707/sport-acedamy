@@ -1,7 +1,7 @@
-  import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { API_BASE } from '../../api';
 import { useToast } from '../../common/Toast';
-import { FiEdit, FiTrash2, FiSearch, FiPlus } from 'react-icons/fi';
+import { FiSearch } from 'react-icons/fi';
 
 export default function AcademyTable({ role }) {
   const [academies, setAcademies] = useState([]);
@@ -11,15 +11,7 @@ export default function AcademyTable({ role }) {
   const itemsPerPage = 7;
   const showToast = useToast();
 
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [search]);
-
-  useEffect(() => {
-    fetchAcademies();
-  }, []);
-
-  const fetchAcademies = async () => {
+  const fetchAcademies = useCallback(async () => {
     try {
       setLoading(true);
       const token = localStorage.getItem('token');
@@ -37,7 +29,15 @@ export default function AcademyTable({ role }) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [showToast]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search]);
+
+  useEffect(() => {
+    fetchAcademies();
+  }, [fetchAcademies]);
 
   const filteredAcademies = academies.filter(academy => 
     (academy.academyName || '').toLowerCase().includes(search.toLowerCase()) || 

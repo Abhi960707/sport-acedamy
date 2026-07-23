@@ -192,7 +192,7 @@ export default function Navbar({ searchQuery = '', setSearchQuery = () => { } })
 
     fetchSearchData();
     return () => controller.abort();
-  }, [dataLoaded, location.pathname]);
+  }, [dataLoaded, location.pathname, userRole]);
 
   const handleLogout = async () => {
     const token = localStorage.getItem('token');
