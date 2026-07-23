@@ -15,7 +15,11 @@ export default function Settings() {
         logo: '',
         currency: '₹',
         timeZone: 'Asia/Kolkata',
-        session: '2026-2027'
+        session: '2026-2027',
+        address: '',
+        phone: '',
+        email: '',
+        website: ''
     });
     const [loading, setLoading] = useState(true);
     const [updating, setUpdating] = useState(false);
@@ -182,6 +186,50 @@ export default function Settings() {
                                         required
                                     />
                                 </div>
+                            </div>
+
+                            <div className="space-y-1 sm:col-span-2">
+                                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Academy Address</label>
+                                <input
+                                    type="text"
+                                    placeholder="Enter academy address"
+                                    className="w-full px-4 py-2 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:outline-none"
+                                    value={settings.address || ''}
+                                    onChange={(e) => setSettings({ ...settings, address: e.target.value })}
+                                />
+                            </div>
+
+                            <div className="space-y-1">
+                                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Contact Number</label>
+                                <input
+                                    type="text"
+                                    placeholder="Enter contact number"
+                                    className="w-full px-4 py-2 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:outline-none"
+                                    value={settings.phone || ''}
+                                    onChange={(e) => setSettings({ ...settings, phone: e.target.value })}
+                                />
+                            </div>
+
+                            <div className="space-y-1">
+                                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Academy Email</label>
+                                <input
+                                    type="email"
+                                    placeholder="Enter email address"
+                                    className="w-full px-4 py-2 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:outline-none"
+                                    value={settings.email || ''}
+                                    onChange={(e) => setSettings({ ...settings, email: e.target.value })}
+                                />
+                            </div>
+
+                            <div className="space-y-1 sm:col-span-2">
+                                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Website URL</label>
+                                <input
+                                    type="text"
+                                    placeholder="https://example.com"
+                                    className="w-full px-4 py-2 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:outline-none"
+                                    value={settings.website || ''}
+                                    onChange={(e) => setSettings({ ...settings, website: e.target.value })}
+                                />
                             </div>
                         </div>
                     </div>

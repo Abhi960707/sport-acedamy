@@ -453,25 +453,51 @@ export default function TransactionReport() {
         
         {/* Pagination */}
         {!loading && filteredData.length > 0 && (
-          <div className="px-6 py-4 border-t border-gray-100 bg-gray-50/50 flex items-center justify-between">
+          <div className="px-6 py-4 border-t border-gray-100 bg-gray-50/50 flex flex-col sm:flex-row justify-between items-center gap-4">
             <span className="text-xs font-semibold text-gray-500">
               Showing {((currentPage - 1) * rowsPerPage) + 1} to {Math.min(currentPage * rowsPerPage, filteredData.length)} of {filteredData.length} players
             </span>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5">
+              <button type="button"
+                disabled={currentPage === 1}
+                onClick={() => setCurrentPage(1)}
+                className="px-2.5 py-1.5 border border-gray-200 hover:bg-white text-gray-600 text-[10px] font-bold rounded-xl transition disabled:opacity-40 disabled:hover:bg-transparent cursor-pointer"
+              >
+                First
+              </button>
               <button type="button"
                 onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
                 disabled={currentPage === 1}
-                className="px-3 py-1.5 rounded-lg border border-gray-200 bg-white text-xs font-bold text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-2.5 py-1.5 border border-gray-200 hover:bg-white text-gray-600 text-[10px] font-bold rounded-xl transition disabled:opacity-40 disabled:hover:bg-transparent cursor-pointer"
               >
-                Previous
+                Prev
               </button>
-              <span className="text-xs font-bold text-gray-800 px-2">{currentPage} / {totalPages}</span>
+              {[...Array(totalPages)].map((_, i) => (
+                <button type="button"
+                  key={i}
+                  onClick={() => setCurrentPage(i + 1)}
+                  className={`w-8 h-8 rounded-xl text-xs font-bold transition flex items-center justify-center cursor-pointer ${
+                    currentPage === i + 1
+                      ? 'bg-blue-600 text-white shadow-md shadow-blue-500/10'
+                      : 'border border-transparent hover:bg-gray-100 text-gray-600'
+                  }`}
+                >
+                  {i + 1}
+                </button>
+              ))}
               <button type="button"
                 onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
                 disabled={currentPage === totalPages}
-                className="px-3 py-1.5 rounded-lg border border-gray-200 bg-white text-xs font-bold text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-2.5 py-1.5 border border-gray-200 hover:bg-white text-gray-600 text-[10px] font-bold rounded-xl transition disabled:opacity-40 disabled:hover:bg-transparent cursor-pointer"
               >
                 Next
+              </button>
+              <button type="button"
+                disabled={currentPage === totalPages}
+                onClick={() => setCurrentPage(totalPages)}
+                className="px-2.5 py-1.5 border border-gray-200 hover:bg-white text-gray-600 text-[10px] font-bold rounded-xl transition disabled:opacity-40 disabled:hover:bg-transparent cursor-pointer"
+              >
+                Last
               </button>
             </div>
           </div>

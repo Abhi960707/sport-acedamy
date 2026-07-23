@@ -2,11 +2,12 @@ import React, { useState, useEffect, useMemo } from 'react';
 import api from '../../api';
 import { useToast } from '../../common/Toast';
 import { useNavigate } from 'react-router-dom';
-import { FiTrash2, FiEdit2, FiChevronLeft, FiChevronRight, FiChevronUp, FiChevronDown, FiPhone, FiMail, FiCalendar, FiMapPin, FiBell } from 'react-icons/fi';
+import { FiTrash2, FiEdit2, FiChevronLeft, FiChevronRight, FiChevronUp, FiChevronDown, FiPhone, FiMail, FiCalendar, FiMapPin, FiBell, FiPrinter } from 'react-icons/fi';
 import { FaRupeeSign } from 'react-icons/fa';
 import { canManageAcademyRecords } from '../../common/access';
 import ExportDropdown from './ExportDropdown';
 import { downloadCsv, downloadPdf } from '../../common/reportExport';
+import PlayerRegistrationPrint from './PlayerRegistrationPrint';
 
 export default function PlayerReport({ searchQuery }) {
   const toast = useToast();
@@ -24,6 +25,32 @@ export default function PlayerReport({ searchQuery }) {
   const [editPlayer, setEditPlayer] = useState(null);
   const [updateLoading, setUpdateLoading] = useState(false);
   const [notifying, setNotifying] = useState(false);
+
+  const [printPlayer, setPrintPlayer] = useState(null);
+  const [academySettings, setAcademySettings] = useState(null);
+
+  useEffect(() => {
+    const fetchAcademySettings = async () => {
+      try {
+        const res = await api.get('/settings');
+        if (res.data.success) {
+          setAcademySettings(res.data.data);
+        }
+      } catch (err) {
+        console.error('Failed to load academy settings:', err);
+      }
+    };
+    if (token) {
+      fetchAcademySettings();
+    }
+  }, [token]);
+
+  const handlePrintClick = (player) => {
+    setPrintPlayer(player);
+    setTimeout(() => {
+      window.print();
+    }, 150);
+  };
 
   // Sorting and Pagination State
   const [sortConfig, setSortConfig] = useState({ key: 'playerId', direction: 'asc' });
@@ -475,6 +502,13 @@ export default function PlayerReport({ searchQuery }) {
                   {canManageRecords && (
                     <div className="flex flex-col sm:flex-row gap-2">
                       <button type="button"
+                        onClick={() => handlePrintClick(player)}
+                        className="inline-flex items-center justify-center gap-1.5 w-full px-3 py-3 text-sm font-bold text-gray-700 bg-gray-50 border border-gray-200 hover:bg-gray-800 hover:text-white rounded-xl transition-all cursor-pointer min-h-11"
+                      >
+                        <FiPrinter />
+                        <span>Print</span>
+                      </button>
+                      <button type="button"
                         onClick={() => handleEditClick(player)}
                         className="inline-flex items-center justify-center gap-1.5 w-full px-3 py-3 text-sm font-bold text-blue-600 bg-blue-50 border border-blue-100 hover:bg-blue-600 hover:text-white rounded-xl transition-all cursor-pointer min-h-11"
                       >
@@ -618,6 +652,13 @@ export default function PlayerReport({ searchQuery }) {
                         <td className="px-6 py-3.5 text-center">
                           <div className="flex items-center justify-center gap-2">
                             <button type="button"
+                              onClick={() => handlePrintClick(player)}
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-gray-700 bg-gray-50 border border-gray-200 hover:bg-gray-800 hover:text-white rounded-xl transition-all cursor-pointer"
+                            >
+                              <FiPrinter />
+                              <span>Print</span>
+                            </button>
+                            <button type="button"
                               onClick={() => handleEditClick(player)}
                               className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-blue-600 bg-blue-50 border border-blue-100 hover:bg-blue-600 hover:text-white rounded-xl transition-all cursor-pointer"
                             >
@@ -648,7 +689,14 @@ export default function PlayerReport({ searchQuery }) {
                 <span className="text-xs text-gray-500 font-semibold">
                   Showing page {currentPage} of {totalPages}
                 </span>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1.5">
+                  <button type="button"
+                    disabled={currentPage === 1}
+                    onClick={() => setCurrentPage(1)}
+                    className="px-2.5 py-1.5 border border-gray-200 hover:bg-white text-gray-600 text-[10px] font-bold rounded-xl transition disabled:opacity-40 disabled:hover:bg-transparent cursor-pointer"
+                  >
+                    First
+                  </button>
                   <button type="button"
                     disabled={currentPage === 1}
                     onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
@@ -675,6 +723,13 @@ export default function PlayerReport({ searchQuery }) {
                     className="p-2 border border-gray-200 hover:bg-white text-gray-600 rounded-xl transition disabled:opacity-40 disabled:hover:bg-transparent cursor-pointer"
                   >
                     <FiChevronRight className="text-base" />
+                  </button>
+                  <button type="button"
+                    disabled={currentPage === totalPages}
+                    onClick={() => setCurrentPage(totalPages)}
+                    className="px-2.5 py-1.5 border border-gray-200 hover:bg-white text-gray-600 text-[10px] font-bold rounded-xl transition disabled:opacity-40 disabled:hover:bg-transparent cursor-pointer"
+                  >
+                    Last
                   </button>
                 </div>
               </div>
@@ -844,6 +899,10 @@ export default function PlayerReport({ searchQuery }) {
             </form>
           </div>
         </div>
+      )}
+
+      {printPlayer && (
+        <PlayerRegistrationPrint player={printPlayer} academy={academySettings} />
       )}
 
     </div>

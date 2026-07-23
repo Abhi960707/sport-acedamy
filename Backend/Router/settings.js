@@ -15,6 +15,10 @@ router.get('/settings', auth, async (req, res) => {
                 currency: '₹',
                 timeZone: 'Asia/Kolkata',
                 session: '2026-2027',
+                address: '',
+                phone: '',
+                email: '',
+                website: '',
                 owner: req.academyOwnerId
             };
         }
@@ -27,7 +31,9 @@ router.get('/settings', auth, async (req, res) => {
 // 2. Update Settings
 router.put('/settings', auth, auth.allowRoles('superadmin', 'admin'), async (req, res) => {
     try {
-        const { academyName, logo, currency, timeZone, session } = req.body;
+        console.log("PUT /settings req.body:", req.body);
+        console.log("PUT /settings academyOwnerId:", req.academyOwnerId);
+        const { academyName, logo, currency, timeZone, session, address, phone, email, website } = req.body;
         let currentSettings = await Settings.findOne({ owner: req.academyOwnerId });
 
         if (!currentSettings) {
@@ -39,6 +45,10 @@ router.put('/settings', auth, auth.allowRoles('superadmin', 'admin'), async (req
         if (currency !== undefined) currentSettings.currency = currency;
         if (timeZone !== undefined) currentSettings.timeZone = timeZone;
         if (session !== undefined) currentSettings.session = session;
+        if (address !== undefined) currentSettings.address = address;
+        if (phone !== undefined) currentSettings.phone = phone;
+        if (email !== undefined) currentSettings.email = email;
+        if (website !== undefined) currentSettings.website = website;
 
         await currentSettings.save();
         res.status(200).json({ success: true, message: 'Settings updated successfully', data: currentSettings });

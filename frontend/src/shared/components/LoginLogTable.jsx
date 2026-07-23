@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { API_BASE } from '../../api';
 import { useToast } from '../../common/Toast';
-import { FiSearch, FiChevronDown, FiChevronUp, FiEye, FiEyeOff, FiActivity, FiUsers, FiUser } from 'react-icons/fi';
+import { FiSearch, FiChevronDown, FiChevronUp, FiEye, FiEyeOff, FiActivity, FiUsers, FiUser, FiChevronLeft, FiChevronRight } from 'react-icons/fi';
 
 export default function LoginLogTable() {
   const [logs, setLogs] = useState([]);
@@ -237,26 +237,50 @@ export default function LoginLogTable() {
           </table>
         </div>
 
-        {/* Pagination */}
         {!loading && totalPages > 1 && (
-          <div className="flex justify-between items-center px-6 py-4 border-t border-gray-100 bg-gray-50/50">
+          <div className="flex flex-col sm:flex-row justify-between items-center px-6 py-4 border-t border-gray-100 bg-gray-50/50 gap-4">
             <span className="text-xs font-semibold text-gray-500">Page {currentPage} of {totalPages}</span>
-            <div className="flex gap-2">
-              <button
-                type="button"
+            <div className="flex items-center gap-1.5">
+              <button type="button"
+                disabled={currentPage === 1}
+                onClick={() => setCurrentPage(1)}
+                className="px-2.5 py-1.5 border border-gray-200 hover:bg-white text-gray-600 text-[10px] font-bold rounded-xl transition disabled:opacity-40 disabled:hover:bg-transparent cursor-pointer"
+              >
+                First
+              </button>
+              <button type="button"
                 disabled={currentPage === 1}
                 onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                className="px-3 py-1 text-sm border border-gray-200 rounded-lg disabled:opacity-50 hover:bg-white cursor-pointer"
+                className="p-2 border border-gray-200 hover:bg-white text-gray-600 rounded-xl transition disabled:opacity-40 disabled:hover:bg-transparent cursor-pointer"
               >
-                Prev
+                <FiChevronLeft className="text-base" />
               </button>
-              <button
-                type="button"
+              {[...Array(totalPages)].map((_, i) => (
+                <button type="button"
+                  key={i}
+                  onClick={() => setCurrentPage(i + 1)}
+                  className={`w-8 h-8 rounded-xl text-xs font-bold transition flex items-center justify-center cursor-pointer ${
+                    currentPage === i + 1
+                      ? 'bg-blue-600 text-white shadow-md shadow-blue-500/10'
+                      : 'border border-transparent hover:bg-gray-100 text-gray-600'
+                  }`}
+                >
+                  {i + 1}
+                </button>
+              ))}
+              <button type="button"
                 disabled={currentPage === totalPages}
                 onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                className="px-3 py-1 text-sm border border-gray-200 rounded-lg disabled:opacity-50 hover:bg-white cursor-pointer"
+                className="p-2 border border-gray-200 hover:bg-white text-gray-600 rounded-xl transition disabled:opacity-40 disabled:hover:bg-transparent cursor-pointer"
               >
-                Next
+                <FiChevronRight className="text-base" />
+              </button>
+              <button type="button"
+                disabled={currentPage === totalPages}
+                onClick={() => setCurrentPage(totalPages)}
+                className="px-2.5 py-1.5 border border-gray-200 hover:bg-white text-gray-600 text-[10px] font-bold rounded-xl transition disabled:opacity-40 disabled:hover:bg-transparent cursor-pointer"
+              >
+                Last
               </button>
             </div>
           </div>

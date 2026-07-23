@@ -453,7 +453,14 @@ export default function CoachReport({ searchQuery }) {
                 <span className="text-xs text-gray-500 font-semibold">
                   Showing page {currentPage} of {totalPages}
                 </span>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1.5">
+                  <button type="button"
+                    disabled={currentPage === 1}
+                    onClick={() => setCurrentPage(1)}
+                    className="px-2.5 py-1.5 border border-gray-200 hover:bg-white text-gray-600 text-[10px] font-bold rounded-xl transition disabled:opacity-40 disabled:hover:bg-transparent cursor-pointer"
+                  >
+                    First
+                  </button>
                   <button type="button"
                     disabled={currentPage === 1}
                     onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
@@ -480,6 +487,13 @@ export default function CoachReport({ searchQuery }) {
                     className="p-2 border border-gray-200 hover:bg-white text-gray-600 rounded-xl transition disabled:opacity-40 disabled:hover:bg-transparent cursor-pointer"
                   >
                     <FiChevronRight className="text-base" />
+                  </button>
+                  <button type="button"
+                    disabled={currentPage === totalPages}
+                    onClick={() => setCurrentPage(totalPages)}
+                    className="px-2.5 py-1.5 border border-gray-200 hover:bg-white text-gray-600 text-[10px] font-bold rounded-xl transition disabled:opacity-40 disabled:hover:bg-transparent cursor-pointer"
+                  >
+                    Last
                   </button>
                 </div>
               </div>

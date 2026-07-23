@@ -1,8 +1,25 @@
 import React, { useState, useEffect } from 'react';
 import { useToast } from '../../common/Toast';
-import { FiUser, FiPhone, FiMail, FiMapPin, FiCalendar } from 'react-icons/fi';
+import { FiUser, FiPhone, FiMail, FiMapPin, FiCalendar, FiPrinter } from 'react-icons/fi';
 import { FaRupeeSign } from 'react-icons/fa';
-import api from '../../api';
+import api, { API_BASE } from '../../api';
+import PlayerRegistrationPrint from '../components/PlayerRegistrationPrint';
+
+const getImageUrl = (url) => {
+  if (!url) return '';
+  if (url.startsWith('data:')) return url;
+  
+  if (url.startsWith('/uploads')) {
+    return `${API_BASE}${url}`;
+  }
+  
+  if (url.includes('/uploads/')) {
+    const filename = url.split('/uploads/')[1];
+    return `${API_BASE}/uploads/${filename}`;
+  }
+  
+  return url;
+};
 
 
 const INITIAL_STATE = {
@@ -43,6 +60,22 @@ function PlayerAdd() {
   const [gamesList, setGamesList] = useState([]);
   const [coachesList, setCoachesList] = useState([]);
   const [errors, setErrors] = useState({});
+  const [newlyRegisteredPlayer, setNewlyRegisteredPlayer] = useState(null);
+  const [academySettings, setAcademySettings] = useState(null);
+
+  useEffect(() => {
+    const fetchAcademySettings = async () => {
+      try {
+        const res = await api.get('/settings');
+        if (res.data.success) {
+          setAcademySettings(res.data.data);
+        }
+      } catch (err) {
+        console.error('Failed to load academy settings:', err);
+      }
+    };
+    fetchAcademySettings();
+  }, []);
 
   const handleImageUpload = (e) => {
     const file = e.target.files[0];
@@ -259,6 +292,7 @@ function PlayerAdd() {
       const result = res.data;
       if (result.success) {
         toast('Player added successfully!', 'success');
+        setNewlyRegisteredPlayer(result.data);
         setAddPlayers(INITIAL_STATE);
         localStorage.removeItem('playerFormDraft');
         setErrors({});
@@ -285,8 +319,70 @@ function PlayerAdd() {
   };
 
   return (
-    <div className="max-w-5xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8 animate-fade-in-up overflow-x-hidden">
-      <div className="bg-white border border-gray-100 rounded-3xl shadow-xl overflow-hidden">
+    <>
+      {newlyRegisteredPlayer && (
+        <PlayerRegistrationPrint player={newlyRegisteredPlayer} academy={academySettings} />
+      )}
+
+      {/* Success Popup Modal */}
+      {newlyRegisteredPlayer && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in no-print">
+          <div className="bg-white rounded-3xl shadow-2xl border border-gray-100 max-w-md w-full overflow-hidden p-6 text-center space-y-6 animate-scale-in">
+            <div className="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center text-3xl mx-auto shadow-sm">
+              ✓
+            </div>
+            <div className="space-y-2">
+              <h3 className="text-xl font-bold text-gray-900">Player Registered Successfully!</h3>
+              <p className="text-xs text-gray-500 font-medium">The player enrollment is completed.</p>
+            </div>
+
+            {/* Info Card */}
+            <div className="bg-gray-50 border border-gray-100 rounded-2xl p-4 text-left space-y-2.5 text-xs">
+              <div className="flex justify-between items-center">
+                <span className="text-gray-400 font-bold uppercase tracking-wider">Player Name</span>
+                <span className="font-bold text-gray-800">{newlyRegisteredPlayer.fullName}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-gray-400 font-bold uppercase tracking-wider">Player ID</span>
+                <span className="font-bold font-mono text-blue-600 bg-blue-50 border border-blue-100 px-2 py-0.5 rounded-md">{newlyRegisteredPlayer.playerId}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-gray-400 font-bold uppercase tracking-wider">Sport / Game</span>
+                <span className="font-bold text-gray-800">{newlyRegisteredPlayer.sportChosen}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-gray-400 font-bold uppercase tracking-wider">Coach Assigned</span>
+                <span className="font-bold text-gray-800">{newlyRegisteredPlayer.coachAssigned}</span>
+              </div>
+              <div className="flex justify-between items-center border-t border-gray-100 pt-2">
+                <span className="text-gray-400 font-bold uppercase tracking-wider">Total Fee</span>
+                <span className="font-bold text-gray-900">₹{newlyRegisteredPlayer.totalFee}</span>
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => window.print()}
+                className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-lg shadow-blue-500/10 hover:shadow-blue-500/20 transition-all flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <FiPrinter className="text-sm" />
+                <span>Print Registration Form</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setNewlyRegisteredPlayer(null)}
+                className="w-full py-3 border border-gray-200 hover:bg-gray-50 text-gray-600 text-xs font-bold rounded-xl transition cursor-pointer"
+              >
+                Close & Enroll Another
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className="max-w-5xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8 animate-fade-in-up overflow-x-hidden">
+        <div className="bg-white border border-gray-100 rounded-3xl shadow-xl overflow-hidden">
         
         {/* Header */}
         <div className="flex items-center gap-4 px-6 sm:px-8 py-6 bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-gray-100">
@@ -311,7 +407,7 @@ function PlayerAdd() {
               <div className="space-y-1 sm:col-span-2 xl:col-span-3 flex items-center gap-4 p-4 border border-dashed border-gray-200 rounded-2xl bg-gray-50/50 mb-2">
                 <div className="w-16 h-16 rounded-full border border-gray-200 bg-white flex items-center justify-center text-gray-400 overflow-hidden shrink-0">
                   {addPlayers.playerImage ? (
-                    <img src={addPlayers.playerImage} alt="Player Preview" className="w-full h-full object-cover" />
+                    <img src={getImageUrl(addPlayers.playerImage)} alt="Player Preview" className="w-full h-full object-cover" />
                   ) : (
                     <span className="text-2xl">👤</span>
                   )}
@@ -730,8 +826,9 @@ function PlayerAdd() {
           </div>
         </form>
 
+        </div>
       </div>
-    </div>
+    </>
   );
 }
 

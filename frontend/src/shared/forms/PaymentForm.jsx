@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import api from '../../api';
 import { useToast } from '../../common/Toast';
-import { FiDollarSign, FiSearch, FiCheckCircle, FiClock, FiCreditCard, FiPrinter } from 'react-icons/fi';
+import { FiDollarSign, FiSearch, FiCheckCircle, FiClock, FiCreditCard, FiPrinter, FiChevronLeft, FiChevronRight } from 'react-icons/fi';
 import { canMarkAttendanceAndPayments } from '../../common/access';
 import ExportDropdown from '../components/ExportDropdown';
 import { downloadCsv, downloadPdf } from '../../common/reportExport';
@@ -466,26 +466,53 @@ export default function Payment() {
             )}
             
             {totalPages > 1 && (
-              <div className="flex items-center justify-between pt-4 border-t border-gray-100">
-                <button
-                  type="button"
-                  onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                  disabled={currentPage === 1}
-                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  Previous
-                </button>
-                <span className="text-sm text-gray-500">
+              <div className="flex flex-col sm:flex-row justify-between items-center gap-4 pt-4 border-t border-gray-100">
+                <span className="text-xs font-semibold text-gray-500">
                   Page <span className="font-medium text-gray-900">{currentPage}</span> of <span className="font-medium text-gray-900">{totalPages}</span>
                 </span>
-                <button
-                  type="button"
-                  onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                  disabled={currentPage === totalPages}
-                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  Next
-                </button>
+                <div className="flex items-center gap-1.5">
+                  <button type="button"
+                    disabled={currentPage === 1}
+                    onClick={() => setCurrentPage(1)}
+                    className="px-2.5 py-1.5 border border-gray-200 hover:bg-white text-gray-600 text-[10px] font-bold rounded-xl transition disabled:opacity-40 disabled:hover:bg-transparent cursor-pointer"
+                  >
+                    First
+                  </button>
+                  <button type="button"
+                    onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                    disabled={currentPage === 1}
+                    className="p-2 border border-gray-200 hover:bg-white text-gray-600 rounded-xl transition disabled:opacity-40 disabled:hover:bg-transparent cursor-pointer"
+                  >
+                    <FiChevronLeft className="text-base" />
+                  </button>
+                  {[...Array(totalPages)].map((_, i) => (
+                    <button type="button"
+                      key={i}
+                      onClick={() => setCurrentPage(i + 1)}
+                      className={`w-8 h-8 rounded-xl text-xs font-bold transition flex items-center justify-center cursor-pointer ${
+                        currentPage === i + 1
+                          ? 'bg-green-600 text-white shadow-md shadow-green-500/10'
+                          : 'border border-transparent hover:bg-gray-100 text-gray-600'
+                      }`}
+                    >
+                      {i + 1}
+                    </button>
+                  ))}
+                  <button type="button"
+                    onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                    disabled={currentPage === totalPages}
+                    className="p-2 border border-gray-200 hover:bg-white text-gray-600 rounded-xl transition disabled:opacity-40 disabled:hover:bg-transparent cursor-pointer"
+                  >
+                    <FiChevronRight className="text-base" />
+                  </button>
+                  <button type="button"
+                    disabled={currentPage === totalPages}
+                    onClick={() => setCurrentPage(totalPages)}
+                    className="px-2.5 py-1.5 border border-gray-200 hover:bg-white text-gray-600 text-[10px] font-bold rounded-xl transition disabled:opacity-40 disabled:hover:bg-transparent cursor-pointer"
+                  >
+                    Last
+                  </button>
+                </div>
               </div>
             )}
           </div>
