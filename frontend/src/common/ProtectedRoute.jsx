@@ -1,5 +1,5 @@
 import { Navigate, useLocation } from 'react-router-dom';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { API_BASE } from '../api';
 import { getStoredToken, getStoredAuthUser } from './access';
 
