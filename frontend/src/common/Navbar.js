@@ -71,7 +71,7 @@ export default function Navbar({ searchQuery = '', setSearchQuery = () => { } })
 
   const isReportPage = ['/reportgame', '/reportcoachs', '/reportplayers'].includes(location.pathname);
   const userRole = String(currentUser?.role || 'admin').toLowerCase();
-  const canViewAudit = ['admin', 'superadmin', 'accountant'].includes(userRole);
+  const canViewAudit = ['admin', 'superadmin'].includes(userRole);
   const canManageSettings = ['admin', 'superadmin'].includes(userRole);
   const isCoach = userRole === 'coach';
 

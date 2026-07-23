@@ -7,12 +7,11 @@ export default function ProtectedRoute({ children, allowedRoles }) {
   const token = getStoredToken();
   const location = useLocation();
   const [hasAcademy, setHasAcademy] = useState(null);
-  const checkedRef = useRef(false); // Only check once per mount
 
   useEffect(() => {
     const validToken = getStoredToken();
-    if (!validToken || checkedRef.current) return;
-    checkedRef.current = true;
+    if (!validToken) return;
+    if (hasAcademy === true) return;
 
     const checkAcademy = async () => {
       try {
@@ -35,7 +34,7 @@ export default function ProtectedRoute({ children, allowedRoles }) {
       }
     };
     checkAcademy();
-  }, [token]);
+  }, [token, location.pathname, hasAcademy]);
 
   // No token → go to login
   if (!token) {

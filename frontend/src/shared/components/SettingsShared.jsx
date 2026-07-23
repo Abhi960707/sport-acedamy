@@ -3,10 +3,12 @@ import api from '../../api';
 import { useToast } from '../../common/Toast';
 import { FiHome, FiGlobe, FiClock, FiUpload, FiTrash2 } from 'react-icons/fi';
 import { FaRupeeSign } from 'react-icons/fa';
+import { useNavigate } from 'react-router-dom';
 
 export default function Settings() {
     const toast = useToast();
     const token = localStorage.getItem('token');
+    const navigate = useNavigate();
 
     const [settings, setSettings] = useState({
         academyName: '',
@@ -42,6 +44,7 @@ export default function Settings() {
             if (res.data.success) {
                 toast('Academy Settings Updated Successfully', 'success');
                 setSettings(res.data.data);
+                navigate('/home');
             } else {
                 toast(res.data.message || 'Failed to Update Settings', 'error');
             }
@@ -190,7 +193,7 @@ export default function Settings() {
                             className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold rounded-xl transition flex items-center gap-1.5 cursor-pointer min-h-11"
                         >
                             {updating && <span className="animate-spin inline-block w-3.5 h-3.5 border-2 border-white/20 border-t-white rounded-full" />}
-                            Save Configuration
+                            Save Academy
                         </button>
                     </div>
                 </form>

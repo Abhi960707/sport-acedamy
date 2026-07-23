@@ -25,4 +25,4 @@ export const getStoredRole = () => {
 
 export const canManageAcademyRecords = () => MANAGE_ROLES.includes(getStoredRole());
 
-export const canMarkAttendanceAndPayments = () => ['admin', 'superadmin', 'coach', 'accountant'].includes(getStoredRole());
+export const canMarkAttendanceAndPayments = () => ['admin', 'superadmin', 'coach'].includes(getStoredRole());

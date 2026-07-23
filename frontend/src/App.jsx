@@ -44,9 +44,6 @@ const RoleComponent = ({ page, ...props }) => {
     user = {};
   }
   let role = user.role || 'admin';
-  if (role === 'accountant') {
-    role = 'admin';
-  }
   
   const Component = React.useMemo(() => React.lazy(() => import(`./roles/${role}/${page}.jsx`)), [role, page]);
   
@@ -104,7 +101,7 @@ function AppLayout() {
           <Route path='/reportplayers' element={<ProtectedRoute><RoleComponent page="ReportPlayers" searchQuery={searchQuery} /></ProtectedRoute>} />
           
           <Route path='/transaction-report' element={<ProtectedRoute><RoleComponent page="TransactionReport" /></ProtectedRoute>} />
-          <Route path='/audit' element={<ProtectedRoute allowedRoles={['admin', 'superadmin', 'accountant']}><RoleComponent page="AuditLogs" /></ProtectedRoute>} />
+          <Route path='/audit' element={<ProtectedRoute allowedRoles={['admin', 'superadmin']}><RoleComponent page="AuditLogs" /></ProtectedRoute>} />
           <Route path='/attendance' element={<ProtectedRoute><RoleComponent page="Attendance" /></ProtectedRoute>} />
           <Route path='/payment' element={<ProtectedRoute><RoleComponent page="Payments" /></ProtectedRoute>} />
           <Route path='/admin-management' element={<ProtectedRoute allowedRoles={['superadmin']}><RoleComponent page="AdminManagement" searchQuery={searchQuery} /></ProtectedRoute>} />
