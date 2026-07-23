@@ -38,7 +38,7 @@ const validateSignupBody = (body) => {
     if (!password || password.length < 4) {
         return 'Password must be at least 4 characters';
     }
-    if (!['superadmin', 'admin', 'coach', 'accountant'].includes(role)) {
+    if (!['superadmin', 'admin', 'coach'].includes(role)) {
         return 'Invalid role selected';
     }
 
@@ -167,10 +167,12 @@ router.post('/login/logout',auth, async(req,res)=>{
 
 router.get('/auth/check-academy', auth, async (req, res) => {
     try {
-        if (req.currentEmp.role === 'superadmin' || req.currentEmp.role === 'coach') {
+        const role = req.currentEmp.role;
+        // superadmin and coach never need academy setup
+        if (role === 'superadmin' || role === 'coach') {
             return res.status(200).json({ success: true, hasAcademy: true });
         }
-        
+        // admin (or legacy accountant) must have academy configured
         const academy = await Settings.findOne({ owner: req.currentEmp._id });
         res.status(200).json({ success: true, hasAcademy: !!academy });
     } catch (e) {

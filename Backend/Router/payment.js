@@ -7,7 +7,7 @@ const { createAuditLog } = require('../Utils/audit');
 const { sendPaymentSuccessEmail } = require('../Utils/email');
 
 // 1. Add Payment
-router.post('/payments/add', auth, auth.allowRoles('superadmin', 'admin', 'accountant', 'coach'), async (req, res) => {
+router.post('/payments/add', auth, auth.allowRoles('superadmin', 'admin', 'coach'), async (req, res) => {
     try {
         const { playerId, amount, paymentMethod, transactionId, paymentDate } = req.body;
 

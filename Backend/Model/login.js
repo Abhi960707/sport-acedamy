@@ -34,7 +34,7 @@ const loginSchema = mongoose.Schema({
     },
     role: {
         type: String,
-        enum: ['superadmin', 'admin', 'coach', 'accountant'],
+        enum: ['superadmin', 'admin', 'coach'],
         default: 'admin'
     },
     contactNumber: { type: String, default: '' },

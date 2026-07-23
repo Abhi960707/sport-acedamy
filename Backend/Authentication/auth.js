@@ -20,6 +20,8 @@ const auth = async function (req, res, next) {
 
     req.currentEmp = tempEmp;
     req.userRole = tempEmp.role || 'admin';
+    // Legacy backward compat: treat any existing accountant users as admin
+    if (req.userRole === 'accountant') req.userRole = 'admin';
     req.token = loginToken;
 
     if (req.userRole === 'admin') {

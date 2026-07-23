@@ -8,8 +8,15 @@ router.get('/settings', auth, async (req, res) => {
     try {
         let currentSettings = await Settings.findOne({ owner: req.academyOwnerId });
         if (!currentSettings) {
-            currentSettings = new Settings({ owner: req.academyOwnerId });
-            await currentSettings.save();
+            // Return default settings template without persisting to db until save is clicked
+            currentSettings = {
+                academyName: '',
+                logo: '',
+                currency: '₹',
+                timeZone: 'Asia/Kolkata',
+                session: '2026-2027',
+                owner: req.academyOwnerId
+            };
         }
         res.status(200).json({ success: true, data: currentSettings });
     } catch (e) {
