@@ -181,11 +181,11 @@ export default function PlayerIdCardPrint({ player, academy }) {
 
         {/* Info Grid */}
         <div style={{ padding: '2px 3px', flex: 1, display: 'flex', flexDirection: 'column', gap: '2px' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2px 4px', fontSize: '5.5px', background: '#f8fafc', padding: '3px', borderRadius: '3px', border: '1px solid #e2e8f0' }}>
-            <div><span style={{ color: '#64748b', display: 'block', fontSize: '5px' }}>DATE OF BIRTH:</span><span style={{ fontWeight: '600' }}>{player.dateOfBirth || '—'}</span></div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '2px 4px', fontSize: '5.5px', background: '#f8fafc', padding: '3px', borderRadius: '3px', border: '1px solid #e2e8f0' }}>
             <div><span style={{ color: '#64748b', display: 'block', fontSize: '5px' }}>EMERGENCY CONTACT:</span><span style={{ fontWeight: '600', color: '#dc2626' }}>{player.emergencyContact || player.contactNumber || '—'}</span></div>
             <div><span style={{ color: '#64748b', display: 'block', fontSize: '5px' }}>ACADEMY PHONE:</span><span style={{ fontWeight: '600' }}>{academyPhone}</span></div>
-            <div><span style={{ color: '#64748b', display: 'block', fontSize: '5px' }}>WEBSITE:</span><span style={{ fontWeight: '600', color: '#1d4ed8' }}>{academyWebsite}</span></div>
+            <div><span style={{ color: '#64748b', display: 'block', fontSize: '5px' }}>ISSUE DATE:</span><span style={{ fontWeight: '600' }}>{issueDate}</span></div>
+            <div style={{ gridColumn: 'span 3' }}><span style={{ color: '#64748b', display: 'block', fontSize: '5px' }}>ACADEMY ADDRESS:</span><span style={{ fontWeight: '600' }}>{academyAddress}</span></div>
           </div>
 
           <div style={{ border: '1px solid #e2e8f0', padding: '3px', borderRadius: '3px', background: '#fff', fontSize: '5px', lineHeight: '1.4', color: '#334155' }}>
