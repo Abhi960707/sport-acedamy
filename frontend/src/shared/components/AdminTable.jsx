@@ -18,7 +18,7 @@ export default function AdminTable({ role }) {
   const fetchAdmins = useCallback(async () => {
     try {
       setLoading(true);
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('sa_token');
       const res = await fetch(`${API_BASE}/superadmin/admins`, {
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -94,7 +94,7 @@ export default function AdminTable({ role }) {
 
     setSubmitLoading(true);
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('sa_token');
       const url = formData.id ? `${API_BASE}/superadmin/admins/update/${formData.id}` : `${API_BASE}/superadmin/admins/create`;
       const method = formData.id ? 'PUT' : 'POST';
       
@@ -124,7 +124,7 @@ export default function AdminTable({ role }) {
   const handleDelete = async (id) => {
     if (!window.confirm('Are you sure you want to delete this admin?')) return;
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('sa_token');
       const res = await fetch(`${API_BASE}/superadmin/admins/delete/${id}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` }

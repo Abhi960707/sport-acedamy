@@ -1,3 +1,3 @@
 import React from 'react';
-import PlayerForm from '../../shared/forms/PlayerForm';
-export default function Players() { return <PlayerForm role="coach" />; }
+import PlayerTable from '../../shared/components/PlayerTable';
+export default function Players() { return <PlayerTable role="coach" />; }

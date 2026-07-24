@@ -5,7 +5,7 @@ import { FiUser, FiMail, FiLock, FiTrash2, FiCamera, FiHash, FiActivity, FiAward
 
 export default function Profile() {
     const toast = useToast();
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem('sa_token');
 
     const [user, setUser] = useState({
         name: '',
@@ -64,7 +64,7 @@ export default function Profile() {
             if (res.data.success) {
                 toast('Profile updated successfully', 'success');
                 setUser(res.data.user);
-                localStorage.setItem('authUser', JSON.stringify(res.data.user));
+                localStorage.setItem('sa_authUser', JSON.stringify(res.data.user));
                 setIsEditing(false);
             } else {
                 toast(res.data.message || 'Failed to update profile', 'error');

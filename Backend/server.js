@@ -24,6 +24,7 @@ const paymentRouter = require('./Router/payment')
 const settingsRouter = require('./Router/settings')
 const notificationRouter = require('./Router/notification')
 const superadminRouter = require('./Router/superadmin')
+const playerLifecycleRouter = require('./Router/playerLifecycle')
 server.use(helmet({
     crossOriginResourcePolicy: false // Allow loading images statically
 }))
@@ -49,6 +50,7 @@ server.use(paymentRouter)
 server.use(settingsRouter)
 server.use(notificationRouter)
 server.use(superadminRouter)
+server.use(playerLifecycleRouter)
 //this is used mongoose connection 
 require('./Database/db')
 // like he hi normally ase aste MongoDB Connection

@@ -37,8 +37,8 @@ api.interceptors.response.use(
       const token = getStoredToken();
       // Only auto-redirect if we had a token (means it expired)
       if (token) {
-        localStorage.removeItem('token');
-        localStorage.removeItem('authUser');
+        localStorage.removeItem('sa_token');
+        localStorage.removeItem('sa_authUser');
         window.location.href = '/login';
       }
     }

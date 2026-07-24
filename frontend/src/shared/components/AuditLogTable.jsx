@@ -9,7 +9,7 @@ const itemsPerPage = 7;
 
 export default function AuditLog() {
   const toast = useToast();
-  const token = localStorage.getItem('token');
+  const token = localStorage.getItem('sa_token');
   const [loading, setLoading] = useState(true);
   const [logs, setLogs] = useState([]);
   const [query, setQuery] = useState('');

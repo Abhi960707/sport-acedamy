@@ -12,7 +12,7 @@ const todayValue = new Date().toISOString().slice(0, 10);
 export default function Attendance() {
   const toast = useToast();
   const location = useLocation();
-  const token = localStorage.getItem('token');
+  const token = localStorage.getItem('sa_token');
   const canManageRecords = canMarkAttendanceAndPayments();
 
   const [players, setPlayers] = useState([]);

@@ -36,7 +36,7 @@ export default function CoachDashboard() {
         const gamesList = gamesRes.data.data || [];
         let attendanceList = attendanceRes.data.data || [];
 
-        const authUserStr = localStorage.getItem('authUser');
+        const authUserStr = localStorage.getItem('sa_authUser');
         if (authUserStr) {
           try {
             const authUser = JSON.parse(authUserStr);

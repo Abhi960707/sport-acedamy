@@ -19,7 +19,7 @@ export default function LoginLogTable() {
   const fetchLogs = useCallback(async () => {
     try {
       setLoading(true);
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('sa_token');
       const res = await fetch(`${API_BASE}/superadmin/login-log`, {
         headers: { Authorization: `Bearer ${token}` }
       });

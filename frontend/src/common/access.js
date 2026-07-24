@@ -1,7 +1,7 @@
 const MANAGE_ROLES = ['admin', 'superadmin'];
 
 export const getStoredToken = () => {
-  const token = localStorage.getItem('token');
+  const token = localStorage.getItem('sa_token');
   if (!token || token === 'undefined' || token === 'null' || typeof token !== 'string' || !token.trim()) {
     return null;
   }
@@ -10,7 +10,7 @@ export const getStoredToken = () => {
 
 export const getStoredAuthUser = () => {
   try {
-    const userStr = localStorage.getItem('authUser');
+    const userStr = localStorage.getItem('sa_authUser');
     if (!userStr || userStr === 'undefined' || userStr === 'null') return null;
     return JSON.parse(userStr);
   } catch (error) {
@@ -26,3 +26,6 @@ export const getStoredRole = () => {
 export const canManageAcademyRecords = () => MANAGE_ROLES.includes(getStoredRole());
 
 export const canMarkAttendanceAndPayments = () => ['admin', 'superadmin', 'coach'].includes(getStoredRole());
+
+export const canEditPlayer = () => ['admin', 'superadmin', 'coach'].includes(getStoredRole());
+

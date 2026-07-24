@@ -63,7 +63,7 @@ export default function Navbar({ searchQuery = '', setSearchQuery = () => { } })
 
   const [currentUser, setCurrentUser] = useState(() => {
     try {
-      return JSON.parse(localStorage.getItem('authUser') || 'null');
+      return JSON.parse(localStorage.getItem('sa_authUser') || 'null');
     } catch (error) {
       return null;
     }
@@ -115,7 +115,7 @@ export default function Navbar({ searchQuery = '', setSearchQuery = () => { } })
 
   useEffect(() => {
     try {
-      setCurrentUser(JSON.parse(localStorage.getItem('authUser') || 'null'));
+      setCurrentUser(JSON.parse(localStorage.getItem('sa_authUser') || 'null'));
     } catch (error) {
       setCurrentUser(null);
     }
@@ -148,7 +148,7 @@ export default function Navbar({ searchQuery = '', setSearchQuery = () => { } })
 
     const fetchSearchData = async () => {
       if (dataLoaded) return;
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('sa_token');
       if (!token) return;
 
       try {
@@ -195,7 +195,7 @@ export default function Navbar({ searchQuery = '', setSearchQuery = () => { } })
   }, [dataLoaded, location.pathname, userRole]);
 
   const handleLogout = async () => {
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem('sa_token');
     try {
       if (token) {
         await fetch(`${API_BASE}/login/logout`, {
@@ -206,14 +206,14 @@ export default function Navbar({ searchQuery = '', setSearchQuery = () => { } })
     } catch (e) {
       // Ignore errors — always clear local storage and redirect
     } finally {
-      localStorage.removeItem('token');
-      localStorage.removeItem('authUser');
+      localStorage.removeItem('sa_token');
+      localStorage.removeItem('sa_authUser');
       navigate('/login');
     }
   };
 
   const handleMarkNotifRead = async (id) => {
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem('sa_token');
     try {
       await fetch(`${API_BASE}/notifications/read/${id}`, {
         method: 'POST',

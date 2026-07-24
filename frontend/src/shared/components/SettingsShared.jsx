@@ -7,7 +7,7 @@ import { useNavigate } from 'react-router-dom';
 
 export default function Settings() {
     const toast = useToast();
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem('sa_token');
     const navigate = useNavigate();
 
     const [settings, setSettings] = useState({

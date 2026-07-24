@@ -42,7 +42,7 @@ const INITIAL_STATE = {
   emergencyContact: '',
 };
 
-function PlayerAdd() {
+function PlayerAdd({ role }) {
   const toast = useToast();
   const [addPlayers, setAddPlayers] = useState(() => {
     try {
@@ -317,6 +317,20 @@ function PlayerAdd() {
       setLoading(false);
     }
   };
+
+  if (role === 'coach') {
+    return (
+      <div className="max-w-4xl mx-auto py-12 px-6 text-center">
+        <div className="bg-white border border-gray-100 rounded-3xl p-8 shadow-md">
+          <span className="text-5xl">🚫</span>
+          <h2 className="text-xl font-bold text-gray-800 mt-4">Access Denied</h2>
+          <p className="text-gray-500 mt-2 text-sm">
+            Coaches do not have permission to add new players. Please contact the administrator.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <>

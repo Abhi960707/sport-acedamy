@@ -74,11 +74,11 @@ function Login() {
       const { success, token, user, message } = result;
 
       if (success) {
-        localStorage.setItem('token', token);
+        localStorage.setItem('sa_token', token);
         if (user) {
-          localStorage.setItem('authUser', JSON.stringify(user));
+          localStorage.setItem('sa_authUser', JSON.stringify(user));
         } else {
-          localStorage.removeItem('authUser');
+          localStorage.removeItem('sa_authUser');
         }
         if (rememberMe) {
           localStorage.setItem('savedEmail', login.email);

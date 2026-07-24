@@ -28,7 +28,7 @@ export default function CoachReport({ searchQuery }) {
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [deletingId, setDeletingId] = useState(null);
-  const token = localStorage.getItem('token');
+  const token = localStorage.getItem('sa_token');
 
   // Edit State
   const [editCoach, setEditCoach] = useState(null);

@@ -1,13 +1,26 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import api from '../../api';
+import api, { API_BASE } from '../../api';
+
+const getImageUrl = (url) => {
+  if (!url) return '';
+  if (url.startsWith('data:')) return url;
+  if (url.startsWith('/uploads')) return `${API_BASE}${url}`;
+  if (url.includes('/uploads/')){
+    const filename = url.split('/uploads/')[1];
+    return `${API_BASE}/uploads/${filename}`;
+  }
+  return url;
+};
 import { useToast } from '../../common/Toast';
 import { useNavigate } from 'react-router-dom';
-import { FiTrash2, FiEdit2, FiChevronLeft, FiChevronRight, FiChevronUp, FiChevronDown, FiPhone, FiMail, FiCalendar, FiMapPin, FiBell, FiPrinter } from 'react-icons/fi';
+import { FiTrash2, FiEdit2, FiChevronLeft, FiChevronRight, FiChevronUp, FiChevronDown, FiPhone, FiMail, FiCalendar, FiMapPin, FiBell, FiPrinter, FiUser } from 'react-icons/fi';
 import { FaRupeeSign } from 'react-icons/fa';
-import { canManageAcademyRecords } from '../../common/access';
+import { canManageAcademyRecords, canEditPlayer } from '../../common/access';
 import ExportDropdown from './ExportDropdown';
 import { downloadCsv, downloadPdf } from '../../common/reportExport';
 import PlayerRegistrationPrint from './PlayerRegistrationPrint';
+import PlayerIdCardModal from './PlayerIdCardModal';
+import PlayerIdCardPrint from './PlayerIdCardPrint';
 
 export default function PlayerReport({ searchQuery }) {
   const toast = useToast();
@@ -15,7 +28,7 @@ export default function PlayerReport({ searchQuery }) {
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [deletingId, setDeletingId] = useState(null);
-  const token = localStorage.getItem('token');
+  const token = localStorage.getItem('sa_token');
 
   // Modal lists
   const [gamesList, setGamesList] = useState([]);
@@ -26,8 +39,153 @@ export default function PlayerReport({ searchQuery }) {
   const [updateLoading, setUpdateLoading] = useState(false);
   const [notifying, setNotifying] = useState(false);
 
+  // Leave Academy & Summary state
+  const [playerSummary, setPlayerSummary] = useState(null);
+  const [leaveAcademyChecked, setLeaveAcademyChecked] = useState(false);
+  const [leaveDate, setLeaveDate] = useState(new Date().toISOString().split('T')[0]);
+  const [leaveReason, setLeaveReason] = useState('');
+  const [leaveRemarks, setLeaveRemarks] = useState('');
+  const [leaveLoading, setLeaveLoading] = useState(false);
+
+  useEffect(() => {
+    const fetchSummary = async () => {
+      if (!editPlayer || !editPlayer._id) return;
+      try {
+        const res = await api.get(`/players/summary/${editPlayer._id}`);
+        if (res.data.success) {
+          setPlayerSummary(res.data.data);
+        }
+      } catch (err) {
+        console.error('Failed to fetch player summary:', err);
+      }
+    };
+    fetchSummary();
+  }, [editPlayer]);
+
+  useEffect(() => {
+    if (editPlayer) {
+      setLeaveAcademyChecked(editPlayer.status === 'Left Academy');
+      if (playerSummary && playerSummary.archive) {
+        setLeaveDate(playerSummary.archive.leavingDate || new Date().toISOString().split('T')[0]);
+        setLeaveReason(playerSummary.archive.reasonForLeaving || '');
+        setLeaveRemarks(playerSummary.archive.remarks || '');
+      } else {
+        setLeaveDate(new Date().toISOString().split('T')[0]);
+        setLeaveReason('');
+        setLeaveRemarks('');
+      }
+    } else {
+      setLeaveAcademyChecked(false);
+      setLeaveReason('');
+      setLeaveRemarks('');
+      setPlayerSummary(null);
+    }
+  }, [editPlayer, playerSummary]);
+
+  const handleLeaveAcademySubmit = async () => {
+    if (!leaveDate || !leaveReason) {
+      toast('Leaving Date and Reason are required', 'warning');
+      return;
+    }
+
+    if (!window.confirm(`Are you sure you want to mark ${editPlayer.fullName} as Left Academy?`)) {
+      return;
+    }
+
+    setLeaveLoading(true);
+    try {
+      const res = await api.put(`/players/leave/${editPlayer._id}`, {
+        leavingDate: leaveDate,
+        reasonForLeaving: leaveReason,
+        remarks: leaveRemarks
+      });
+
+      if (res.data.success) {
+        toast('Player status changed to Left Academy successfully', 'success');
+        setTasks(prev => prev.map(t => t._id === editPlayer._id ? { ...t, status: 'Left Academy' } : t));
+        
+        // Fetch updated player summary so print contains archive/leave info
+        let updatedSummary = null;
+        try {
+          const summaryRes = await api.get(`/players/summary/${editPlayer._id}`);
+          if (summaryRes.data.success) {
+            setPlayerSummary(summaryRes.data.data);
+            updatedSummary = summaryRes.data.data;
+          }
+        } catch (summaryErr) {
+          console.error('Failed to load updated summary for print:', summaryErr);
+        }
+
+        // Log print event
+        try {
+          await api.post('/players/print-history', { playerId: editPlayer._id, reason: 'Exit Registration Form Print' });
+        } catch (printErr) {
+          console.error('Failed to log print history:', printErr);
+        }
+
+        // Print form
+        const printPayload = {
+          ...editPlayer,
+          status: 'Left Academy',
+          sportChosen: editPlayer.gameCategory && editPlayer.gameType 
+            ? `${editPlayer.sportChosen} (${editPlayer.gameCategory} - ${editPlayer.gameType})`
+            : editPlayer.sportChosen
+        };
+        setPrintPlayer(printPayload);
+
+        setTimeout(() => {
+          window.print();
+          setEditPlayer(null);
+        }, 400);
+
+      } else {
+        toast(res.data.message || 'Failed to update exit details', 'error');
+      }
+    } catch (err) {
+      toast(err.response?.data?.message || 'Server error during exit update', 'error');
+    } finally {
+      setLeaveLoading(false);
+    }
+  };
+
+  const handleImageUpload = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onloadend = async () => {
+      const base64Data = reader.result;
+      try {
+        const res = await api.post('/api/upload', { image: base64Data });
+        if (res.data.success) {
+          setEditPlayer(prev => ({ ...prev, playerImage: res.data.url }));
+          toast('Image uploaded successfully', 'success');
+        } else {
+          toast('Upload failed', 'error');
+        }
+      } catch (err) {
+        toast('Failed to upload image', 'error');
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const calculatedAge = useMemo(() => {
+    if (!editPlayer || !editPlayer.dateOfBirth) return '';
+    const dob = new Date(editPlayer.dateOfBirth);
+    if (Number.isNaN(dob.getTime())) return '';
+    const today = new Date();
+    let age = today.getFullYear() - dob.getFullYear();
+    const monthDelta = today.getMonth() - dob.getMonth();
+    if (monthDelta < 0 || (monthDelta === 0 && today.getDate() < dob.getDate())) {
+      age -= 1;
+    }
+    return age >= 0 ? age : '';
+  }, [editPlayer?.dateOfBirth]);
+
   const [printPlayer, setPrintPlayer] = useState(null);
   const [academySettings, setAcademySettings] = useState(null);
+  const [idCardPlayer, setIdCardPlayer] = useState(null);
+  const [idCardPrintPlayer, setIdCardPrintPlayer] = useState(null);
 
   useEffect(() => {
     const fetchAcademySettings = async () => {
@@ -46,10 +204,7 @@ export default function PlayerReport({ searchQuery }) {
   }, [token]);
 
   const handlePrintClick = (player) => {
-    setPrintPlayer(player);
-    setTimeout(() => {
-      window.print();
-    }, 150);
+    handleEditClick(player);
   };
 
   // Sorting and Pagination State
@@ -68,6 +223,7 @@ export default function PlayerReport({ searchQuery }) {
     };
   }, []);
   const canManageRecords = canManageAcademyRecords();
+  const canEdit = canEditPlayer();
 
   // Reset pagination to page 1 on search
   useEffect(() => {
@@ -134,26 +290,57 @@ export default function PlayerReport({ searchQuery }) {
   };
 
   const handleEditClick = (player) => {
-    if (!canManageRecords) {
-      toast('You do not have permission to edit player records', 'warning');
-      return;
+    let baseSport = player.sportChosen || '';
+    let category = '';
+    let type = '';
+    const match = player.sportChosen?.match(/(.*?)\s*\((.*?)\s*-\s*(.*?)\)/);
+    if (match) {
+      baseSport = match[1].trim();
+      category = match[2].trim();
+      type = match[3].trim();
+    } else {
+      baseSport = player.sportChosen;
     }
-    setEditPlayer({ ...player });
+    setEditPlayer({ 
+      ...player,
+      sportChosen: baseSport,
+      gameCategory: category,
+      gameType: type
+    });
   };
 
   const handleModalChange = (e) => {
-    const { name, value } = e.target;
+    let { name, value } = e.target;
+    if (name === 'contactNumber' || name === 'emergencyContact') {
+      value = value.replace(/\D/g, '');
+    }
     setEditPlayer(prev => {
       const updated = { ...prev, [name]: value };
 
       if (name === 'sportChosen') {
-        const game = gamesList.find(g => g.gameName === value);
-        const gameFee = game ? game.gameFee : '';
-        updated.totalFee = gameFee;
+        updated.gameCategory = '';
+        updated.gameType = '';
+        updated.totalFee = '';
+        updated.payingFee = '';
+        updated.pendingFee = '';
+      }
+      
+      if (name === 'gameCategory') {
+        updated.gameType = '';
+        updated.totalFee = '';
+        updated.payingFee = '';
+        updated.pendingFee = '';
+      }
 
-        const tf = parseFloat(gameFee) || 0;
-        const pf = parseFloat(updated.payingFee) || 0;
-        updated.pendingFee = (tf - pf >= 0 ? tf - pf : 0).toString();
+      if (name === 'sportChosen' || name === 'gameCategory' || name === 'gameType') {
+        if (updated.sportChosen && updated.gameCategory && updated.gameType) {
+          const game = gamesList.find(g => g.gameName === updated.sportChosen && g.category === updated.gameCategory && g.gameType === updated.gameType);
+          const gameFee = game ? game.gameFee : '';
+          updated.totalFee = gameFee;
+          const tf = parseFloat(gameFee) || 0;
+          const pf = parseFloat(updated.payingFee) || 0;
+          updated.pendingFee = (tf - pf >= 0 ? tf - pf : 0).toString();
+        }
       }
 
       if (name === 'payingFee') {
@@ -168,7 +355,7 @@ export default function PlayerReport({ searchQuery }) {
 
   const handleUpdateSubmit = async (e) => {
     e.preventDefault();
-    if (!canManageRecords) {
+    if (!canEdit) {
       toast('You do not have permission to update player records', 'warning');
       return;
     }
@@ -182,12 +369,20 @@ export default function PlayerReport({ searchQuery }) {
       toast('Contact must be a valid 10-digit number', 'warning');
       return;
     }
+    if (editPlayer.emergencyContact && !/^\d{10}$/.test(editPlayer.emergencyContact)) {
+      toast('Emergency Contact must be a valid 10-digit number', 'warning');
+      return;
+    }
     if (!/\S+@\S+\.\S+/.test(editPlayer.email)) {
       toast('Invalid email address format', 'warning');
       return;
     }
     if (editPlayer.contactNumber === editPlayer.email) {
       toast('Contact and Email cannot be identical', 'warning');
+      return;
+    }
+    if (editPlayer.sportChosen && (!editPlayer.gameCategory || !editPlayer.gameType)) {
+      toast('Please select a game category and type', 'warning');
       return;
     }
 
@@ -206,9 +401,18 @@ export default function PlayerReport({ searchQuery }) {
       return;
     }
 
+    const submitPayload = {
+      ...editPlayer,
+      sportChosen: editPlayer.gameCategory && editPlayer.gameType 
+        ? `${editPlayer.sportChosen} (${editPlayer.gameCategory} - ${editPlayer.gameType})`
+        : editPlayer.sportChosen
+    };
+    delete submitPayload.gameCategory;
+    delete submitPayload.gameType;
+
     setUpdateLoading(true);
     try {
-      const res = await api.put(`/players/update/${editPlayer._id}`, editPlayer);
+      const res = await api.put(`/players/update/${editPlayer._id}`, submitPayload);
 
       if (res.data.success) {
         toast('Player registration updated successfully', 'success');
@@ -499,15 +703,22 @@ export default function PlayerReport({ searchQuery }) {
                     </div>
                   </div>
 
-                  {canManageRecords && (
-                    <div className="flex flex-col sm:flex-row gap-2">
-                      <button type="button"
-                        onClick={() => handlePrintClick(player)}
-                        className="inline-flex items-center justify-center gap-1.5 w-full px-3 py-3 text-sm font-bold text-gray-700 bg-gray-50 border border-gray-200 hover:bg-gray-800 hover:text-white rounded-xl transition-all cursor-pointer min-h-11"
-                      >
-                        <FiPrinter />
-                        <span>Print</span>
-                      </button>
+                  <div className="flex flex-col sm:flex-row gap-2">
+                    <button type="button"
+                      onClick={() => handlePrintClick(player)}
+                      className="inline-flex items-center justify-center gap-1.5 w-full px-3 py-3 text-sm font-bold text-gray-700 bg-gray-50 border border-gray-200 hover:bg-gray-800 hover:text-white rounded-xl transition-all cursor-pointer min-h-11"
+                    >
+                      <FiPrinter />
+                      <span>Print</span>
+                    </button>
+                    <button type="button"
+                      onClick={() => setIdCardPlayer(player)}
+                      className="inline-flex items-center justify-center gap-1.5 w-full px-3 py-3 text-sm font-bold text-amber-700 bg-amber-50 border border-amber-200 hover:bg-amber-600 hover:text-white rounded-xl transition-all cursor-pointer min-h-11"
+                    >
+                      <span className="text-base">🪪</span>
+                      <span>ID Card</span>
+                    </button>
+                    {canEdit && (
                       <button type="button"
                         onClick={() => handleEditClick(player)}
                         className="inline-flex items-center justify-center gap-1.5 w-full px-3 py-3 text-sm font-bold text-blue-600 bg-blue-50 border border-blue-100 hover:bg-blue-600 hover:text-white rounded-xl transition-all cursor-pointer min-h-11"
@@ -515,6 +726,8 @@ export default function PlayerReport({ searchQuery }) {
                         <FiEdit2 />
                         <span>Edit</span>
                       </button>
+                    )}
+                    {canManageRecords && (
                       <button type="button"
                         onClick={() => handleDelete(player._id)}
                         disabled={deletingId === player._id}
@@ -524,8 +737,8 @@ export default function PlayerReport({ searchQuery }) {
                         <FiTrash2 />
                         <span>Delete</span>
                       </button>
-                    </div>
-                  )}
+                    )}
+                  </div>
                 </article>
               ))}
             </div>
@@ -588,7 +801,8 @@ export default function PlayerReport({ searchQuery }) {
                     >
                       Pending {getSortIcon('pendingFee')}
                     </th>
-                    {canManageRecords && <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-center">Actions</th>}
+                    <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Status</th>
+                    <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-center">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
@@ -648,16 +862,32 @@ export default function PlayerReport({ searchQuery }) {
                           ₹{player.pendingFee}
                         </span>
                       </td>
-                      {canManageRecords && (
-                        <td className="px-6 py-3.5 text-center">
-                          <div className="flex items-center justify-center gap-2">
-                            <button type="button"
-                              onClick={() => handlePrintClick(player)}
-                              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-gray-700 bg-gray-50 border border-gray-200 hover:bg-gray-800 hover:text-white rounded-xl transition-all cursor-pointer"
-                            >
-                              <FiPrinter />
-                              <span>Print</span>
-                            </button>
+                      <td className="px-6 py-3.5">
+                        <span className={`inline-flex px-2.5 py-1 rounded-full text-xs font-semibold border ${
+                          player.status === 'Left Academy' ? 'bg-red-50 text-red-700 border-red-100' :
+                          player.status === 'Active' || !player.status ? 'bg-emerald-50 text-emerald-700 border-emerald-100' :
+                          'bg-amber-50 text-amber-700 border-amber-100'
+                        }`}>
+                          {player.status || 'Active'}
+                        </span>
+                      </td>
+                      <td className="px-6 py-3.5 text-center">
+                        <div className="flex items-center justify-center gap-2">
+                          <button type="button"
+                            onClick={() => handlePrintClick(player)}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-gray-700 bg-gray-50 border border-gray-200 hover:bg-gray-800 hover:text-white rounded-xl transition-all cursor-pointer"
+                          >
+                            <FiPrinter />
+                            <span>Details / Print</span>
+                          </button>
+                          <button type="button"
+                            onClick={() => setIdCardPlayer(player)}
+                            className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-bold text-amber-700 bg-amber-50 border border-amber-200 hover:bg-amber-600 hover:text-white rounded-xl transition-all cursor-pointer"
+                          >
+                            <span className="text-sm">🪪</span>
+                            <span>ID Card</span>
+                          </button>
+                          {canEdit && (
                             <button type="button"
                               onClick={() => handleEditClick(player)}
                               className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-blue-600 bg-blue-50 border border-blue-100 hover:bg-blue-600 hover:text-white rounded-xl transition-all cursor-pointer"
@@ -665,6 +895,8 @@ export default function PlayerReport({ searchQuery }) {
                               <FiEdit2 />
                               <span>Edit</span>
                             </button>
+                          )}
+                          {canManageRecords && (
                             <button type="button"
                               onClick={() => handleDelete(player._id)}
                               disabled={deletingId === player._id}
@@ -674,9 +906,9 @@ export default function PlayerReport({ searchQuery }) {
                               <FiTrash2 />
                               <span>Delete</span>
                             </button>
-                          </div>
-                        </td>
-                      )}
+                          )}
+                        </div>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -747,64 +979,114 @@ export default function PlayerReport({ searchQuery }) {
               <h3 className="text-lg font-bold text-gray-800">Update Player Registration</h3>
               <button type="button" onClick={() => setEditPlayer(null)} className="text-gray-400 hover:text-gray-600 text-lg font-bold focus:outline-none">&times;</button>
             </div>
-            <form onSubmit={handleUpdateSubmit} className="p-6 space-y-6">
+            <form onSubmit={handleUpdateSubmit} className="p-6 sm:p-8 space-y-8 h-[80vh] overflow-y-auto" noValidate>
               
               {/* Section: Personal Info */}
-              <div className="space-y-3">
-                <h4 className="text-[11px] font-bold text-blue-600 uppercase tracking-widest border-b border-blue-50 pb-1">Personal Details</h4>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="space-y-4">
+                <h3 className="text-xs font-bold text-blue-600 uppercase tracking-widest border-b border-blue-50 pb-2">Personal Information</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+
+                  {/* Player Image Upload */}
+                  <div className="space-y-1 sm:col-span-2 flex items-center gap-4 p-4 border border-dashed border-gray-200 rounded-2xl bg-gray-50/50 mb-2">
+                    <div className="w-16 h-16 rounded-full border border-gray-200 bg-white flex items-center justify-center text-gray-400 overflow-hidden shrink-0">
+                      {editPlayer.playerImage ? (
+                        <img src={getImageUrl(editPlayer.playerImage)} alt="Player Preview" className="w-full h-full object-cover" />
+                      ) : (
+                        <span className="text-2xl">👤</span>
+                      )}
+                    </div>
+                    <div className="space-y-1">
+                      <div className="text-xs font-bold text-gray-600 uppercase">Player Photo</div>
+                      {canEdit && (
+                        <div className="flex gap-2">
+                          <label className="px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-600 text-xs font-bold rounded-lg cursor-pointer transition flex items-center gap-1">
+                            <span>Upload Photo</span>
+                            <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
+                          </label>
+                          {editPlayer.playerImage && (
+                            <button
+                              type="button"
+                              onClick={() => setEditPlayer(prev => ({ ...prev, playerImage: '' }))}
+                              className="px-3 py-1.5 bg-red-50 hover:bg-red-100 text-red-600 text-xs font-bold rounded-lg transition"
+                            >
+                              Remove
+                            </button>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
                   
                   {/* Player ID */}
                   <div className="space-y-1">
-                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Player ID</label>
-                    <input type="text" className="w-full px-3 py-2 text-sm bg-gray-100 border border-gray-200 rounded-xl text-gray-400 font-semibold cursor-not-allowed" value={editPlayer.playerId} disabled />
+                    <label className="text-xs font-bold text-gray-600 uppercase tracking-wider">Player ID</label>
+                    <input type="text" className="w-full px-4 py-2.5 text-sm bg-gray-50 border border-gray-200 rounded-xl text-gray-400 font-semibold cursor-not-allowed" value={editPlayer.playerId} disabled />
                   </div>
 
                   {/* Full Name */}
                   <div className="space-y-1">
-                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Full Name</label>
-                    <input type="text" name="fullName" className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:outline-none" value={editPlayer.fullName} onChange={handleModalChange} required />
+                    <label className="text-xs font-bold text-gray-600 uppercase tracking-wider">Full Name</label>
+                    <div className="relative flex items-center">
+                      <span className="absolute left-3 text-gray-400 text-sm"><FiUser /></span>
+                      <input type="text" name="fullName" className="w-full pl-9 pr-4 py-2.5 text-sm bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all" value={editPlayer.fullName} onChange={handleModalChange} disabled={!canEdit || updateLoading} required />
+                    </div>
                   </div>
 
                   {/* Date of Birth */}
                   <div className="space-y-1">
-                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">DOB</label>
-                    <input type="date" name="dateOfBirth" className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:outline-none cursor-pointer" value={editPlayer.dateOfBirth} onChange={handleModalChange} required />
+                    <label className="text-xs font-bold text-gray-600 uppercase tracking-wider">Date of Birth</label>
+                    <input type="date" name="dateOfBirth" className="w-full px-4 py-2.5 text-sm bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all cursor-pointer" value={editPlayer.dateOfBirth} onChange={handleModalChange} max={new Date().toISOString().split('T')[0]} disabled={!canEdit || updateLoading} required />
+                  </div>
+
+                  {/* Age */}
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-gray-600 uppercase tracking-wider">Age</label>
+                    <input type="text" className="w-full px-4 py-2.5 text-sm bg-gray-50 border border-gray-200 rounded-xl text-gray-500 font-semibold cursor-not-allowed" value={calculatedAge === '' ? '' : `${calculatedAge} years`} readOnly />
                   </div>
 
                   {/* Gender */}
                   <div className="space-y-1">
-                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Gender</label>
-                    <select name="gender" className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:outline-none cursor-pointer" value={editPlayer.gender} onChange={handleModalChange} required>
+                    <label className="text-xs font-bold text-gray-600 uppercase tracking-wider">Gender</label>
+                    <select name="gender" className="w-full px-4 py-2.5 text-sm bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all cursor-pointer" value={editPlayer.gender} onChange={handleModalChange} disabled={!canEdit || updateLoading} required>
+                      <option value="">Select Gender</option>
                       <option value="male">Male</option>
                       <option value="female">Female</option>
                     </select>
                   </div>
 
-                  {/* Contact */}
+                  {/* Contact Number */}
                   <div className="space-y-1">
-                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Contact</label>
+                    <label className="text-xs font-bold text-gray-600 uppercase tracking-wider">Contact Number</label>
                     <div className="relative flex items-center">
-                      <span className="absolute left-3 text-gray-400 text-xs"><FiPhone /></span>
-                      <input type="text" name="contactNumber" className="w-full pl-8 pr-3 py-2 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:outline-none" value={editPlayer.contactNumber} onChange={handleModalChange} required />
+                      <span className="absolute left-3 text-gray-400 text-sm"><FiPhone /></span>
+                      <input type="text" name="contactNumber" className="w-full pl-9 pr-4 py-2.5 text-sm bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all" value={editPlayer.contactNumber} onChange={handleModalChange} maxLength={10} disabled={!canEdit || updateLoading} required />
                     </div>
                   </div>
 
-                  {/* Email */}
+                  {/* Emergency Contact */}
                   <div className="space-y-1">
-                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Email</label>
+                    <label className="text-xs font-bold text-gray-600 uppercase tracking-wider">Emergency Contact</label>
                     <div className="relative flex items-center">
-                      <span className="absolute left-3 text-gray-400 text-xs"><FiMail /></span>
-                      <input type="email" name="email" className="w-full pl-8 pr-3 py-2 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:outline-none" value={editPlayer.email} onChange={handleModalChange} required />
+                      <span className="absolute left-3 text-gray-400 text-sm"><FiPhone /></span>
+                      <input type="text" name="emergencyContact" className="w-full pl-9 pr-4 py-2.5 text-sm bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all" value={editPlayer.emergencyContact || ''} onChange={handleModalChange} maxLength={10} disabled={!canEdit || updateLoading} />
+                    </div>
+                  </div>
+
+                  {/* Email Address */}
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-gray-600 uppercase tracking-wider">Email Address</label>
+                    <div className="relative flex items-center">
+                      <span className="absolute left-3 text-gray-400 text-sm"><FiMail /></span>
+                      <input type="email" name="email" className="w-full pl-9 pr-4 py-2.5 text-sm bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all" value={editPlayer.email} onChange={handleModalChange} disabled={!canEdit || updateLoading} required />
                     </div>
                   </div>
 
                   {/* Address */}
-                  <div className="space-y-1 sm:col-span-3">
-                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Address</label>
+                  <div className="space-y-1 sm:col-span-2">
+                    <label className="text-xs font-bold text-gray-600 uppercase tracking-wider">Address</label>
                     <div className="relative flex items-center">
-                      <span className="absolute left-3 text-gray-400 text-xs"><FiMapPin /></span>
-                      <input type="text" name="address" className="w-full pl-8 pr-3 py-2 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:outline-none" value={editPlayer.address} onChange={handleModalChange} required />
+                      <span className="absolute left-3 text-gray-400 text-sm"><FiMapPin /></span>
+                      <input type="text" name="address" className="w-full pl-9 pr-4 py-2.5 text-sm bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all" value={editPlayer.address} onChange={handleModalChange} disabled={!canEdit || updateLoading} required />
                     </div>
                   </div>
 
@@ -812,14 +1094,14 @@ export default function PlayerReport({ searchQuery }) {
               </div>
 
               {/* Section: Academy Info */}
-              <div className="space-y-3">
-                <h4 className="text-[11px] font-bold text-blue-600 uppercase tracking-widest border-b border-blue-50 pb-1">Academy Details</h4>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="space-y-4">
+                <h3 className="text-xs font-bold text-blue-600 uppercase tracking-widest border-b border-blue-50 pb-2">Academy Registration</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                   
                   {/* Sport Chosen */}
                   <div className="space-y-1">
-                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Sport Chosen</label>
-                    <select name="sportChosen" className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:outline-none cursor-pointer" value={editPlayer.sportChosen} onChange={handleModalChange} required>
+                    <label className="text-xs font-bold text-gray-600 uppercase tracking-wider">Sport Chosen</label>
+                    <select name="sportChosen" className="w-full px-4 py-2.5 text-sm bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all cursor-pointer" value={editPlayer.sportChosen} onChange={handleModalChange} disabled={!canEdit || updateLoading} required>
                       <option value="">Select Sport</option>
                       {[...new Set(gamesList.map((g) => g.gameName))].map((gameName, idx) => (
                         <option key={idx} value={gameName}>{gameName}</option>
@@ -827,15 +1109,43 @@ export default function PlayerReport({ searchQuery }) {
                     </select>
                   </div>
 
+                  {/* Game Category */}
+                  {editPlayer.sportChosen && (
+                  <div className="space-y-1 animate-fade-in-up">
+                    <label className="text-xs font-bold text-gray-600 uppercase tracking-wider">Category</label>
+                    <select name="gameCategory" className="w-full px-4 py-2.5 text-sm bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all cursor-pointer" value={editPlayer.gameCategory} onChange={handleModalChange} disabled={!canEdit || updateLoading} required>
+                      <option value="">Select Category</option>
+                      {[...new Set(gamesList.filter(g => g.gameName === editPlayer.sportChosen).map(g => g.category))].map((cat, idx) => (
+                        <option key={idx} value={cat}>{cat}</option>
+                      ))}
+                    </select>
+                  </div>
+                  )}
+
+                  {/* Game Type */}
+                  {editPlayer.gameCategory && (
+                  <div className="space-y-1 animate-fade-in-up">
+                    <label className="text-xs font-bold text-gray-600 uppercase tracking-wider">Game Type</label>
+                    <select name="gameType" className="w-full px-4 py-2.5 text-sm bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all cursor-pointer" value={editPlayer.gameType} onChange={handleModalChange} disabled={!canEdit || updateLoading} required>
+                      <option value="">Select Type</option>
+                      {[...new Set(gamesList.filter(g => g.gameName === editPlayer.sportChosen && g.category === editPlayer.gameCategory).map(g => g.gameType))].map((type, idx) => (
+                        <option key={idx} value={type}>{type}</option>
+                      ))}
+                    </select>
+                  </div>
+                  )}
+
                   {/* Coach Assigned */}
                   <div className="space-y-1">
-                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Coach Assigned</label>
-                    <select name="coachAssigned" className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:outline-none cursor-pointer" value={editPlayer.coachAssigned} onChange={handleModalChange} required>
+                    <label className="text-xs font-bold text-gray-600 uppercase tracking-wider">Coach Assigned</label>
+                    <select name="coachAssigned" className="w-full px-4 py-2.5 text-sm bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all cursor-pointer" value={editPlayer.coachAssigned} onChange={handleModalChange} disabled={!canEdit || updateLoading} required>
                       <option value="">Select Coach</option>
                       {(() => {
                         if (!editPlayer.sportChosen) return coachesList;
-                        const specialized = coachesList.filter(c => c.sportSpecialization === editPlayer.sportChosen);
-                        return specialized.length > 0 ? specialized : coachesList;
+                        const baseSport = editPlayer.sportChosen;
+                        const specialized = coachesList.filter(c => c.sportSpecialization === baseSport);
+                        const others = coachesList.filter(c => c.sportSpecialization !== baseSport);
+                        return [...specialized, ...others];
                       })().map((c) => (
                         <option key={c._id} value={c.name}>{c.name} ({c.sportSpecialization})</option>
                       ))}
@@ -844,10 +1154,10 @@ export default function PlayerReport({ searchQuery }) {
 
                   {/* Joining Date */}
                   <div className="space-y-1">
-                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Joining Date</label>
+                    <label className="text-xs font-bold text-gray-600 uppercase tracking-wider">Joining Date</label>
                     <div className="relative flex items-center">
-                      <span className="absolute left-3 text-gray-400 text-xs"><FiCalendar /></span>
-                      <input type="date" name="joiningDate" className="w-full pl-8 pr-3 py-2 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:outline-none cursor-pointer" value={editPlayer.joiningDate} onChange={handleModalChange} required />
+                      <span className="absolute left-3 text-gray-400 text-sm"><FiCalendar /></span>
+                      <input type="date" name="joiningDate" className="w-full pl-9 pr-4 py-2.5 text-sm bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all cursor-pointer" value={editPlayer.joiningDate} onChange={handleModalChange} max={new Date().toISOString().split('T')[0]} disabled={!canEdit || updateLoading} required />
                     </div>
                   </div>
 
@@ -855,54 +1165,192 @@ export default function PlayerReport({ searchQuery }) {
               </div>
 
               {/* Section: Fee Info */}
-              <div className="space-y-3">
-                <h4 className="text-[11px] font-bold text-blue-600 uppercase tracking-widest border-b border-blue-50 pb-1">Fee Configuration</h4>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="space-y-4">
+                <h3 className="text-xs font-bold text-blue-600 uppercase tracking-widest border-b border-blue-50 pb-2">Fee Configuration</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
                   
                   {/* Total Fee (ReadOnly) */}
                   <div className="space-y-1">
-                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Total Fee (₹)</label>
+                    <label className="text-xs font-bold text-gray-600 uppercase tracking-wider">Total Fee (₹)</label>
                     <div className="relative flex items-center">
                       <span className="absolute left-3 text-gray-400 text-sm"><FaRupeeSign /></span>
-                      <input type="text" className="w-full pl-8 pr-3 py-2 text-sm bg-gray-50 border border-gray-200 rounded-xl text-gray-500 font-semibold cursor-not-allowed" value={editPlayer.totalFee} readOnly />
+                      <input type="text" className="w-full pl-9 pr-4 py-2.5 text-sm bg-gray-50 border border-gray-200 rounded-xl text-gray-500 font-semibold cursor-not-allowed" value={editPlayer.totalFee} readOnly />
                     </div>
                   </div>
 
                   {/* Paying Fee */}
                   <div className="space-y-1">
-                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Paying Fee (₹)</label>
+                    <label className="text-xs font-bold text-gray-600 uppercase tracking-wider">Paying Fee (₹)</label>
                     <div className="relative flex items-center">
                       <span className="absolute left-3 text-gray-400 text-sm"><FaRupeeSign /></span>
-                      <input type="number" name="payingFee" className="w-full pl-8 pr-3 py-2 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:outline-none" value={editPlayer.payingFee} onChange={handleModalChange} min="0" required />
+                      <input type="number" name="payingFee" className="w-full pl-9 pr-4 py-2.5 text-sm bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all" value={editPlayer.payingFee} onChange={handleModalChange} min="0" step="1" disabled={!canEdit || updateLoading} required />
                     </div>
                   </div>
 
                   {/* Pending Fee (ReadOnly) */}
                   <div className="space-y-1">
-                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Pending Fee (₹)</label>
+                    <label className="text-xs font-bold text-gray-600 uppercase tracking-wider">Pending Fee (₹)</label>
                     <div className="relative flex items-center">
                       <span className="absolute left-3 text-gray-400 text-sm"><FaRupeeSign /></span>
-                      <input type="text" className="w-full pl-8 pr-3 py-2 text-sm bg-gray-50 border border-gray-200 rounded-xl text-gray-500 font-semibold cursor-not-allowed" value={editPlayer.pendingFee} readOnly />
+                      <input type="text" className="w-full pl-9 pr-4 py-2.5 text-sm bg-gray-50 border border-gray-200 rounded-xl text-gray-500 font-semibold cursor-not-allowed" value={editPlayer.pendingFee} readOnly />
                     </div>
                   </div>
 
                 </div>
               </div>
 
+              {/* Section: Leave Academy (Exit Management) */}
+              {canManageRecords && (
+                <div className="space-y-4 pt-4 border-t border-gray-150">
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      id="leaveAcademyCheckbox"
+                      className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 cursor-pointer"
+                      checked={leaveAcademyChecked}
+                      onChange={(e) => setLeaveAcademyChecked(e.target.checked)}
+                      disabled={editPlayer.status === 'Left Academy'}
+                    />
+                    <label htmlFor="leaveAcademyCheckbox" className="text-sm font-bold text-gray-700 cursor-pointer">
+                      Leave Academy (Exit Management)
+                    </label>
+                  </div>
+
+                  {leaveAcademyChecked && (
+                    <div className="p-4 bg-red-50/50 border border-red-100 rounded-2xl space-y-4 animate-fade-in-up">
+                      <h4 className="text-xs font-bold text-red-600 uppercase tracking-wider">Leave Details for {editPlayer.fullName}</h4>
+                      
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="space-y-1">
+                          <label className="text-xs font-bold text-gray-600 uppercase tracking-wider">Leaving Date</label>
+                          <input
+                            type="date"
+                            className="w-full px-4 py-2.5 text-sm bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-all cursor-pointer"
+                            value={leaveDate}
+                            onChange={(e) => setLeaveDate(e.target.value)}
+                            max={new Date().toISOString().split('T')[0]}
+                            disabled={editPlayer.status === 'Left Academy'}
+                          />
+                        </div>
+
+                        <div className="space-y-1">
+                          <label className="text-xs font-bold text-gray-600 uppercase tracking-wider">Reason for Leaving</label>
+                          <select
+                            className="w-full px-4 py-2.5 text-sm bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-all cursor-pointer"
+                            value={leaveReason}
+                            onChange={(e) => setLeaveReason(e.target.value)}
+                            disabled={editPlayer.status === 'Left Academy'}
+                          >
+                            <option value="">Select Reason</option>
+                            <option value="Resigned">Resigned</option>
+                            <option value="Completed Training">Completed Training</option>
+                            <option value="Financial Issues">Financial Issues</option>
+                            <option value="Transferred">Transferred</option>
+                            <option value="Medical">Medical</option>
+                            <option value="Other">Other</option>
+                          </select>
+                        </div>
+
+                        <div className="space-y-1 sm:col-span-2">
+                          <label className="text-xs font-bold text-gray-600 uppercase tracking-wider">Remarks</label>
+                          <textarea
+                            className="w-full px-4 py-2 text-sm bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-all"
+                            rows="2"
+                            placeholder="Exit remarks / feedback..."
+                            value={leaveRemarks}
+                            onChange={(e) => setLeaveRemarks(e.target.value)}
+                            disabled={editPlayer.status === 'Left Academy'}
+                          />
+                        </div>
+                      </div>
+
+                      {editPlayer.status !== 'Left Academy' && (
+                        <div className="flex justify-end pt-2">
+                          <button
+                            type="button"
+                            disabled={leaveLoading}
+                            onClick={handleLeaveAcademySubmit}
+                            className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-xl transition flex items-center gap-1.5 cursor-pointer shadow-md shadow-red-500/10"
+                          >
+                            {leaveLoading && <span className="animate-spin inline-block w-3 h-3 border-2 border-white/20 border-t-white rounded-full" />}
+                            Confirm Exit
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+
               <div className="flex justify-end gap-2 pt-4 border-t border-gray-100">
-                <button type="button" onClick={() => setEditPlayer(null)} className="px-4 py-2 border border-gray-200 hover:bg-gray-50 text-gray-600 text-sm font-semibold rounded-xl transition">Cancel</button>
-                <button type="submit" disabled={updateLoading} className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold rounded-xl transition flex items-center gap-1.5 cursor-pointer">
-                  {updateLoading && <span className="animate-spin inline-block w-3.5 h-3.5 border-2 border-white/20 border-t-white rounded-full" />}
-                  Save Changes
+                <button
+                  type="button"
+                  onClick={async () => {
+                    const submitPayload = {
+                      ...editPlayer,
+                      sportChosen: editPlayer.gameCategory && editPlayer.gameType 
+                        ? `${editPlayer.sportChosen} (${editPlayer.gameCategory} - ${editPlayer.gameType})`
+                        : editPlayer.sportChosen
+                    };
+                    delete submitPayload.gameCategory;
+                    delete submitPayload.gameType;
+
+                    try {
+                      await api.post('/players/print-history', { playerId: editPlayer._id, reason: 'Registration Form Print' });
+                    } catch (err) {
+                      console.error('Failed to log print history:', err);
+                    }
+
+                    setPrintPlayer(submitPayload);
+                    setTimeout(() => {
+                      window.print();
+                    }, 300);
+                  }}
+                  className="px-4 py-2 bg-gray-800 hover:bg-black text-white text-sm font-bold rounded-xl transition flex items-center gap-1.5 cursor-pointer mr-auto"
+                >
+                  <FiPrinter />
+                  <span>Print Registration Form</span>
                 </button>
+                
+                <button type="button" onClick={() => setEditPlayer(null)} className="px-4 py-2 border border-gray-200 hover:bg-gray-50 text-gray-600 text-sm font-semibold rounded-xl transition">Cancel</button>
+                {canEdit && editPlayer.status !== 'Left Academy' && (
+                  <button type="submit" disabled={updateLoading} className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold rounded-xl transition flex items-center gap-1.5 cursor-pointer">
+                    {updateLoading && <span className="animate-spin inline-block w-3.5 h-3.5 border-2 border-white/20 border-t-white rounded-full" />}
+                    Save Changes
+                  </button>
+                )}
               </div>
             </form>
           </div>
         </div>
       )}
 
+      {idCardPlayer && (
+        <PlayerIdCardModal
+          player={idCardPlayer}
+          academy={academySettings}
+          onClose={() => setIdCardPlayer(null)}
+          onPrint={(p) => {
+            setIdCardPrintPlayer(p);
+            setTimeout(() => {
+              document.body.classList.add('printing-id-card');
+              const cleanup = () => {
+                document.body.classList.remove('printing-id-card');
+                window.removeEventListener('afterprint', cleanup);
+              };
+              window.addEventListener('afterprint', cleanup);
+              window.print();
+            }, 400);
+          }}
+        />
+      )}
+
       {printPlayer && (
-        <PlayerRegistrationPrint player={printPlayer} academy={academySettings} />
+        <PlayerRegistrationPrint player={printPlayer} academy={academySettings} summary={playerSummary} />
+      )}
+
+      {idCardPrintPlayer && (
+        <PlayerIdCardPrint player={idCardPrintPlayer} academy={academySettings} />
       )}
 
     </div>

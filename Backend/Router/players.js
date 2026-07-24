@@ -147,7 +147,7 @@ router.get('/players', auth, async (req, res) => {
 })
 
 
-router.put('/players/update/:id', auth, auth.allowRoles('superadmin', 'admin'), async (req, res) => {
+router.put('/players/update/:id', auth, auth.allowRoles('superadmin', 'admin', 'coach'), async (req, res) => {
     try {
         if (req.body.contactNumber === req.body.email) {
             return res.status(400).json({
@@ -163,7 +163,12 @@ router.put('/players/update/:id', auth, auth.allowRoles('superadmin', 'admin'), 
         if (existingContact) {
             return res.status(400).json({ success: false, message: "Contact number already exists" });
         }
-        const filter = req.userRole === 'superadmin' ? { _id: req.params.id } : { _id: req.params.id, owner: req.academyOwnerId };
+        let filter = req.userRole === 'superadmin' ? { _id: req.params.id } : { _id: req.params.id, owner: req.academyOwnerId };
+        if (req.userRole === 'coach' && req.coachProfile) {
+            filter.coachAssigned = req.coachProfile.name;
+        } else if (req.userRole === 'coach') {
+            return res.status(403).json({ success: false, message: "Coach profile not found" });
+        }
         const updatedPlayer = await players.findOneAndUpdate(
             filter,
             {

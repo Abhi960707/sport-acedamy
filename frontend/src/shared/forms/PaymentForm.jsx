@@ -10,7 +10,7 @@ const todayValue = new Date().toISOString().slice(0, 10);
 
 export default function Payment() {
   const toast = useToast();
-  const token = localStorage.getItem('token');
+  const token = localStorage.getItem('sa_token');
   const canManageRecords = canMarkAttendanceAndPayments();
 
   const [players, setPlayers] = useState([]);

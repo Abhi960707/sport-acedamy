@@ -17,7 +17,7 @@ const getImageUrl = (url) => {
   return url;
 };
 
-export default function PlayerRegistrationPrint({ player, academy }) {
+export default function PlayerRegistrationPrint({ player, academy, summary }) {
   if (!player) return null;
 
   // Split sportChosen if it contains category/type
@@ -60,7 +60,7 @@ export default function PlayerRegistrationPrint({ player, academy }) {
   // Get logged-in user name for Verified By field
   let loggedInUserName = '';
   try {
-    const authUserStr = localStorage.getItem('authUser');
+    const authUserStr = localStorage.getItem('sa_authUser');
     if (authUserStr) {
       const authUser = JSON.parse(authUserStr);
       loggedInUserName = authUser.name || '';
@@ -71,6 +71,24 @@ export default function PlayerRegistrationPrint({ player, academy }) {
 
   // "verified by this admin or particular coach name"
   const verifierName = loggedInUserName || player.coachAssigned || 'Academy Administrator';
+
+  // Summary values
+  const attTotal = summary?.attendance?.total || 0;
+  const attPresent = summary?.attendance?.present || 0;
+  const attAbsent = summary?.attendance?.absent || 0;
+  const attPercent = summary?.attendance?.percentage || 0;
+  const lastAtt = summary?.attendance?.lastAttendance || '—';
+
+  const totalFee = summary?.payment?.totalFee || player.totalFee || 0;
+  const paidFee = summary?.payment?.paid || player.payingFee || 0;
+  const pendingFee = summary?.payment?.pending || player.pendingFee || 0;
+  const lastPayment = summary?.payment?.lastPaymentDate || '—';
+  const paymentMethod = summary?.payment?.paymentMethod || '—';
+
+  const expMonths = summary?.experience?.experienceMonths || 0;
+  const expStr = summary?.experience?.experienceString || '0 Months';
+
+  const archiveInfo = summary?.archive || null;
 
   return (
     <div 
@@ -234,9 +252,96 @@ export default function PlayerRegistrationPrint({ player, academy }) {
           </table>
         </div>
 
+        {/* Section 4: Player Status & Lifecycle Details */}
+        <div className="space-y-1">
+          <div className="bg-gray-100 font-bold px-2 py-0.5 uppercase border border-black text-[9px] tracking-wider">
+            4. Player Status & Lifecycle Details
+          </div>
+          <table className="w-full border-collapse border border-black text-left text-[10px]">
+            <tbody>
+              <tr>
+                <th className="border border-black px-2 py-1.5 w-1/4 bg-gray-50 font-bold text-[9px] uppercase">Player Status</th>
+                <td className="border border-black px-2 py-1.5 w-1/4 font-semibold uppercase">{player.status || 'Active'}</td>
+                <th className="border border-black px-2 py-1.5 w-1/4 bg-gray-50 font-bold text-[9px] uppercase">Registration Status</th>
+                <td className="border border-black px-2 py-1.5 w-1/4 font-semibold text-emerald-700">✓ APPROVED</td>
+              </tr>
+              <tr>
+                <th className="border border-black px-2 py-1.5 w-1/4 bg-gray-50 font-bold text-[9px] uppercase">Current Status</th>
+                <td className="border border-black px-2 py-1.5 w-1/4 font-semibold uppercase">{player.status || 'Active'}</td>
+                <th className="border border-black px-2 py-1.5 w-1/4 bg-gray-50 font-bold text-[9px] uppercase">Joining Date</th>
+                <td className="border border-black px-2 py-1.5 w-1/4 font-medium">{player.joiningDate}</td>
+              </tr>
+              <tr>
+                <th className="border border-black px-2 py-1.5 w-1/4 bg-gray-50 font-bold text-[9px] uppercase">Academy Experience</th>
+                <td className="border border-black px-2 py-1.5 w-1/4 font-semibold">{expStr}</td>
+                <th className="border border-black px-2 py-1.5 w-1/4 bg-gray-50 font-bold text-[9px] uppercase">Months Completed</th>
+                <td className="border border-black px-2 py-1.5 w-1/4 font-semibold">{expMonths} Month(s)</td>
+              </tr>
+              <tr>
+                <th className="border border-black px-2 py-1.5 w-1/4 bg-gray-50 font-bold text-[9px] uppercase">Training Duration</th>
+                <td className="border border-black px-2 py-1.5 w-1/4 font-medium">{player.status === 'Left Academy' ? `${expMonths} Months (Exit)` : 'Ongoing'}</td>
+                <th className="border border-black px-2 py-1.5 w-1/4 bg-gray-50 font-bold text-[9px] uppercase">Attendance Record</th>
+                <td className="border border-black px-2 py-1.5 w-1/4 font-medium">
+                  {attPresent} Present / {attAbsent} Absent ({attPercent}%)
+                </td>
+              </tr>
+              <tr>
+                <th className="border border-black px-2 py-1.5 w-1/4 bg-gray-50 font-bold text-[9px] uppercase">Games Participated</th>
+                <td className="border border-black px-2 py-1.5 w-1/4 font-semibold">1 (Primary Sport)</td>
+                <th className="border border-black px-2 py-1.5 w-1/4 bg-gray-50 font-bold text-[9px] uppercase">Current Coach</th>
+                <td className="border border-black px-2 py-1.5 w-1/4 font-semibold">{player.coachAssigned}</td>
+              </tr>
+              <tr>
+                <th className="border border-black px-2 py-1.5 w-1/4 bg-gray-50 font-bold text-[9px] uppercase">Current Category</th>
+                <td className="border border-black px-2 py-1.5 w-1/4 font-medium">{categoryName || '—'}</td>
+                <th className="border border-black px-2 py-1.5 w-1/4 bg-gray-50 font-bold text-[9px] uppercase">Current Batch</th>
+                <td className="border border-black px-2 py-1.5 w-1/4 font-medium">Regular Batch</td>
+              </tr>
+              <tr>
+                <th className="border border-black px-2 py-1.5 w-1/4 bg-gray-50 font-bold text-[9px] uppercase">Performance Grade</th>
+                <td className="border border-black px-2 py-1.5 w-1/4 font-semibold">{attPercent >= 85 ? 'Grade A' : attPercent >= 70 ? 'Grade B' : 'Grade C'}</td>
+                <th className="border border-black px-2 py-1.5 w-1/4 bg-gray-50 font-bold text-[9px] uppercase">Medical Status</th>
+                <td className="border border-black px-2 py-1.5 w-1/4 font-medium">{player.medicalNotes || 'Fit for Training'}</td>
+              </tr>
+              <tr>
+                <th className="border border-black px-2 py-1.5 w-1/4 bg-gray-50 font-bold text-[9px] uppercase">Fee Status</th>
+                <td className="border border-black px-2 py-1.5 w-1/4 font-semibold text-emerald-700">{pendingFee > 0 ? `Pending Balance (₹${pendingFee})` : 'Fully Paid'}</td>
+                <th className="border border-black px-2 py-1.5 w-1/4 bg-gray-50 font-bold text-[9px] uppercase">Last Payment Date</th>
+                <td className="border border-black px-2 py-1.5 w-1/4 font-medium">{lastPayment} ({paymentMethod})</td>
+              </tr>
+              <tr>
+                <th className="border border-black px-2 py-1.5 w-1/4 bg-gray-50 font-bold text-[9px] uppercase">Next Fee Due</th>
+                <td className="border border-black px-2 py-1.5 w-1/4 font-medium">{pendingFee > 0 ? 'Immediate Action Required' : 'On Schedule'}</td>
+                <th className="border border-black px-2 py-1.5 w-1/4 bg-gray-50 font-bold text-[9px] uppercase">Last Attendance Date</th>
+                <td className="border border-black px-2 py-1.5 w-1/4 font-medium">{lastAtt}</td>
+              </tr>
+              <tr>
+                <th className="border border-black px-2 py-1.5 w-1/4 bg-gray-50 font-bold text-[9px] uppercase">Profile Verified</th>
+                <td className="border border-black px-2 py-1.5 w-1/4 font-semibold text-emerald-700">✓ VERIFIED</td>
+                <th className="border border-black px-2 py-1.5 w-1/4 bg-gray-50 font-bold text-[9px] uppercase">Verified By</th>
+                <td className="border border-black px-2 py-1.5 w-1/4 font-semibold">{verifierName}</td>
+              </tr>
+              {player.status === 'Left Academy' && archiveInfo && (
+                <>
+                  <tr>
+                    <th className="border border-black px-2 py-1.5 w-1/4 bg-red-50 font-bold text-[9px] uppercase">Exit / Leave Date</th>
+                    <td className="border border-black px-2 py-1.5 w-1/4 font-semibold text-red-700">{archiveInfo.leavingDate}</td>
+                    <th className="border border-black px-2 py-1.5 w-1/4 bg-red-50 font-bold text-[9px] uppercase">Reason For Exit</th>
+                    <td className="border border-black px-2 py-1.5 w-1/4 font-semibold text-red-700">{archiveInfo.reasonForLeaving}</td>
+                  </tr>
+                  <tr>
+                    <th className="border border-black px-2 py-1.5 w-1/4 bg-red-50 font-bold text-[9px] uppercase">Exit Remarks</th>
+                    <td className="border border-black px-2 py-1.5 w-3/4 font-medium text-red-700" colSpan={3}>{archiveInfo.remarks || '—'}</td>
+                  </tr>
+                </>
+              )}
+            </tbody>
+          </table>
+        </div>
+
         {/* Declaration Section */}
         <div className="border border-black p-2.5 bg-gray-50 space-y-1">
-          <p className="font-bold text-[9px] uppercase tracking-wider">4. Rules & Declaration</p>
+          <p className="font-bold text-[9px] uppercase tracking-wider">5. Rules & Declaration</p>
           <p className="text-[8.5px] text-gray-800 leading-normal">
             I hereby declare that the information provided above is true and correct to the best of my knowledge. I agree to abide by the rules, regulations, code of conduct, and policies set forth by {academyName}.
           </p>
@@ -254,7 +359,7 @@ export default function PlayerRegistrationPrint({ player, academy }) {
         {/* Section: Academy Use Only */}
         <div className="border border-black p-2.5 space-y-1.5">
           <p className="font-bold text-[9px] uppercase border-b border-black pb-0.5 bg-gray-100 px-1 tracking-wider">
-            5. For Academy Administration Use Only
+            6. For Academy Administration Use Only
           </p>
           <div className="grid grid-cols-3 gap-4 text-[9px] items-center">
             <div className="space-y-1">

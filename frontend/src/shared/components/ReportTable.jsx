@@ -7,7 +7,7 @@ import { downloadCsv, downloadPdf } from '../../common/reportExport';
 
 export default function TransactionReport() {
   const toast = useToast();
-  const token = localStorage.getItem('token');
+  const token = localStorage.getItem('sa_token');
 
   const [payments, setPayments] = useState([]);
   const [players, setPlayers] = useState([]);

@@ -39,7 +39,7 @@ class ErrorBoundary extends React.Component {
 const RoleComponent = ({ page, ...props }) => {
   let user = {};
   try {
-    user = JSON.parse(localStorage.getItem('authUser') || '{}');
+    user = JSON.parse(localStorage.getItem('sa_authUser') || '{}');
   } catch (e) {
     user = {};
   }

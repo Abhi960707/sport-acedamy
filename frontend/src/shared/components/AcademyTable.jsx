@@ -14,7 +14,7 @@ export default function AcademyTable({ role }) {
   const fetchAcademies = useCallback(async () => {
     try {
       setLoading(true);
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('sa_token');
       const res = await fetch(`${API_BASE}/superadmin/academies`, {
         headers: { Authorization: `Bearer ${token}` }
       });

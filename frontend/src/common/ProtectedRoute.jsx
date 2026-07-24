@@ -21,8 +21,8 @@ export default function ProtectedRoute({ children, allowedRoles }) {
         });
         if (res.status === 401) {
           // Token is invalid/expired — clear storage and redirect
-          localStorage.removeItem('token');
-          localStorage.removeItem('authUser');
+          localStorage.removeItem('sa_token');
+          localStorage.removeItem('sa_authUser');
           setHasAcademy(false);
           return;
         }
