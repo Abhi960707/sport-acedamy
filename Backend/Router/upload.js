@@ -65,8 +65,8 @@ router.post('/api/upload', auth, async (req, res) => {
 
         fs.writeFileSync(filepath, buffer);
 
-        // Return local relative URL
-        const localUrl = `http://localhost:4005/uploads/${filename}`;
+        const backendUrl = process.env.BACKEND_URL || '';
+        const localUrl = `${backendUrl}/uploads/${filename}`;
         res.status(200).json({
             success: true,
             url: localUrl

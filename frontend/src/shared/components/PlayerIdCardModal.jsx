@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import QRCode from 'qrcode';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
-import { FiPrinter, FiDownload, FiRotateCw, FiX, FiShield, FiPhone, FiGlobe, FiMail, FiMapPin } from 'react-icons/fi';
+import { FiPrinter, FiDownload, FiRotateCw, FiX, FiShield } from 'react-icons/fi';
 import { API_BASE } from '../../api';
 
 const getImageUrl = (url) => {

@@ -73,14 +73,11 @@ export default function PlayerRegistrationPrint({ player, academy, summary }) {
   const verifierName = loggedInUserName || player.coachAssigned || 'Academy Administrator';
 
   // Summary values
-  const attTotal = summary?.attendance?.total || 0;
   const attPresent = summary?.attendance?.present || 0;
   const attAbsent = summary?.attendance?.absent || 0;
   const attPercent = summary?.attendance?.percentage || 0;
   const lastAtt = summary?.attendance?.lastAttendance || '—';
 
-  const totalFee = summary?.payment?.totalFee || player.totalFee || 0;
-  const paidFee = summary?.payment?.paid || player.payingFee || 0;
   const pendingFee = summary?.payment?.pending || player.pendingFee || 0;
   const lastPayment = summary?.payment?.lastPaymentDate || '—';
   const paymentMethod = summary?.payment?.paymentMethod || '—';
@@ -147,7 +144,7 @@ export default function PlayerRegistrationPrint({ player, academy, summary }) {
             {player.playerImage ? (
               <img 
                 src={getImageUrl(player.playerImage)} 
-                alt="Player Photo" 
+                alt="Player" 
                 style={{ width: '100%', height: '100%', objectFit: 'cover' }}
               />
             ) : (

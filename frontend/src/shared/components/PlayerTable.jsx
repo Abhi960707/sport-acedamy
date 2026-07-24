@@ -1,5 +1,15 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import api, { API_BASE } from '../../api';
+import { useToast } from '../../common/Toast';
+import { useNavigate } from 'react-router-dom';
+import { FiTrash2, FiEdit2, FiChevronLeft, FiChevronRight, FiChevronUp, FiChevronDown, FiPhone, FiMail, FiCalendar, FiMapPin, FiBell, FiPrinter, FiUser } from 'react-icons/fi';
+import { FaRupeeSign } from 'react-icons/fa';
+import { canManageAcademyRecords, canEditPlayer } from '../../common/access';
+import ExportDropdown from './ExportDropdown';
+import { downloadCsv, downloadPdf } from '../../common/reportExport';
+import PlayerRegistrationPrint from './PlayerRegistrationPrint';
+import PlayerIdCardModal from './PlayerIdCardModal';
+import PlayerIdCardPrint from './PlayerIdCardPrint';
 
 const getImageUrl = (url) => {
   if (!url) return '';
@@ -11,16 +21,6 @@ const getImageUrl = (url) => {
   }
   return url;
 };
-import { useToast } from '../../common/Toast';
-import { useNavigate } from 'react-router-dom';
-import { FiTrash2, FiEdit2, FiChevronLeft, FiChevronRight, FiChevronUp, FiChevronDown, FiPhone, FiMail, FiCalendar, FiMapPin, FiBell, FiPrinter, FiUser } from 'react-icons/fi';
-import { FaRupeeSign } from 'react-icons/fa';
-import { canManageAcademyRecords, canEditPlayer } from '../../common/access';
-import ExportDropdown from './ExportDropdown';
-import { downloadCsv, downloadPdf } from '../../common/reportExport';
-import PlayerRegistrationPrint from './PlayerRegistrationPrint';
-import PlayerIdCardModal from './PlayerIdCardModal';
-import PlayerIdCardPrint from './PlayerIdCardPrint';
 
 export default function PlayerReport({ searchQuery }) {
   const toast = useToast();
@@ -105,12 +105,10 @@ export default function PlayerReport({ searchQuery }) {
         setTasks(prev => prev.map(t => t._id === editPlayer._id ? { ...t, status: 'Left Academy' } : t));
         
         // Fetch updated player summary so print contains archive/leave info
-        let updatedSummary = null;
         try {
           const summaryRes = await api.get(`/players/summary/${editPlayer._id}`);
           if (summaryRes.data.success) {
             setPlayerSummary(summaryRes.data.data);
-            updatedSummary = summaryRes.data.data;
           }
         } catch (summaryErr) {
           console.error('Failed to load updated summary for print:', summaryErr);
@@ -180,7 +178,7 @@ export default function PlayerReport({ searchQuery }) {
       age -= 1;
     }
     return age >= 0 ? age : '';
-  }, [editPlayer?.dateOfBirth]);
+  }, [editPlayer]);
 
   const [printPlayer, setPrintPlayer] = useState(null);
   const [academySettings, setAcademySettings] = useState(null);
