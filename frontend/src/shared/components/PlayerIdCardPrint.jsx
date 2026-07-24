@@ -214,8 +214,9 @@ export default function PlayerIdCardPrint({ player, academy }) {
         </div>
 
         {/* Footer */}
-        <div style={{ background: '#0f172a', color: '#fff', fontSize: '5px', padding: '2px 5px', textAlign: 'center', borderTop: '2px solid #f59e0b' }}>
-          {academyAddress} | Ph: {academyPhone}
+        <div style={{ background: '#0f172a', color: '#fff', fontSize: '5px', padding: '2px 5px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '2px solid #f59e0b' }}>
+          <span>{academyAddress} | Ph: {academyPhone}</span>
+          <span style={{ color: '#fcd34d' }}>{academyWebsite}</span>
         </div>
       </div>
     </div>

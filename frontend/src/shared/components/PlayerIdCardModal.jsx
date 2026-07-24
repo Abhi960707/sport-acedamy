@@ -349,7 +349,6 @@ const FrontCardComponent = React.forwardRef(({ player, academy, qrCodeDataUrl, p
 
   const batch = player.batch || 'Regular Batch';
   const regNumber = player.registrationNumber || player.playerId || 'REG-001';
-  const issueDate = player.joiningDate || new Date().toISOString().split('T')[0];
   const serialNumber = `SN-${player.playerId || '001'}`;
 
   const photoSrc = playerImageBase64 || getImageUrl(player.playerImage);
@@ -533,7 +532,7 @@ const BackCardComponent = React.forwardRef(({ player, academy }, ref) => {
             TERMS & CONDITIONS
           </span>
           <ul className="text-[7px] text-slate-600 space-y-0.5 ml-3 list-disc font-medium">
-            <li>This card is non-transferable and remains the property of the academy.</li>
+            <li>This card is non-transferable and remains the property of {academyName}.</li>
             <li>Must be presented upon request during any academy activities.</li>
             <li>If found, please return to the academy address mentioned above.</li>
           </ul>
@@ -557,8 +556,9 @@ const BackCardComponent = React.forwardRef(({ player, academy }, ref) => {
       </div>
 
       {/* Footer */}
-      <div className="bg-slate-900 text-white px-4 py-1.5 text-center text-[7px] font-medium relative z-10 border-t border-amber-400 shrink-0">
-        "Nurturing the Champions of Tomorrow"
+      <div className="bg-slate-900 text-white px-4 py-1.5 flex justify-between items-center text-[7px] font-medium relative z-10 border-t border-amber-400 shrink-0">
+        <span>"Nurturing the Champions of Tomorrow"</span>
+        <span className="text-amber-300 font-mono">{academyWebsite}</span>
       </div>
     </div>
   );
