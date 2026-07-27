@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import api from '../../api';
 import { useToast } from '../../common/Toast';
 import { useNavigate } from 'react-router-dom';
@@ -504,8 +505,8 @@ export default function CoachReport({ searchQuery }) {
       </div>
 
       {/* Edit Coach Modal */}
-      {editCoach && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fadeIn">
+      {editCoach && createPortal(
+        <div className="fixed inset-0 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fadeIn" style={{ zIndex: 9999 }}>
           <div className="bg-white rounded-3xl shadow-2xl border border-gray-100 max-w-lg w-full overflow-hidden print:overflow-visible print:border-none print:shadow-none animate-fade-in-up">
             <div className="px-6 py-5 bg-gray-50/75 border-b border-gray-100 flex justify-between items-center">
               <h3 className="text-lg font-bold text-gray-800">Update Coach Details</h3>
@@ -608,7 +609,8 @@ export default function CoachReport({ searchQuery }) {
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
     </div>

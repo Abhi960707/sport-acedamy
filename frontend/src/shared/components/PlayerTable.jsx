@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import api, { API_BASE } from '../../api';
 import { useToast } from '../../common/Toast';
 import { useNavigate } from 'react-router-dom';
@@ -970,8 +971,8 @@ export default function PlayerReport({ searchQuery }) {
       </div>
 
       {/* Edit Player Modal */}
-      {editPlayer && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fadeIn">
+      {editPlayer && createPortal(
+        <div className="fixed inset-0 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fadeIn" style={{ zIndex: 9999 }}>
           <div className="bg-white rounded-3xl shadow-2xl border border-gray-100 max-w-2xl w-full overflow-hidden print:overflow-visible print:border-none print:shadow-none animate-fade-in-up">
             <div className="px-6 py-5 bg-gray-50/75 border-b border-gray-100 flex justify-between items-center">
               <h3 className="text-lg font-bold text-gray-800">Update Player Registration</h3>
@@ -1320,7 +1321,8 @@ export default function PlayerReport({ searchQuery }) {
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {idCardPlayer && (

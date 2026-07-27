@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useToast } from '../../common/Toast';
 import { FiUser, FiPhone, FiMail, FiMapPin, FiCalendar, FiPrinter } from 'react-icons/fi';
 import { FaRupeeSign } from 'react-icons/fa';
@@ -339,8 +340,8 @@ function PlayerAdd({ role }) {
       )}
 
       {/* Success Popup Modal */}
-      {newlyRegisteredPlayer && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in no-print">
+      {newlyRegisteredPlayer && createPortal(
+        <div className="fixed inset-0 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in no-print" style={{ zIndex: 9999 }}>
           <div className="bg-white rounded-3xl shadow-2xl border border-gray-100 max-w-md w-full overflow-hidden p-6 text-center space-y-6 animate-scale-in">
             <div className="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center text-3xl mx-auto shadow-sm">
               ✓
@@ -392,7 +393,8 @@ function PlayerAdd({ role }) {
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       <div className="max-w-5xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8 animate-fade-in-up overflow-x-hidden">

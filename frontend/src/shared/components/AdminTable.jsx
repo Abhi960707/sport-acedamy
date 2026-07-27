@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { API_BASE } from '../../api';
 import { useToast } from '../../common/Toast';
 import { FiEdit, FiTrash2, FiSearch, FiPlus, FiX } from 'react-icons/fi';
@@ -235,8 +236,8 @@ export default function AdminTable({ role }) {
       </div>
 
       {/* Admin Modal */}
-      {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fadeIn">
+      {showModal && createPortal(
+        <div className="fixed inset-0 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fadeIn" style={{ zIndex: 9999 }}>
           <div className="bg-white rounded-3xl shadow-2xl border border-gray-100 max-w-md w-full overflow-hidden animate-fade-in-up">
             <div className="px-6 py-5 bg-gray-50/75 border-b border-gray-100 flex justify-between items-center">
               <h3 className="text-lg font-bold text-gray-800">{formData.id ? 'Edit Admin' : 'Add New Admin'}</h3>
@@ -271,7 +272,8 @@ export default function AdminTable({ role }) {
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
