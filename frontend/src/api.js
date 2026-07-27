@@ -1,7 +1,9 @@
 import axios from 'axios';
 import { getStoredToken } from './common/access';
 
-const API_BASE = process.env.REACT_APP_API_URL || '';
+const API_BASE = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+  ? 'http://localhost:4005'
+  : (process.env.REACT_APP_API_URL || '');
 
 const api = axios.create({
   baseURL: API_BASE,

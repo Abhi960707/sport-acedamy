@@ -159,6 +159,10 @@ router.put('/coach/update/:id', auth, auth.allowRoles('superadmin', 'admin'), as
             status: req.body.status,
         };
 
+        if (req.body.idCardSent !== undefined) {
+            updateData.idCardSent = req.body.idCardSent;
+        }
+
         if (req.body.email) {
             updateData.email = req.body.email.trim().toLowerCase();
         }

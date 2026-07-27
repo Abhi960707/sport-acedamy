@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import api from '../../api';
 import { useToast } from '../../common/Toast';
 import { FiUser, FiMail, FiLock, FiTrash2, FiCamera, FiHash, FiActivity, FiAward, FiPhone, FiCalendar } from 'react-icons/fi';
+import CoachIdCardModal from './CoachIdCardModal';
 
 export default function Profile() {
     const toast = useToast();
@@ -16,6 +17,7 @@ export default function Profile() {
     const [loading, setLoading] = useState(true);
     const [updating, setUpdating] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
+    const [showIdCard, setShowIdCard] = useState(false);
 
     // Password fields
     const [passwordData, setPasswordData] = useState({
@@ -178,6 +180,17 @@ export default function Profile() {
                             <FiTrash2 /> Remove image
                         </button>
                     )}
+
+                    {user.role === 'coach' && user.coachDetails?.idCardSent && (
+                        <button
+                            type="button"
+                            onClick={() => setShowIdCard(true)}
+                            className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 bg-emerald-50 border border-emerald-250 text-emerald-700 text-xs font-bold rounded-xl hover:bg-emerald-600 hover:text-white transition w-full cursor-pointer mt-2 shadow-2xs"
+                        >
+                            <span>🪪</span>
+                            <span>View My ID Card</span>
+                        </button>
+                    )}
                 </div>
 
                 {/* Right side: Forms */}
@@ -230,45 +243,28 @@ export default function Profile() {
                                             />
                                         </div>
                                     </div>
-                                    
-                                    <div className="space-y-1">
+                                                                      <div className="space-y-1">
                                         <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Sport Specialization</label>
                                         <div className="relative flex items-center">
                                             <span className="absolute left-3 text-gray-400"><FiActivity /></span>
-                                            <select 
-                                                className={`w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:outline-none appearance-none ${!isEditing ? 'bg-gray-50 text-gray-500 cursor-not-allowed' : 'bg-white cursor-pointer'}`} 
-                                                value={user.coachDetails.sportSpecialization} 
-                                                onChange={(e) => setUser({ ...user, coachDetails: { ...user.coachDetails, sportSpecialization: e.target.value } })}
-                                                required
-                                                disabled={!isEditing}
-                                            >
-                                                <option value="">Select Sport</option>
-                                                <option value="Cricket">Cricket</option>
-                                                <option value="Football">Football</option>
-                                                <option value="Kabaddi">Kabaddi</option>
-                                                <option value="Kho Kho">Kho Kho</option>
-                                                <option value="Volleyball">Volleyball</option>
-                                                <option value="Badminton">Badminton</option>
-                                                <option value="Basketball">Basketball</option>
-                                                <option value="Tennis">Tennis</option>
-                                                <option value="Athletics">Athletics</option>
-                                                <option value="Swimming">Swimming</option>
-                                                <option value="Carrom">Carrom</option>
-                                            </select>
+                                            <input
+                                                type="text"
+                                                className="w-full pl-9 pr-3 py-2 text-sm bg-gray-50 border border-gray-200 rounded-xl text-gray-500 font-semibold cursor-not-allowed"
+                                                value={user.coachDetails.sportSpecialization}
+                                                disabled
+                                            />
                                         </div>
                                     </div>
-
+                                    
                                     <div className="space-y-1">
                                         <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Experience</label>
                                         <div className="relative flex items-center">
                                             <span className="absolute left-3 text-gray-400"><FiAward /></span>
                                             <input
                                                 type="text"
-                                                className={`w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:outline-none ${!isEditing ? 'bg-gray-50 text-gray-500 cursor-not-allowed' : 'bg-white'}`}
+                                                className="w-full pl-9 pr-3 py-2 text-sm bg-gray-50 border border-gray-200 rounded-xl text-gray-500 font-semibold cursor-not-allowed"
                                                 value={user.coachDetails.experience}
-                                                onChange={(e) => setUser({ ...user, coachDetails: { ...user.coachDetails, experience: e.target.value } })}
-                                                required
-                                                disabled={!isEditing}
+                                                disabled
                                             />
                                         </div>
                                     </div>
@@ -294,11 +290,10 @@ export default function Profile() {
                                             <div className="relative flex items-center">
                                                 <span className="absolute left-3 text-gray-400 z-10"><FiCalendar /></span>
                                                 <input
-                                                    type="date"
-                                                    className={`w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:outline-none ${!isEditing ? 'bg-gray-50 text-gray-500 cursor-not-allowed' : 'bg-white'}`}
+                                                    type="text"
+                                                    className="w-full pl-9 pr-3 py-2 text-sm bg-gray-50 border border-gray-200 rounded-xl text-gray-500 font-semibold cursor-not-allowed"
                                                     value={user.coachDetails.joiningDate}
-                                                    onChange={(e) => setUser({ ...user, coachDetails: { ...user.coachDetails, joiningDate: e.target.value } })}
-                                                    disabled={!isEditing}
+                                                    disabled
                                                 />
                                             </div>
                                         </div>
@@ -378,6 +373,14 @@ export default function Profile() {
                             </div>
                         </form>
                     </div>
+            {showIdCard && (
+                <CoachIdCardModal
+                    coach={user.coachDetails}
+                    onClose={() => setShowIdCard(false)}
+                    hideSendButton={true}
+                />
+            )}
+
                 </div>
             </div>
         </div>

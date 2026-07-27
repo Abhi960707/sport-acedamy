@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useToast } from '../../common/Toast';
 import { FiUser, FiPhone, FiAward, FiBook, FiDollarSign, FiCalendar } from 'react-icons/fi';
 import api from '../../api';
+import CoachIdCardModal from '../components/CoachIdCardModal';
 
 
 const INITIAL_STATE = {
@@ -36,6 +37,23 @@ function CoachAdd() {
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
   const [customSport, setCustomSport] = useState('');
+  
+  const [registeredCoach, setRegisteredCoach] = useState(null);
+  const [academySettings, setAcademySettings] = useState(null);
+
+  useEffect(() => {
+    const fetchAcademySettings = async () => {
+      try {
+        const res = await api.get('/settings');
+        if (res.data.success) {
+          setAcademySettings(res.data.data);
+        }
+      } catch (err) {
+        console.error('Failed to load academy settings:', err);
+      }
+    };
+    fetchAcademySettings();
+  }, []);
 
   const fetchNextId = async () => {
     try {
@@ -159,6 +177,7 @@ function CoachAdd() {
       const result = res.data;
       if (result.success) {
         toast('Coach added successfully!', 'success');
+        setRegisteredCoach(result.data);
         setAddCoach(INITIAL_STATE);
         setCustomSport('');
         localStorage.removeItem('coachFormDraft');
@@ -500,6 +519,14 @@ function CoachAdd() {
             </button>
           </div>
         </form>
+
+      {registeredCoach && (
+        <CoachIdCardModal
+          coach={registeredCoach}
+          academy={academySettings}
+          onClose={() => setRegisteredCoach(null)}
+        />
+      )}
 
       </div>
     </div>

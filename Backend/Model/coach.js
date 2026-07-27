@@ -61,6 +61,10 @@ const coachSchema = mongoose.Schema({
     emergencyContact: {
         type: String,
         default: ''
+    },
+    idCardSent: {
+        type: Boolean,
+        default: false
     }
 }, { timestamps: true });
 

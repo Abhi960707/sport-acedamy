@@ -138,17 +138,11 @@
                 })
               );
 
-              // Give browser one frame for layout repaint and ensure DOM styles are fully applied
-              await new Promise(resolve => requestAnimationFrame(() => setTimeout(resolve, 100)));
-
-              const frontRect = pdfFrontRef.current.getBoundingClientRect();
-              const backRect = pdfBackRef.current.getBoundingClientRect();
-
               const canvasOptsFront = {
                 scale: 4,
                 useCORS: true,
                 allowTaint: true,
-                foreignObjectRendering: true,
+                foreignObjectRendering: false,
                 backgroundColor: '#ffffff',
                 logging: false,
                 imageTimeout: 15000,
@@ -169,7 +163,7 @@
                 scale: 4,
                 useCORS: true,
                 allowTaint: true,
-                foreignObjectRendering: true,
+                foreignObjectRendering: false,
                 backgroundColor: '#ffffff',
                 logging: false,
                 imageTimeout: 15000,
@@ -422,7 +416,7 @@
 
                   {/* ISOLATED 2D FLAT CAPTURE CONTAINER FOR PDF GENERATOR (NO 3D TRANSFORMS) */}
                   {createPortal(
-                    <div style={{ position: 'fixed', top: 0, left: 0, width: '480px', height: '300px', opacity: 0, visibility: 'visible', pointerEvents: 'none', zIndex: -1, background: '#ffffff', overflow: 'hidden', transform: 'none' }}>
+                    <div style={{ position: 'fixed', left: '-9999px', top: '-9999px', width: '480px', height: '300px', visibility: 'visible', pointerEvents: 'none', zIndex: -1, background: '#ffffff', overflow: 'hidden', transform: 'none' }}>
                       <div ref={pdfFrontRef} style={{ position: 'absolute', top: 0, left: 0, width: '480px', height: '300px', transform: 'none', perspective: 'none', background: '#ffffff' }}>
                         <FrontCardComponent
                           player={player}

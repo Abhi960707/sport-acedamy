@@ -7,6 +7,8 @@ import { FiUsers, FiTrash2, FiEdit2, FiChevronLeft, FiChevronRight, FiChevronUp,
 import { canManageAcademyRecords } from '../../common/access';
 import ExportDropdown from './ExportDropdown';
 import { downloadCsv, downloadPdf } from '../../common/reportExport';
+import CoachIdCardModal from './CoachIdCardModal';
+import CoachIdCardPrint from './CoachIdCardPrint';
 
 const PREDEFINED_SPORTS = [
   'Cricket',
@@ -34,6 +36,27 @@ export default function CoachReport({ searchQuery }) {
   // Edit State
   const [editCoach, setEditCoach] = useState(null);
   const [updateLoading, setUpdateLoading] = useState(false);
+
+  // ID Card State
+  const [idCardCoach, setIdCardCoach] = useState(null);
+  const [idCardPrintCoach, setIdCardPrintCoach] = useState(null);
+  const [academySettings, setAcademySettings] = useState(null);
+
+  useEffect(() => {
+    const fetchAcademySettings = async () => {
+      try {
+        const res = await api.get('/settings');
+        if (res.data.success) {
+          setAcademySettings(res.data.data);
+        }
+      } catch (err) {
+        console.error('Failed to load academy settings:', err);
+      }
+    };
+    if (token) {
+      fetchAcademySettings();
+    }
+  }, [token]);
 
   // Sorting and Pagination State
   const [sortConfig, setSortConfig] = useState({ key: 'coachId', direction: 'asc' });
@@ -328,22 +351,35 @@ export default function CoachReport({ searchQuery }) {
                   </div>
 
                   <div className="flex flex-col sm:flex-row gap-2">
-                    <button type="button"
-                      onClick={() => handleEditClick(coach)}
-                      className="inline-flex items-center justify-center gap-1.5 w-full px-3 py-3 text-sm font-bold text-blue-600 bg-blue-50 border border-blue-100 hover:bg-blue-600 hover:text-white rounded-xl transition-all cursor-pointer min-h-11"
-                    >
-                      <FiEdit2 />
-                      <span>Edit</span>
-                    </button>
-                    <button type="button"
-                      onClick={() => handleDelete(coach._id)}
-                      disabled={deletingId === coach._id}
-                      id={`delete-coach-${coach._id}`}
-                      className="inline-flex items-center justify-center gap-1.5 w-full px-3 py-3 text-sm font-bold text-red-600 bg-red-50 border border-red-100 hover:bg-red-600 hover:text-white rounded-xl transition-all disabled:opacity-50 cursor-pointer min-h-11"
-                    >
-                      <FiTrash2 />
-                      <span>Delete</span>
-                    </button>
+                    {canManageRecords && (
+                      <button type="button"
+                        onClick={() => setIdCardCoach(coach)}
+                        className="inline-flex items-center justify-center gap-1.5 w-full px-3 py-3 text-sm font-bold text-emerald-700 bg-emerald-50 border border-emerald-250 hover:bg-emerald-600 hover:text-white rounded-xl transition-all cursor-pointer min-h-11"
+                      >
+                        <span className="text-base">🪪</span>
+                        <span>ID Card</span>
+                      </button>
+                    )}
+                    {canManageRecords && (
+                      <button type="button"
+                        onClick={() => handleEditClick(coach)}
+                        className="inline-flex items-center justify-center gap-1.5 w-full px-3 py-3 text-sm font-bold text-blue-600 bg-blue-50 border border-blue-100 hover:bg-blue-600 hover:text-white rounded-xl transition-all cursor-pointer min-h-11"
+                      >
+                        <FiEdit2 />
+                        <span>Edit</span>
+                      </button>
+                    )}
+                    {canManageRecords && (
+                      <button type="button"
+                        onClick={() => handleDelete(coach._id)}
+                        disabled={deletingId === coach._id}
+                        id={`delete-coach-${coach._id}`}
+                        className="inline-flex items-center justify-center gap-1.5 w-full px-3 py-3 text-sm font-bold text-red-600 bg-red-50 border border-red-100 hover:bg-red-600 hover:text-white rounded-xl transition-all disabled:opacity-50 cursor-pointer min-h-11"
+                      >
+                        <FiTrash2 />
+                        <span>Delete</span>
+                      </button>
+                    )}
                   </div>
                 </article>
               ))}
@@ -423,22 +459,29 @@ export default function CoachReport({ searchQuery }) {
                       {canManageRecords && (
                         <td className="px-6 py-3.5 text-center">
                           <div className="flex justify-center items-center gap-2">
-                            <button type="button"
-                              onClick={() => handleEditClick(coach)}
-                              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-blue-600 bg-blue-50 border border-blue-100 hover:bg-blue-600 hover:text-white rounded-xl transition-all cursor-pointer"
-                            >
-                              <FiEdit2 />
-                              <span>Edit</span>
-                            </button>
-                            <button type="button"
-                              onClick={() => handleDelete(coach._id)}
-                              disabled={deletingId === coach._id}
-                              id={`delete-coach-${coach._id}`}
-                              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-red-600 bg-red-50 border border-red-100 hover:bg-red-600 hover:text-white rounded-xl transition-all disabled:opacity-50 cursor-pointer"
-                            >
-                              <FiTrash2 />
-                              <span>Delete</span>
-                            </button>
+                             <button type="button"
+                               onClick={() => setIdCardCoach(coach)}
+                               className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 hover:bg-emerald-600 hover:text-white rounded-xl transition-all cursor-pointer"
+                             >
+                               <span className="text-sm">🪪</span>
+                               <span>ID Card</span>
+                             </button>
+                             <button type="button"
+                               onClick={() => handleEditClick(coach)}
+                               className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-blue-600 bg-blue-50 border border-blue-100 hover:bg-blue-600 hover:text-white rounded-xl transition-all cursor-pointer"
+                             >
+                               <FiEdit2 />
+                               <span>Edit</span>
+                             </button>
+                             <button type="button"
+                               onClick={() => handleDelete(coach._id)}
+                               disabled={deletingId === coach._id}
+                               id={`delete-coach-${coach._id}`}
+                               className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-red-600 bg-red-50 border border-red-100 hover:bg-red-600 hover:text-white rounded-xl transition-all disabled:opacity-50 cursor-pointer"
+                             >
+                               <FiTrash2 />
+                               <span>Delete</span>
+                             </button>
                           </div>
                         </td>
                       )}
@@ -611,6 +654,14 @@ export default function CoachReport({ searchQuery }) {
           </div>
         </div>,
         document.body
+      )}
+
+      {idCardCoach && (
+        <CoachIdCardModal
+          coach={idCardCoach}
+          academy={academySettings}
+          onClose={() => setIdCardCoach(null)}
+        />
       )}
 
     </div>
