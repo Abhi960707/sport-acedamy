@@ -7,10 +7,10 @@ A Full-Stack MERN Sport Academy Management System built using **MongoDB, Express
 ## 🌐 Live Demo
 
 **Frontend:**  
-https://frontend-rho-pink-86.vercel.app/
+https://frontend-rho-pink-86.vercel.app
 
 **Backend:**  
-(Add your Render Backend URL here)
+https://sport-acedamy-1.onrender.com
 
 ---
 
