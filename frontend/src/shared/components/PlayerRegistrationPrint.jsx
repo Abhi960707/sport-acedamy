@@ -101,7 +101,7 @@ export default function PlayerRegistrationPrint({ player, academy, summary }) {
       }}
     >
       {/* Outer border container */}
-      <div style={{ border: '1.5px solid black', padding: '15px', display: 'flex', flexDirection: 'column', gap: '15px' }}>
+      <div style={{ border: '1.5px solid black', padding: '15px', display: 'flex', flexDirection: 'column', gap: '15px' }} >
         
         {/* Academy Header */}
         <div className="flex justify-between items-center border-b border-black pb-3" style={{ borderBottom: '1px solid black' }}>
