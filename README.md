@@ -286,11 +286,12 @@ https://github.com/Abhi960707
 
 ### LinkedIn
 
-(Add Your LinkedIn Profile)
+( www.linkedin.com/in/abhijeet-narsale-a889832a3 )
 
 ### Portfolio
 
-(Add Your Portfolio Website)
+( https://portfolio-roan-six-0lejr199ko.vercel.app )
+
 
 ---
 
