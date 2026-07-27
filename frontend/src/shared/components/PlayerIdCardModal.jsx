@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import QRCode from 'qrcode';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import { FiPrinter, FiDownload, FiRotateCw, FiX, FiShield } from 'react-icons/fi';
-import { API_BASE } from '../../api';
+import api, { API_BASE } from '../../api';
 import PlayerIdCardPrint from './PlayerIdCardPrint';
 
 const getImageUrl = (url) => {
@@ -22,10 +23,26 @@ export default function PlayerIdCardModal({ player, academy, onClose, onPrint })
   const [isFlipped, setIsFlipped] = useState(false);
   const [qrCodeDataUrl, setQrCodeDataUrl] = useState('');
   const [playerImageBase64, setPlayerImageBase64] = useState('');
+  const [academyLogoBase64, setAcademyLogoBase64] = useState('');
   const [downloadingPdf, setDownloadingPdf] = useState(false);
+  const [fetchedAcademy, setFetchedAcademy] = useState(null);
 
-  const frontCardRef = useRef(null);
-  const backCardRef = useRef(null);
+  const pdfFrontRef = useRef(null);
+  const pdfBackRef = useRef(null);
+
+  useEffect(() => {
+    if (!academy) {
+      api.get('/settings')
+        .then(res => {
+          if (res.data.success && res.data.data) {
+            setFetchedAcademy(res.data.data);
+          }
+        })
+        .catch(err => console.error('Failed to load academy settings in ID card modal:', err));
+    }
+  }, [academy]);
+
+  const activeAcademy = academy || fetchedAcademy;
 
   useEffect(() => {
     let isMounted = true;
@@ -54,6 +71,33 @@ export default function PlayerIdCardModal({ player, academy, onClose, onPrint })
   }, [player]);
 
   useEffect(() => {
+    let isMounted = true;
+    const logoUrl = activeAcademy?.logo;
+    if (logoUrl) {
+      const src = getImageUrl(logoUrl);
+      if (src.startsWith('data:')) {
+        setAcademyLogoBase64(src);
+      } else {
+        fetch(src)
+          .then(res => res.blob())
+          .then(blob => {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+              if (isMounted) setAcademyLogoBase64(reader.result);
+            };
+            reader.readAsDataURL(blob);
+          })
+          .catch(() => {
+            if (isMounted) setAcademyLogoBase64('');
+          });
+      }
+    } else {
+      setAcademyLogoBase64('');
+    }
+    return () => { isMounted = false; };
+  }, [activeAcademy?.logo]);
+
+  useEffect(() => {
     if (player) {
       const qrPayload = JSON.stringify({
         id: player.playerId || player._id,
@@ -71,19 +115,79 @@ export default function PlayerIdCardModal({ player, academy, onClose, onPrint })
 
   // Handle PDF Export
   const handleDownloadPdf = async () => {
-    if (!frontCardRef.current || !backCardRef.current) return;
+    if (!pdfFrontRef.current || !pdfBackRef.current) return;
     setDownloadingPdf(true);
 
     try {
-      const canvasOpts = {
-        scale: 4, // Higher DPI resolution
+      // 1. Wait for document fonts and all image elements to finish loading
+      if (document.fonts && document.fonts.ready) {
+        await document.fonts.ready;
+      }
+
+      const allImages = Array.from(pdfFrontRef.current.querySelectorAll('img')).concat(
+        Array.from(pdfBackRef.current.querySelectorAll('img'))
+      );
+
+      await Promise.all(
+        allImages.map(img => {
+          if (img.complete && img.naturalWidth > 0) return Promise.resolve();
+          return new Promise(resolve => {
+            img.onload = resolve;
+            img.onerror = resolve;
+          });
+        })
+      );
+
+      // Give browser one frame for layout repaint and ensure DOM styles are fully applied
+      await new Promise(resolve => requestAnimationFrame(() => setTimeout(resolve, 100)));
+
+      const frontRect = pdfFrontRef.current.getBoundingClientRect();
+      const backRect = pdfBackRef.current.getBoundingClientRect();
+
+      const canvasOptsFront = {
+        scale: 4,
         useCORS: true,
         allowTaint: true,
-        backgroundColor: '#ffffff'
+        foreignObjectRendering: true,
+        backgroundColor: '#ffffff',
+        logging: false,
+        imageTimeout: 15000,
+        windowWidth: Math.max(document.documentElement.scrollWidth, document.body.scrollWidth),
+        windowHeight: Math.max(document.documentElement.scrollHeight, document.body.scrollHeight),
+        onclone: (clonedDoc, clonedElement) => {
+          clonedElement.style.position = 'static';
+          clonedElement.style.left = '0';
+          clonedElement.style.top = '0';
+          clonedElement.style.margin = '0';
+          clonedElement.style.opacity = '1';
+          clonedElement.style.visibility = 'visible';
+          clonedElement.style.transform = 'none';
+        }
       };
 
-      const frontCanvas = await html2canvas(frontCardRef.current, canvasOpts);
-      const backCanvas = await html2canvas(backCardRef.current, canvasOpts);
+      const canvasOptsBack = {
+        scale: 4,
+        useCORS: true,
+        allowTaint: true,
+        foreignObjectRendering: true,
+        backgroundColor: '#ffffff',
+        logging: false,
+        imageTimeout: 15000,
+        windowWidth: Math.max(document.documentElement.scrollWidth, document.body.scrollWidth),
+        windowHeight: Math.max(document.documentElement.scrollHeight, document.body.scrollHeight),
+        onclone: (clonedDoc, clonedElement) => {
+          clonedElement.style.position = 'static';
+          clonedElement.style.left = '0';
+          clonedElement.style.top = '0';
+          clonedElement.style.margin = '0';
+          clonedElement.style.opacity = '1';
+          clonedElement.style.visibility = 'visible';
+          clonedElement.style.transform = 'none';
+        }
+      };
+
+      const frontCanvas = await html2canvas(pdfFrontRef.current, canvasOptsFront);
+      const backCanvas = await html2canvas(pdfBackRef.current, canvasOptsBack);
 
       const frontImg = frontCanvas.toDataURL('image/png');
       const backImg = backCanvas.toDataURL('image/png');
@@ -94,10 +198,9 @@ export default function PlayerIdCardModal({ player, academy, onClose, onPrint })
         format: 'a4'
       });
 
-      // Front Card (Centered Top)
+      // Front & Back Cards (Centered, Standard CR80 Dimensions: 85.60mm x 53.98mm)
+      // A4 Width: 210mm -> Centered X: (210 - 85.60) / 2 = 62.2mm
       pdf.addImage(frontImg, 'PNG', 62.2, 25, 85.60, 53.98);
-
-      // Back Card (Centered Below Front Card)
       pdf.addImage(backImg, 'PNG', 62.2, 90, 85.60, 53.98);
 
       pdf.save(`Player_ID_Card_${player.playerId || player.fullName}.pdf`);
@@ -119,49 +222,71 @@ export default function PlayerIdCardModal({ player, academy, onClose, onPrint })
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm animate-fadeIn overflow-y-auto print:hidden">
-      <div className="bg-white rounded-3xl shadow-2xl border border-gray-100 max-w-3xl w-full overflow-hidden flex flex-col my-auto max-h-[92vh]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs font-sans animate-fade-in print:p-0 print:bg-transparent print:static">
 
-        {/* Modal Header */}
-        <div className="px-6 py-4 bg-slate-900 text-white flex justify-between items-center border-b border-slate-800">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden border border-slate-100 print:shadow-none print:border-none print:p-0 print:max-w-none print:max-h-none">
+
+        {/* Header */}
+        <div className="px-6 py-4 bg-slate-900 text-white flex justify-between items-center shrink-0 border-b border-slate-800">
           <div className="flex items-center gap-3">
-            <span className="w-10 h-10 rounded-2xl bg-blue-500/10 text-blue-400 border border-blue-500/20 flex items-center justify-center text-xl shadow-inner">
-              🪪
-            </span>
+            <div className="p-2 bg-blue-500/20 text-blue-400 rounded-xl border border-blue-500/30">
+              <FiShield className="text-xl" />
+            </div>
             <div>
-              <h3 className="text-lg font-bold tracking-wide text-white">
-                Player ID Card
+              <h3 className="font-bold text-base text-white flex items-center gap-2">
+                Official Player Identification Card
               </h3>
-              <p className="text-xs text-slate-300 font-medium">
-                {player.fullName} ({player.playerId}) • Standard CR80 PVC Specs
+              <p className="text-xs text-slate-400">
+                {player.fullName} ({player.playerId}) • High-Definition ID Badge
               </p>
             </div>
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="w-9 h-9 rounded-xl bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition cursor-pointer"
-          >
-            <FiX className="text-xl" />
-          </button>
-        </div>
 
-        {/* Toolbar Controls */}
-        <div className="px-6 py-3 bg-slate-50 border-b border-gray-100 flex flex-wrap justify-between items-center gap-3">
-          <div className="flex items-center gap-1.5 bg-white p-1 rounded-xl border border-gray-200 shadow-sm text-xs font-semibold">
+          <div className="flex items-center gap-2">
             <button
               type="button"
-              onClick={() => { setViewMode('flip'); setIsFlipped(false); }}
-              className={`px-3 py-1.5 rounded-lg transition flex items-center gap-1.5 cursor-pointer ${viewMode === 'flip' ? 'bg-slate-800 text-white shadow-sm' : 'text-gray-600 hover:bg-gray-100'
+              onClick={handlePrintCard}
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold rounded-xl transition border border-slate-700 cursor-pointer"
+            >
+              <FiPrinter className="text-sm" />
+              <span>Print ID Card</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={handleDownloadPdf}
+              disabled={downloadingPdf}
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold rounded-xl shadow-md transition disabled:opacity-50 cursor-pointer"
+            >
+              <FiDownload className="text-sm" />
+              <span>{downloadingPdf ? 'Generating PDF...' : 'Download PDF'}</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={onClose}
+              className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-xl transition cursor-pointer ml-2"
+            >
+              <FiX className="text-lg" />
+            </button>
+          </div>
+        </div>
+
+        {/* Toolbar */}
+        <div className="px-6 py-3 bg-slate-50 border-b border-gray-200 flex justify-between items-center shrink-0">
+          <div className="flex items-center gap-1 bg-white p-1 rounded-xl border border-gray-200 shadow-2xs">
+            <button
+              type="button"
+              onClick={() => setViewMode('flip')}
+              className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition cursor-pointer ${viewMode === 'flip' ? 'bg-slate-900 text-white shadow-2xs' : 'text-slate-600 hover:bg-gray-100'
                 }`}
             >
-              <FiRotateCw />
-              <span>3D Flip Card</span>
+              3D Interactive View
             </button>
             <button
               type="button"
               onClick={() => setViewMode('both')}
-              className={`px-3 py-1.5 rounded-lg transition cursor-pointer ${viewMode === 'both' ? 'bg-slate-800 text-white shadow-sm' : 'text-gray-600 hover:bg-gray-100'
+              className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition cursor-pointer ${viewMode === 'both' ? 'bg-slate-900 text-white shadow-2xs' : 'text-slate-600 hover:bg-gray-100'
                 }`}
             >
               Both Sides
@@ -169,7 +294,7 @@ export default function PlayerIdCardModal({ player, academy, onClose, onPrint })
             <button
               type="button"
               onClick={() => setViewMode('front')}
-              className={`px-3 py-1.5 rounded-lg transition cursor-pointer ${viewMode === 'front' ? 'bg-slate-800 text-white shadow-sm' : 'text-gray-600 hover:bg-gray-100'
+              className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition cursor-pointer ${viewMode === 'front' ? 'bg-slate-900 text-white shadow-2xs' : 'text-slate-600 hover:bg-gray-100'
                 }`}
             >
               Front Only
@@ -177,31 +302,15 @@ export default function PlayerIdCardModal({ player, academy, onClose, onPrint })
             <button
               type="button"
               onClick={() => setViewMode('back')}
-              className={`px-3 py-1.5 rounded-lg transition cursor-pointer ${viewMode === 'back' ? 'bg-slate-800 text-white shadow-sm' : 'text-gray-600 hover:bg-gray-100'
+              className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition cursor-pointer ${viewMode === 'back' ? 'bg-slate-900 text-white shadow-2xs' : 'text-slate-600 hover:bg-gray-100'
                 }`}
             >
               Back Only
             </button>
           </div>
 
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              disabled={downloadingPdf}
-              onClick={handleDownloadPdf}
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-slate-700 bg-white border border-gray-200 hover:bg-slate-800 hover:text-white rounded-xl shadow-sm transition cursor-pointer disabled:opacity-50"
-            >
-              {downloadingPdf ? <span className="animate-spin inline-block w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full" /> : <FiDownload />}
-              <span>Download PDF</span>
-            </button>
-            <button
-              type="button"
-              onClick={handlePrintCard}
-              className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-xl shadow-md transition cursor-pointer"
-            >
-              <FiPrinter />
-              <span>Print Card</span>
-            </button>
+          <div className="text-xs text-slate-500 font-medium hidden sm:block">
+            CR80 Standard • 85.6mm × 53.98mm Format
           </div>
         </div>
 
@@ -212,20 +321,18 @@ export default function PlayerIdCardModal({ player, academy, onClose, onPrint })
           {viewMode === 'flip' && (
             <div className="flex flex-col items-center gap-6">
               <div className="group perspective cursor-pointer" onClick={() => setIsFlipped(!isFlipped)}>
-                <div className={`relative w-[428px] h-[270px] transition-transform duration-700 transform-style-3d ${isFlipped ? 'rotate-y-180' : ''}`}>
+                <div className={`relative w-[480px] h-[300px] transition-transform duration-700 transform-style-3d ${isFlipped ? 'rotate-y-180' : ''}`}>
                   <div className="absolute inset-0 backface-hidden">
                     <FrontCardComponent
                       player={player}
-                      academy={academy}
+                      academy={activeAcademy}
                       qrCodeDataUrl={qrCodeDataUrl}
-                      ref={frontCardRef}
                     />
                   </div>
                   <div className="absolute inset-0 backface-hidden rotate-y-180">
                     <BackCardComponent
                       player={player}
-                      academy={academy}
-                      ref={backCardRef}
+                      academy={activeAcademy}
                     />
                   </div>
                 </div>
@@ -249,17 +356,15 @@ export default function PlayerIdCardModal({ player, academy, onClose, onPrint })
                 <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Front Side</span>
                 <FrontCardComponent
                   player={player}
-                  academy={academy}
+                  academy={activeAcademy}
                   qrCodeDataUrl={qrCodeDataUrl}
-                  ref={frontCardRef}
                 />
               </div>
               <div className="flex flex-col items-center gap-2">
                 <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Back Side</span>
                 <BackCardComponent
                   player={player}
-                  academy={academy}
-                  ref={backCardRef}
+                  academy={activeAcademy}
                 />
               </div>
             </div>
@@ -271,9 +376,8 @@ export default function PlayerIdCardModal({ player, academy, onClose, onPrint })
               <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Front Side</span>
               <FrontCardComponent
                 player={player}
-                academy={academy}
+                academy={activeAcademy}
                 qrCodeDataUrl={qrCodeDataUrl}
-                ref={frontCardRef}
               />
             </div>
           )}
@@ -284,30 +388,35 @@ export default function PlayerIdCardModal({ player, academy, onClose, onPrint })
               <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Back Side</span>
               <BackCardComponent
                 player={player}
-                academy={academy}
-                ref={backCardRef}
+                academy={activeAcademy}
               />
             </div>
           )}
 
-          {/* Off-screen renders for PDF generator (opacity 1 for html2canvas, hidden offscreen) */}
-          <div style={{ position: 'absolute', top: 0, left: '-9999px', pointerEvents: 'none', zIndex: -100 }}>
-            <FrontCardComponent
-              player={player}
-              academy={academy}
-              qrCodeDataUrl={qrCodeDataUrl}
-              playerImageBase64={playerImageBase64}
-              ref={frontCardRef}
-            />
-            <BackCardComponent
-              player={player}
-              academy={academy}
-              ref={backCardRef}
-            />
-          </div>
+          {/* ISOLATED 2D FLAT CAPTURE CONTAINER FOR PDF GENERATOR (NO 3D TRANSFORMS) */}
+          {createPortal(
+            <div style={{ position: 'absolute', top: 0, left: 0, width: '480px', minHeight: '640px', opacity: 0, visibility: 'visible', pointerEvents: 'none', zIndex: -1, background: '#ffffff', overflow: 'hidden', transform: 'none' }}>
+              <div ref={pdfFrontRef} style={{ width: '480px', height: '300px', transform: 'none', perspective: 'none', background: '#ffffff' }}>
+                <FrontCardComponent
+                  player={player}
+                  academy={activeAcademy}
+                  qrCodeDataUrl={qrCodeDataUrl}
+                  playerImageBase64={playerImageBase64}
+                  academyLogoBase64={academyLogoBase64}
+                />
+              </div>
+              <div ref={pdfBackRef} style={{ width: '480px', height: '300px', transform: 'none', perspective: 'none', background: '#ffffff', marginTop: '20px' }}>
+                <BackCardComponent
+                  player={player}
+                  academy={activeAcademy}
+                />
+              </div>
+            </div>,
+            document.body
+          )}
 
           {/* Dedicated print component for browser print */}
-          <PlayerIdCardPrint player={player} academy={academy} />
+          <PlayerIdCardPrint player={player} academy={activeAcademy} />
 
         </div>
 
@@ -334,7 +443,7 @@ export default function PlayerIdCardModal({ player, academy, onClose, onPrint })
 /* ==========================================
    FRONT CARD COMPONENT (Premium Theme)
 ========================================== */
-const FrontCardComponent = React.forwardRef(({ player, academy, qrCodeDataUrl, playerImageBase64 }, ref) => {
+export const FrontCardComponent = React.forwardRef(({ player, academy, qrCodeDataUrl, playerImageBase64, academyLogoBase64 }, ref) => {
   const [imgError, setImgError] = React.useState(false);
 
   let sportName = player.sportChosen || '';
@@ -343,9 +452,10 @@ const FrontCardComponent = React.forwardRef(({ player, academy, qrCodeDataUrl, p
     if (match) sportName = match[1].trim();
   }
 
-  const academyName = academy?.academyName || 'SPORT ACADEMY';
-  const academyLogo = academy?.logo || '';
-  const academyAddress = academy?.address || 'Solapur, Maharashtra, India';
+  const academyName = (academy?.academyName && academy.academyName.trim()) ? academy.academyName : 'SPORT ACADEMY';
+  const academyLogo = academyLogoBase64 || academy?.logo || '';
+  const academyAddress = (academy?.address && academy.address.trim()) ? academy.address : 'Solapur, Maharashtra, India';
+  const academyWebsite = (academy?.website && academy.website.trim()) ? academy.website : 'www.sportacademy.com';
 
   const batch = player.batch || 'Regular Batch';
   const regNumber = player.registrationNumber || player.playerId || 'REG-001';
@@ -356,111 +466,112 @@ const FrontCardComponent = React.forwardRef(({ player, academy, qrCodeDataUrl, p
   return (
     <div
       ref={ref}
-      className="w-[428px] h-[270px] rounded-2xl bg-white shadow-2xl border border-slate-200 overflow-hidden flex flex-col relative select-none font-sans print:shadow-none"
-      style={{ boxSizing: 'border-box', WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}
+      className="w-[480px] h-[300px] rounded-2xl bg-white shadow-2xl border border-slate-200 overflow-hidden flex flex-col relative select-none print:shadow-none"
+      style={{ boxSizing: 'border-box', WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact', fontFamily: 'Arial, Helvetica, sans-serif' }}
     >
       {/* Background patterns */}
-      <div className="absolute inset-0 bg-gradient-to-br from-blue-50/50 to-white z-0" />
+      <div className="absolute inset-0 bg-gradient-to-br from-blue-50/40 via-white to-slate-50 z-0" />
 
       {/* Header Banner - Dark Blue/Gold */}
-      <div className="bg-slate-900 text-white px-4 py-2 flex items-center justify-between border-b-[3px] border-amber-400 relative z-10 h-14 shrink-0">
-        <div className="flex items-center gap-2.5 max-w-[70%]">
+      <div className="bg-slate-900 text-white px-4 py-2.5 flex items-center justify-between border-b-[3px] border-amber-400 relative z-10 h-[64px] shrink-0">
+        <div className="flex items-center gap-3 max-w-[74%] min-w-0">
           {academyLogo && !imgError ? (
-            <div className="w-8 h-8 rounded-full bg-white p-1 flex items-center justify-center shrink-0">
-              <img src={getImageUrl(academyLogo)} alt="" className="max-w-full max-h-full object-contain" onError={() => setImgError(true)} />
+            <div className="w-10 h-10 rounded-full bg-white p-1 flex items-center justify-center shrink-0 shadow-sm border border-slate-700">
+              <img src={getImageUrl(academyLogo)} crossOrigin="anonymous" alt="" className="max-w-full max-h-full object-contain" onError={() => setImgError(true)} />
             </div>
           ) : (
-            <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-amber-400 to-amber-200 text-slate-900 flex items-center justify-center font-bold text-lg shrink-0 shadow-sm">
+            <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-amber-400 to-amber-200 text-slate-900 flex items-center justify-center font-bold text-xl shrink-0 shadow-sm">
               🏆
             </div>
           )}
-          <div className="flex flex-col justify-center min-w-0">
-            <h1 className="text-[11px] font-bold uppercase truncate text-amber-400">
+          <div className="flex flex-col justify-center min-w-0 py-0.5">
+            <h1 className="text-[13px] font-bold uppercase truncate text-amber-400 tracking-wider" style={{ margin: 0, padding: 0, lineHeight: 1.25 }}>
               {academyName}
             </h1>
-            <p className="text-[7.5px] text-slate-300 font-medium truncate opacity-90">{academyAddress}</p>
+            <p className="text-[9px] text-slate-200 font-medium truncate mt-0.5" style={{ margin: 0, padding: 0, lineHeight: 1.2 }}>{academyAddress}</p>
           </div>
         </div>
         <div className="shrink-0 flex items-center justify-center h-full">
-          <div className="bg-white/10 backdrop-blur-sm border border-white/20 text-amber-300 text-[6.5px] font-bold uppercase px-2 py-1 rounded-full">
+          <div className="bg-blue-600/30 border border-amber-400/40 text-amber-300 text-[7px] font-bold uppercase px-2 py-1 rounded-md tracking-wider">
             OFFICIAL PLAYER ID
           </div>
         </div>
       </div>
 
       {/* Body Area */}
-      <div className="flex-1 flex px-4 py-3 gap-4 relative z-10 overflow-hidden">
+      <div className="flex-1 flex px-4 py-3 gap-4 relative z-10 overflow-hidden bg-white/90">
 
         {/* Left Column: Photo & QR */}
-        <div className="flex flex-col items-center justify-between w-[84px] shrink-0">
-          <div className="w-[84px] h-[104px] rounded-xl border-2 border-white shadow-md bg-slate-100 overflow-hidden relative flex items-center justify-center">
+        <div className="flex flex-col items-center justify-between w-[96px] shrink-0">
+          <div className="w-[96px] h-[116px] rounded-xl border-2 border-slate-200 shadow-sm bg-slate-50 overflow-hidden relative flex items-center justify-center">
             {photoSrc && !imgError ? (
               <img
                 src={photoSrc}
+                crossOrigin="anonymous"
                 alt=""
-                className="w-full h-full object-cover"
+                className="w-full h-full object-contain object-center bg-slate-50 p-0.5"
                 onError={() => setImgError(true)}
               />
             ) : (
-              <div className="w-full h-full flex items-center justify-center text-3xl text-slate-400 bg-slate-100">
+              <div className="w-full h-full flex items-center justify-center text-4xl text-slate-300 bg-slate-100">
                 👤
               </div>
             )}
           </div>
 
-          <div className="mt-2 w-[48px] h-[48px] bg-white p-1 rounded-lg border border-slate-200 shadow-sm shrink-0">
+          <div className="mt-1 w-[50px] h-[50px] bg-white p-1 rounded-lg border border-slate-200 shadow-xs shrink-0 flex items-center justify-center">
             {qrCodeDataUrl ? (
               <img src={qrCodeDataUrl} alt="" className="w-full h-full object-contain" />
             ) : (
-              <div className="w-full h-full flex items-center justify-center text-[8px] font-bold text-slate-300">QR</div>
+              <div className="w-full h-full flex items-center justify-center text-[9px] font-bold text-slate-300">QR</div>
             )}
           </div>
         </div>
 
         {/* Right Column: Player Details */}
-        <div className="flex-1 flex flex-col min-w-0">
-          <div className="mb-2 border-b border-slate-200 pb-1.5">
-            <h2 className="text-[15px] font-bold text-slate-900 uppercase truncate">
+        <div className="flex-1 flex flex-col justify-between min-w-0">
+          <div className="border-b border-slate-200 pb-1.5">
+            <h2 className="text-[16px] font-bold text-slate-900 uppercase truncate tracking-wide" style={{ margin: 0, lineHeight: 1.25 }}>
               {player.fullName}
             </h2>
             <div className="flex gap-2 mt-1">
-              <span className="inline-flex items-center justify-center bg-blue-100 text-blue-800 px-1.5 py-0.5 rounded text-[8px] font-bold uppercase border border-blue-200">
+              <span className="inline-flex items-center justify-center bg-blue-50 text-blue-800 px-2 py-0.5 rounded-md text-[9px] font-bold uppercase border border-blue-200">
                 ID: {player.playerId}
               </span>
-              <span className="inline-flex items-center justify-center bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded text-[8px] font-bold uppercase border border-slate-200">
+              <span className="inline-flex items-center justify-center bg-slate-100 text-slate-800 px-2 py-0.5 rounded-md text-[9px] font-bold uppercase border border-slate-200">
                 REG: {regNumber}
               </span>
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-[8px] mt-0.5">
+          <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 text-[9.5px]">
             <div className="flex flex-col overflow-hidden">
-              <span className="text-slate-400 font-bold uppercase text-[6.5px]">Sport</span>
-              <span className="font-bold text-slate-800 truncate">{sportName || '-'}</span>
+              <span className="text-slate-500 font-semibold uppercase text-[8px] tracking-wider" style={{ lineHeight: 1.2 }}>Sport</span>
+              <span className="font-bold text-slate-800 truncate mt-0.5" style={{ lineHeight: 1.25, letterSpacing: '0.2px' }}>{sportName || '-'}</span>
             </div>
             <div className="flex flex-col overflow-hidden">
-              <span className="text-slate-400 font-bold uppercase text-[6.5px]">Batch</span>
-              <span className="font-bold text-slate-800 truncate">{batch || '-'}</span>
+              <span className="text-slate-500 font-semibold uppercase text-[8px] tracking-wider" style={{ lineHeight: 1.2 }}>Batch</span>
+              <span className="font-bold text-slate-800 truncate mt-0.5" style={{ lineHeight: 1.25, letterSpacing: '0.2px' }}>{batch || '-'}</span>
             </div>
             <div className="flex flex-col overflow-hidden">
-              <span className="text-slate-400 font-bold uppercase text-[6.5px]">Coach</span>
-              <span className="font-bold text-slate-800 truncate">{player.coachAssigned || 'N/A'}</span>
+              <span className="text-slate-500 font-semibold uppercase text-[8px] tracking-wider" style={{ lineHeight: 1.2 }}>Coach</span>
+              <span className="font-bold text-slate-800 truncate mt-0.5" style={{ lineHeight: 1.25, letterSpacing: '0.2px' }}>{player.coachAssigned || 'N/A'}</span>
             </div>
             <div className="flex flex-col overflow-hidden">
-              <span className="text-slate-400 font-bold uppercase text-[6.5px]">DOB / Gender</span>
-              <span className="font-bold text-slate-800 capitalize truncate">{player.dateOfBirth || '-'} / {player.gender || '-'}</span>
+              <span className="text-slate-500 font-semibold uppercase text-[8px] tracking-wider" style={{ lineHeight: 1.2 }}>DOB / Gender</span>
+              <span className="font-bold text-slate-800 capitalize truncate mt-0.5" style={{ lineHeight: 1.25, letterSpacing: '0.2px' }}>{player.dateOfBirth || '-'} / {player.gender || '-'}</span>
             </div>
             <div className="flex flex-col overflow-hidden">
-              <span className="text-slate-400 font-bold uppercase text-[6.5px]">Contact</span>
-              <span className="font-bold text-slate-800 truncate">{player.contactNumber || '-'}</span>
+              <span className="text-slate-500 font-semibold uppercase text-[8px] tracking-wider" style={{ lineHeight: 1.2 }}>Contact</span>
+              <span className="font-bold text-slate-800 truncate mt-0.5" style={{ lineHeight: 1.25, letterSpacing: '0.2px' }}>{player.contactNumber || '-'}</span>
             </div>
             <div className="flex flex-col overflow-hidden">
-              <span className="text-slate-400 font-bold uppercase text-[6.5px]">Joining Date</span>
-              <span className="font-bold text-slate-800 truncate">{player.joiningDate || '-'}</span>
+              <span className="text-slate-500 font-semibold uppercase text-[8px] tracking-wider" style={{ lineHeight: 1.2 }}>Joining Date</span>
+              <span className="font-bold text-slate-800 truncate mt-0.5" style={{ lineHeight: 1.25, letterSpacing: '0.2px' }}>{player.joiningDate || '-'}</span>
             </div>
             <div className="col-span-2 flex flex-col overflow-hidden">
-              <span className="text-slate-400 font-bold uppercase text-[6.5px]">Address</span>
-              <span className="font-bold text-slate-800 truncate">{player.address || '-'}</span>
+              <span className="text-slate-500 font-semibold uppercase text-[8px] tracking-wider" style={{ lineHeight: 1.2 }}>Address</span>
+              <span className="font-bold text-slate-800 truncate mt-0.5" style={{ lineHeight: 1.25, letterSpacing: '0.2px' }}>{player.address || '-'}</span>
             </div>
           </div>
         </div>
@@ -468,9 +579,9 @@ const FrontCardComponent = React.forwardRef(({ player, academy, qrCodeDataUrl, p
       </div>
 
       {/* Footer */}
-      <div className="bg-slate-100 text-slate-500 px-4 py-1.5 flex justify-between items-center text-[7px] font-bold border-t border-slate-200 relative z-10 shrink-0">
-        <span className="uppercase">SN: <span className="text-slate-800">{serialNumber}</span></span>
-        <span className="uppercase text-slate-400 text-[6px]">www.sportacademy.com</span>
+      <div className="bg-slate-100 text-slate-600 px-4 py-1.5 flex justify-between items-center text-[8.5px] font-bold border-t border-slate-200 relative z-10 shrink-0">
+        <span className="uppercase">SN: <span className="text-slate-900">{serialNumber}</span></span>
+        <span className="uppercase text-slate-500">{academyWebsite}</span>
       </div>
     </div>
   );
@@ -479,59 +590,59 @@ const FrontCardComponent = React.forwardRef(({ player, academy, qrCodeDataUrl, p
 /* ==========================================
    BACK CARD COMPONENT (Premium Theme)
 ========================================== */
-const BackCardComponent = React.forwardRef(({ player, academy }, ref) => {
-  const academyName = academy?.academyName || 'SPORT ACADEMY';
-  const academyAddress = academy?.address || 'Solapur, Maharashtra, India';
-  const academyPhone = academy?.phone || '+91 98765 43210';
-  const academyEmail = academy?.email || 'contact@sportacademy.com';
-  const academyWebsite = academy?.website || 'www.sportacademy.com';
+export const BackCardComponent = React.forwardRef(({ player, academy }, ref) => {
+  const academyName = (academy?.academyName && academy.academyName.trim()) ? academy.academyName : 'SPORT ACADEMY';
+  const academyAddress = (academy?.address && academy.address.trim()) ? academy.address : 'Solapur, Maharashtra, India';
+  const academyPhone = (academy?.phone && academy.phone.trim()) ? academy.phone : '+91 98765 43210';
+  const academyEmail = (academy?.email && academy.email.trim()) ? academy.email : 'contact@sportacademy.com';
+  const academyWebsite = (academy?.website && academy.website.trim()) ? academy.website : 'www.sportacademy.com';
   const issueDate = player.joiningDate || new Date().toISOString().split('T')[0];
 
   return (
     <div
       ref={ref}
-      className="w-[428px] h-[270px] rounded-2xl bg-white shadow-2xl border border-slate-200 overflow-hidden flex flex-col relative select-none font-sans print:shadow-none"
-      style={{ boxSizing: 'border-box', WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}
+      className="w-[480px] h-[300px] rounded-2xl bg-white shadow-2xl border border-slate-200 overflow-hidden flex flex-col relative select-none print:shadow-none"
+      style={{ boxSizing: 'border-box', WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact', fontFamily: 'Arial, Helvetica, sans-serif' }}
     >
       <div className="absolute inset-0 bg-slate-50/50 z-0" />
 
       {/* Top Header - Matches Front */}
-      <div className="bg-slate-900 text-white px-4 py-2 flex justify-between items-center border-b-[3px] border-amber-400 relative z-10 h-10 shrink-0">
-        <span className="text-[10px] font-black tracking-wider text-amber-400 uppercase leading-none">
+      <div className="bg-slate-900 text-white px-4 py-2 flex justify-between items-center border-b-[3px] border-amber-400 relative z-10 h-11 shrink-0">
+        <span className="text-[11px] font-bold tracking-wider text-amber-400 uppercase" style={{ lineHeight: 1.25 }}>
           CARD DETAILS & TERMS
         </span>
-        <span className="text-[8px] text-slate-300 font-medium leading-none">{academyEmail}</span>
+        <span className="text-[9px] text-slate-300 font-medium" style={{ lineHeight: 1.25 }}>{academyEmail}</span>
       </div>
 
       {/* Body Area */}
-      <div className="flex-1 p-3.5 relative z-10 flex flex-col justify-between">
+      <div className="flex-1 p-4 relative z-10 flex flex-col justify-between">
 
         {/* Info Grid */}
-        <div className="grid grid-cols-3 gap-2 bg-white p-2.5 rounded-xl border border-slate-200 shadow-sm">
+        <div className="grid grid-cols-3 gap-2 bg-white p-3 rounded-xl border border-slate-200 shadow-xs">
           <div className="flex flex-col">
-            <span className="text-slate-400 font-bold uppercase text-[6.5px] leading-tight">Emergency Contact</span>
-            <span className="font-black text-red-600 text-[8.5px] leading-tight">{player.emergencyContact || player.contactNumber || '—'}</span>
+            <span className="text-slate-500 font-semibold uppercase text-[8px]" style={{ lineHeight: 1.2 }}>Emergency Contact</span>
+            <span className="font-bold text-red-600 text-[9.5px] mt-0.5" style={{ lineHeight: 1.25 }}>{player.emergencyContact || player.contactNumber || '—'}</span>
           </div>
           <div className="flex flex-col">
-            <span className="text-slate-400 font-bold uppercase text-[6.5px] leading-tight">Academy Phone</span>
-            <span className="font-bold text-slate-800 text-[8.5px] leading-tight">{academyPhone}</span>
+            <span className="text-slate-500 font-semibold uppercase text-[8px]" style={{ lineHeight: 1.2 }}>Academy Phone</span>
+            <span className="font-bold text-slate-800 text-[9.5px] mt-0.5" style={{ lineHeight: 1.25 }}>{academyPhone}</span>
           </div>
           <div className="flex flex-col">
-            <span className="text-slate-400 font-bold uppercase text-[6.5px] leading-tight">Issue Date</span>
-            <span className="font-bold text-slate-800 text-[8.5px] leading-tight">{issueDate}</span>
+            <span className="text-slate-500 font-semibold uppercase text-[8px]" style={{ lineHeight: 1.2 }}>Issue Date</span>
+            <span className="font-bold text-slate-800 text-[9.5px] mt-0.5" style={{ lineHeight: 1.25 }}>{issueDate}</span>
           </div>
-          <div className="col-span-3 flex flex-col">
-            <span className="text-slate-400 font-bold uppercase text-[6.5px] leading-tight">Academy Address</span>
-            <span className="font-bold text-slate-800 text-[8px] leading-tight">{academyAddress}</span>
+          <div className="col-span-3 flex flex-col mt-1">
+            <span className="text-slate-500 font-semibold uppercase text-[8px]" style={{ lineHeight: 1.2 }}>Academy Address</span>
+            <span className="font-bold text-slate-800 text-[9px] mt-0.5" style={{ lineHeight: 1.25 }}>{academyAddress}</span>
           </div>
         </div>
 
         {/* Terms */}
-        <div className="mt-2 bg-slate-50 border border-slate-200 rounded-xl p-2.5">
-          <span className="font-black text-slate-800 uppercase text-[7.5px] tracking-wide mb-1 block">
+        <div className="mt-2 bg-slate-50 border border-slate-200 rounded-xl p-3">
+          <span className="font-bold text-slate-800 uppercase text-[8.5px] tracking-wide mb-1 block">
             TERMS & CONDITIONS
           </span>
-          <ul className="text-[7px] text-slate-600 space-y-0.5 ml-3 list-disc font-medium">
+          <ul className="text-[8px] text-slate-700 space-y-0.5 ml-3.5 list-disc font-medium">
             <li>This card is non-transferable and remains the property of {academyName}.</li>
             <li>Must be presented upon request during any academy activities.</li>
             <li>If found, please return to the academy address mentioned above.</li>
@@ -543,22 +654,22 @@ const BackCardComponent = React.forwardRef(({ player, academy }, ref) => {
         {/* Signatures */}
         <div className="grid grid-cols-2 gap-4 mt-2">
           <div className="flex flex-col items-center justify-end">
-            <div className="w-32 border-b-2 border-slate-400 mb-1" />
-            <span className="text-[7px] font-bold text-slate-600 uppercase tracking-wider">Authorized Signature</span>
+            <div className="w-36 border-b-2 border-slate-400 mb-1" />
+            <span className="text-[8px] font-bold text-slate-700 uppercase tracking-wider">Authorized Signature</span>
           </div>
           <div className="flex flex-col items-center justify-end">
-            <div className="w-28 h-11 border-2 border-slate-400 border-dashed rounded-lg flex flex-col items-center justify-center bg-slate-50/80 shadow-xs">
-              <span className="text-[7.5px] font-extrabold text-slate-600 uppercase tracking-widest">OFFICIAL STAMP</span>
-              <span className="text-[5.5px] font-semibold text-slate-400 uppercase tracking-tight">[ HERE ]</span>
+            <div className="w-32 h-12 border-2 border-slate-400 border-dashed rounded-lg flex flex-col items-center justify-center bg-white shadow-xs">
+              <span className="text-[8px] font-bold text-slate-700 uppercase tracking-widest">OFFICIAL STAMP</span>
+              <span className="text-[6px] font-medium text-slate-400 uppercase tracking-tight">[ HERE ]</span>
             </div>
           </div>
         </div>
       </div>
 
       {/* Footer */}
-      <div className="bg-slate-900 text-white px-4 py-1.5 flex justify-between items-center text-[7px] font-medium relative z-10 border-t border-amber-400 shrink-0">
+      <div className="bg-slate-900 text-white px-4 py-1.5 flex justify-between items-center text-[8px] font-medium relative z-10 border-t border-amber-400 shrink-0">
         <span>"Nurturing the Champions of Tomorrow"</span>
-        <span className="text-amber-300 font-mono">{academyWebsite}</span>
+        <span className="text-amber-300 font-mono font-bold">{academyWebsite}</span>
       </div>
     </div>
   );
