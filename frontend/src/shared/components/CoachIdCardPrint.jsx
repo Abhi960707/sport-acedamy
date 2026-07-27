@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import QRCode from 'qrcode';
-import api, { API_BASE } from '../../api';
+import api from '../../api';
 import { FrontCardComponent, BackCardComponent } from './CoachIdCardModal';
 
 export default function CoachIdCardPrint({ coach, academy }) {

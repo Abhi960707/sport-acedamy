@@ -1,19 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import QRCode from 'qrcode';
-import api, { API_BASE } from '../../api';
+import api from '../../api';
 import { FrontCardComponent, BackCardComponent } from './PlayerIdCardModal';
-
-const getImageUrl = (url) => {
-  if (!url) return '';
-  if (url.startsWith('data:')) return url;
-  if (url.startsWith('/uploads')) return `${API_BASE}${url}`;
-  if (url.includes('/uploads/')) {
-    const filename = url.split('/uploads/')[1];
-    return `${API_BASE}/uploads/${filename}`;
-  }
-  return url;
-};
 
 export default function PlayerIdCardPrint({ player, academy }) {
   const [qrCodeDataUrl, setQrCodeDataUrl] = useState('');
@@ -128,25 +117,7 @@ export default function PlayerIdCardPrint({ player, academy }) {
 
   if (!player) return null;
 
-  let sportName = player.sportChosen || '';
-  if (sportName.includes('(')) {
-    const match = sportName.match(/(.+?)\s*\((.+?)\)/);
-    if (match) sportName = match[1].trim();
-  }
-
   const activeAcademy = academy || fetchedAcademy;
-
-  const academyName = (activeAcademy?.academyName && activeAcademy.academyName.trim()) ? activeAcademy.academyName : 'SPORT ACADEMY';
-  const academyLogo = activeAcademy?.logo || '';
-  const academyAddress = (activeAcademy?.address && activeAcademy.address.trim()) ? activeAcademy.address : 'Solapur, Maharashtra, India';
-  const academyPhone = (activeAcademy?.phone && activeAcademy.phone.trim()) ? activeAcademy.phone : '+91 98765 43210';
-  const academyEmail = (activeAcademy?.email && activeAcademy.email.trim()) ? activeAcademy.email : 'contact@sportacademy.com';
-  const academyWebsite = (activeAcademy?.website && activeAcademy.website.trim()) ? activeAcademy.website : 'www.sportacademy.com';
-
-  const batch = player.batch || 'Regular Batch';
-  const regNumber = player.registrationNumber || player.playerId || 'REG-001';
-  const issueDate = player.joiningDate || new Date().toISOString().split('T')[0];
-  const serialNumber = `SN-${player.playerId || '001'}`;
 
   return createPortal(
     <div id="id-card-print-root" style={{ display: 'none' }} aria-hidden="true">

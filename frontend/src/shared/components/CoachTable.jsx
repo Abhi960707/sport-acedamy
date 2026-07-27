@@ -8,7 +8,6 @@ import { canManageAcademyRecords } from '../../common/access';
 import ExportDropdown from './ExportDropdown';
 import { downloadCsv, downloadPdf } from '../../common/reportExport';
 import CoachIdCardModal from './CoachIdCardModal';
-import CoachIdCardPrint from './CoachIdCardPrint';
 
 const PREDEFINED_SPORTS = [
   'Cricket',
@@ -39,7 +38,6 @@ export default function CoachReport({ searchQuery }) {
 
   // ID Card State
   const [idCardCoach, setIdCardCoach] = useState(null);
-  const [idCardPrintCoach, setIdCardPrintCoach] = useState(null);
   const [academySettings, setAcademySettings] = useState(null);
 
   useEffect(() => {
